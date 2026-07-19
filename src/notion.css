@@ -198,6 +198,39 @@ textarea {
   color: var(--text-muted);
 }
 
+/* Smooth chevron rotation (Notion-like) */
+.page-collapse-chev {
+  display: inline-block;
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.page-collapse-btn.is-open .page-collapse-chev {
+  transform: rotate(90deg);
+}
+
+/* Smooth expand / collapse of nested pages */
+.page-tree-kids {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.22s ease;
+}
+
+.page-tree-kids.is-collapsed {
+  grid-template-rows: 0fr;
+}
+
+.page-tree-kids-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.page-tree-node {
+  /* keeps layout stable during animation */
+}
+
 .page-row-main.has-kids {
   padding-left: 0;
 }

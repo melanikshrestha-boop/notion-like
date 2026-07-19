@@ -233,7 +233,17 @@ export function iconForPage(page: Pick<Page, "id" | "title" | "kind" | "icon">):
   if (id.includes("todo") || t.includes("to do")) return "todo";
   if (id.includes("goal") || t.includes("goal")) return "goals";
   if (id.includes("journal") || t.includes("journal")) return "journal";
-  if (id.includes("neuro") || t.includes("neuro") || t.includes("real life") || t.includes("openneuro"))
+  if (id.includes("personal") || t.includes("personal life")) return "home";
+  if (id.includes("housing") || t.includes("housing")) return "home";
+  if (id.includes("car") || t.includes("car payment")) return "finance";
+  if (id.includes("travel") || t.includes("travel")) return "meetings";
+  if (id.includes("morning") || t.includes("morning")) return "sleep";
+  if (id.includes("night") || t.includes("night")) return "sleep";
+  if (id.includes("manifest") || t.includes("manifest") || t.includes("why"))
+    return "goals";
+  if (id.includes("fashion") || t.includes("fashion") || t.includes("art"))
+    return "page";
+  if (id.includes("neuro") || t.includes("neuro") || t.includes("openneuro"))
     return "brain";
   if (id.includes("doctor") || t.includes("doctor")) return "doctor";
   if (id.includes("grocery") || t.includes("shop") || t.includes("grocery")) return "shop";

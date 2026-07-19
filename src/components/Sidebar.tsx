@@ -30,7 +30,12 @@ function loadCollapsed(): Record<string, boolean> {
   } catch {
     /* ignore */
   }
-  return { "pg-fitness": true, "pg-hygiene": true, "pg-books": true };
+  return {
+    "pg-fitness": true,
+    "pg-hygiene": true,
+    "pg-books": true,
+    "pg-personal-life": true,
+  };
 }
 
 function saveCollapsed(map: Record<string, boolean>) {
@@ -94,7 +99,7 @@ function PageTreeItem({
   const isCollapsed = hasKids && !!collapsed[page.id];
 
   return (
-    <>
+    <div className="page-tree-node">
       <div
         className={`page-row${page.id === activePageId ? " is-active" : ""}`}
         style={{ paddingLeft: 2 + depth * 12 }}
@@ -110,7 +115,10 @@ function PageTreeItem({
               onToggleCollapse(page.id);
             }}
           >
-            {isCollapsed ? "▸" : "▾"}
+            {/* Always same chevron — rotates smoothly like Notion */}
+            <span className="page-collapse-chev" aria-hidden>
+              ▸
+            </span>
           </button>
         ) : (
           <span className="page-collapse-spacer" aria-hidden />
@@ -151,22 +159,31 @@ function PageTreeItem({
           </button>
         </div>
       </div>
-      {!isCollapsed &&
-        kids.map((child) => (
-          <PageTreeItem
-            key={child.id}
-            page={child}
-            pages={pages}
-            activePageId={activePageId}
-            depth={depth + 1}
-            collapsed={collapsed}
-            onToggleCollapse={onToggleCollapse}
-            onSelect={onSelect}
-            onDeletePage={onDeletePage}
-            onToggleFavorite={onToggleFavorite}
-          />
-        ))}
-    </>
+
+      {/* Smooth open/close — Notion-style expand */}
+      {hasKids && (
+        <div
+          className={`page-tree-kids${isCollapsed ? " is-collapsed" : ""}`}
+        >
+          <div className="page-tree-kids-inner">
+            {kids.map((child) => (
+              <PageTreeItem
+                key={child.id}
+                page={child}
+                pages={pages}
+                activePageId={activePageId}
+                depth={depth + 1}
+                collapsed={collapsed}
+                onToggleCollapse={onToggleCollapse}
+                onSelect={onSelect}
+                onDeletePage={onDeletePage}
+                onToggleFavorite={onToggleFavorite}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

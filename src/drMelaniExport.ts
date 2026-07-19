@@ -70,7 +70,18 @@ export function buildDrMelaniWorkspace(): Workspace {
   const BOOKS = "pg-books";
   const BOOK_INNOVATORS = "pg-book-innovators";
   const BOOK_PHOTO = "pg-book-photo";
-  const REAL_LIFE = "pg-real-life";
+  const PERSONAL = "pg-personal-life";
+  const PL_HOUSING = "pg-pl-housing";
+  const PL_CAR = "pg-pl-car";
+  const PL_TRAVEL = "pg-pl-travel";
+  const PL_MORNING = "pg-pl-morning";
+  const PL_NIGHT = "pg-pl-night";
+  const PL_MANIFEST = "pg-pl-manifest";
+  const PL_WHY = "pg-pl-why";
+  const PL_FASHION = "pg-pl-fashion";
+  const PL_BOOKS_RABBIT = "pg-pl-books-rabbit";
+  const PL_FINANCES = "pg-pl-finances";
+  const PL_ART = "pg-pl-art";
   const OPENNEURO = "pg-openneuro";
   const DOC_HUB = "pg-doc-hub";
   const MEETINGS = "pg-meetings";
@@ -94,7 +105,7 @@ export function buildDrMelaniWorkspace(): Workspace {
       b("bullet", "Data — profile, period, labs (one page)"),
       b("bullet", "75 Hard · Supplements · Grocery"),
       b("heading2", "Life (from your old Notion)"),
-      b("bullet", "Books · Real Life · Document Hub"),
+      b("bullet", "Personal Life · Books · Document Hub"),
       b("bullet", "Goals Tracker · To Do · Journal"),
       b("bullet", "Meetings · Classes · Content · Finance"),
       b("heading2", "Build"),
@@ -501,15 +512,118 @@ export function buildDrMelaniWorkspace(): Workspace {
       b("paragraph", ""),
     ]),
 
-    page(REAL_LIFE, "Real Life", "🧠", null, [
-      b("heading1", "Real Life"),
-      b("paragraph", "People, places, feelings, decisions — your life outside the system."),
-      b("heading2", "This week"),
+    // Personal Life — from your Notion (sub-pages + smooth sidebar toggle)
+    page(PERSONAL, "Personal Life", "👑", null, [
+      b("heading1", "Personal Life"),
+      b(
+        "paragraph",
+        "Your life stack — housing, routines, fashion, art. Open a page below or from the sidebar."
+      ),
+      b("heading2", "Pages"),
+      b("bullet", "Housing"),
+      b("bullet", "Car Payments"),
+      b("bullet", "Travel"),
+      b("bullet", "Morning Routine"),
+      b("bullet", "Night Routine"),
+      b("bullet", "Manifestation"),
+      b("bullet", "My “Why”"),
+      b("bullet", "Fashion"),
+      b("bullet", "Books + Rabbit Holes"),
+      b("bullet", "Finances"),
+      b("bullet", "Art"),
+    ]),
+    page(PL_HOUSING, "Housing", "🏠", PERSONAL, [
+      b("heading1", "Housing"),
+      b("paragraph", "Rent, roommates, moves, apartment notes."),
+      b("heading2", "Notes"),
       b("paragraph", ""),
-      b("heading2", "Relationships"),
-      b("paragraph", ""),
-      b("heading2", "Decisions"),
+      b("heading2", "To-do"),
       b("todo", ""),
+    ]),
+    page(PL_CAR, "Car Payments", "💳", PERSONAL, [
+      b("heading1", "Car Payments"),
+      b("paragraph", "Payment schedule, due dates, amounts."),
+      b("heading2", "Log"),
+      b("todo", ""),
+      b("heading2", "Notes"),
+      b("paragraph", ""),
+    ]),
+    page(PL_TRAVEL, "Travel", "✈️", PERSONAL, [
+      b("heading1", "Travel"),
+      b("paragraph", "Trips, packing, cities, ideas."),
+      b("heading2", "Wishlist"),
+      b("bullet", ""),
+      b("heading2", "Notes"),
+      b("paragraph", ""),
+    ]),
+    page(PL_MORNING, "Morning Routine", "☀️", PERSONAL, [
+      b("heading1", "Morning Routine"),
+      b("todo", "Wake + water"),
+      b("todo", "Move / stretch"),
+      b("todo", "Skincare AM"),
+      b("todo", "Protein breakfast"),
+      b("heading2", "Notes"),
+      b("paragraph", ""),
+    ]),
+    page(PL_NIGHT, "Night Routine", "🌙", PERSONAL, [
+      b("heading1", "Night Routine"),
+      b("todo", "Screens down"),
+      b("todo", "Skincare PM"),
+      b("todo", "Journal / wind down"),
+      b("todo", "Bedtime target"),
+      b("heading2", "Notes"),
+      b("paragraph", ""),
+    ]),
+    page(PL_MANIFEST, "Manifestation", "✨", PERSONAL, [
+      b("heading1", "Manifestation"),
+      b("paragraph", "What you’re calling in."),
+      b("heading2", "This season"),
+      b("paragraph", ""),
+      b("heading2", "Daily"),
+      b("paragraph", ""),
+    ]),
+    page(PL_WHY, "My “Why”", "💫", PERSONAL, [
+      b("heading1", "My “Why”"),
+      b(
+        "paragraph",
+        "Why you build — medicine, neurotech, clinics, lives saved."
+      ),
+      b("heading2", "Core why"),
+      b("paragraph", ""),
+      b("heading2", "Reminders"),
+      b("bullet", ""),
+    ]),
+    page(PL_FASHION, "Fashion", "👜", PERSONAL, [
+      b("heading1", "Fashion"),
+      b("paragraph", "Looks, shopping list, style notes."),
+      b("heading2", "Want"),
+      b("todo", ""),
+      b("heading2", "Notes"),
+      b("paragraph", ""),
+    ]),
+    page(PL_BOOKS_RABBIT, "Books + Rabbit Holes", "📚", PERSONAL, [
+      b("heading1", "Books + Rabbit Holes"),
+      b("paragraph", "Deep dives and reading rabbit holes."),
+      b("heading2", "In progress"),
+      b("bullet", ""),
+      b("heading2", "Queue"),
+      b("todo", ""),
+    ]),
+    page(PL_FINANCES, "Finances", "💵", PERSONAL, [
+      b("heading1", "Finances"),
+      b("paragraph", "Personal money notes (also see top-level Finance)."),
+      b("heading2", "This month"),
+      b("todo", ""),
+      b("heading2", "Notes"),
+      b("paragraph", ""),
+    ]),
+    page(PL_ART, "Art", "🎨", PERSONAL, [
+      b("heading1", "Art"),
+      b("paragraph", "Photo, video, creative projects."),
+      b("heading2", "Projects"),
+      b("bullet", ""),
+      b("heading2", "Ideas"),
+      b("paragraph", ""),
     ]),
 
     page(OPENNEURO, "Downloading OpenNeuro data", "📄", null, [
@@ -624,8 +738,8 @@ export function buildDrMelaniWorkspace(): Workspace {
     pages,
     activePageId: HOME,
     sidebarOpen: true,
-    exportVersion: 5,
+    exportVersion: 6,
   } as Workspace & { exportVersion?: number };
 }
 
-export const DR_MELANI_EXPORT_VERSION = 5;
+export const DR_MELANI_EXPORT_VERSION = 6;
