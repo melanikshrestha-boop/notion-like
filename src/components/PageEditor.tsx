@@ -7,7 +7,9 @@ import { filterSlash, type SlashCommand } from "../slashCommands";
 
 type Props = {
   page: Page;
+  childPages?: Page[];
   onUpdatePage: (page: Page) => void;
+  onOpenPage?: (id: string) => void;
 };
 
 type SlashState = {
@@ -19,7 +21,7 @@ type SlashState = {
   left: number;
 } | null;
 
-export function PageEditor({ page, onUpdatePage }: Props) {
+export function PageEditor({ page, childPages = [], onUpdatePage, onOpenPage }: Props) {
   const [focusId, setFocusId] = useState<string | null>(null);
   const [slash, setSlash] = useState<SlashState>(null);
 
@@ -265,6 +267,25 @@ export function PageEditor({ page, onUpdatePage }: Props) {
             );
           })}
         </div>
+
+        {/* Nested pages — like Notion subpage list under Books */}
+        {childPages.length > 0 && (
+          <div className="child-page-list">
+            {childPages.map((child) => (
+              <button
+                key={child.id}
+                type="button"
+                className="child-page-link"
+                onClick={() => onOpenPage?.(child.id)}
+              >
+                <span className="child-page-icon">{child.icon || "📄"}</span>
+                <span className="child-page-title">
+                  {child.title.trim() || "Untitled"}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

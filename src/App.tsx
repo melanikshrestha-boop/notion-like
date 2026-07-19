@@ -3,6 +3,7 @@ import type { Page, Workspace } from "./types";
 import {
   createPage,
   defaultWorkspace,
+  forceImportDrMelani,
   loadWorkspace,
   saveWorkspace,
 } from "./storage";
@@ -26,6 +27,11 @@ export default function App() {
     [ws]
   );
 
+  const childPages = useMemo(
+    () => (activePage ? ws.pages.filter((p) => p.parentId === activePage.id) : []),
+    [ws, activePage]
+  );
+
   function setActive(id: string) {
     setWs((prev) => ({ ...prev, activePageId: id }));
   }
@@ -38,7 +44,15 @@ export default function App() {
   }
 
   function addPage() {
-    const page = createPage(null);
+    // New page under current page if it has a parent hub, else top-level
+    const parentId = activePage?.parentId === null ? activePage.id : null;
+    // Prefer top-level new pages from Home; under hubs nest children
+    const nestUnder =
+      activePage &&
+      ["pg-fitness", "pg-hygiene", "pg-my-data"].includes(activePage.id)
+        ? activePage.id
+        : null;
+    const page = createPage(nestUnder ?? parentId);
     setWs((prev) => ({
       ...prev,
       pages: [...prev.pages, page],
@@ -49,15 +63,29 @@ export default function App() {
   function deletePage(id: string) {
     setWs((prev) => {
       if (prev.pages.length <= 1) return prev;
-      const pages = prev.pages.filter((p) => p.id !== id);
-      const activePageId =
-        prev.activePageId === id ? pages[0].id : prev.activePageId;
+      // also drop children of deleted page
+      const drop = new Set<string>([id]);
+      prev.pages.forEach((p) => {
+        if (p.parentId && drop.has(p.parentId)) drop.add(p.id);
+      });
+      // second pass for deeper nests
+      prev.pages.forEach((p) => {
+        if (p.parentId && drop.has(p.parentId)) drop.add(p.id);
+      });
+      const pages = prev.pages.filter((p) => !drop.has(p.id));
+      const activePageId = drop.has(prev.activePageId)
+        ? pages[0].id
+        : prev.activePageId;
       return { ...prev, pages, activePageId };
     });
   }
 
   function toggleSidebar() {
     setWs((prev) => ({ ...prev, sidebarOpen: !prev.sidebarOpen }));
+  }
+
+  function reimport() {
+    setWs(forceImportDrMelani());
   }
 
   if (!activePage) return null;
@@ -81,6 +109,7 @@ export default function App() {
         onNewPage={addPage}
         onDeletePage={deletePage}
         onClose={() => setWs((p) => ({ ...p, sidebarOpen: false }))}
+        onReimport={reimport}
       />
 
       <main className="main">
@@ -123,7 +152,12 @@ export default function App() {
           </button>
         </header>
 
-        <PageEditor page={activePage} onUpdatePage={updatePage} />
+        <PageEditor
+          page={activePage}
+          childPages={childPages}
+          onUpdatePage={updatePage}
+          onOpenPage={setActive}
+        />
       </main>
     </div>
   );

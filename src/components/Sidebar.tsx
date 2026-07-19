@@ -9,7 +9,71 @@ type Props = {
   onNewPage: () => void;
   onDeletePage: (id: string) => void;
   onClose: () => void;
+  onReimport?: () => void;
 };
+
+function PageTreeItem({
+  page,
+  pages,
+  activePageId,
+  depth,
+  onSelect,
+  onDeletePage,
+}: {
+  page: Page;
+  pages: Page[];
+  activePageId: string;
+  depth: number;
+  onSelect: (id: string) => void;
+  onDeletePage: (id: string) => void;
+}) {
+  const kids = pages.filter((p) => p.parentId === page.id);
+
+  return (
+    <>
+      <div
+        className={`page-row${page.id === activePageId ? " is-active" : ""}`}
+        style={{ paddingLeft: 2 + depth * 14 }}
+      >
+        <button
+          type="button"
+          className="page-row-main"
+          onClick={() => onSelect(page.id)}
+        >
+          <span className="page-emoji">{page.icon}</span>
+          <span className="page-title-side">
+            {page.title.trim() || "Untitled"}
+          </span>
+        </button>
+        <div className="page-row-actions">
+          <button
+            type="button"
+            className="page-mini-btn"
+            title="Delete page"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (pages.length <= 1) return;
+              if (window.confirm("Delete this page?")) onDeletePage(page.id);
+            }}
+          >
+            ×
+          </button>
+        </div>
+      </div>
+      {kids.map((child) => (
+        <PageTreeItem
+          key={child.id}
+          page={child}
+          pages={pages}
+          activePageId={activePageId}
+          depth={depth + 1}
+          onSelect={onSelect}
+          onDeletePage={onDeletePage}
+        />
+      ))}
+    </>
+  );
+}
 
 export function Sidebar({
   workspaceName,
@@ -20,10 +84,11 @@ export function Sidebar({
   onNewPage,
   onDeletePage,
   onClose,
+  onReimport,
 }: Props) {
   const topPages = pages.filter((p) => p.parentId === null);
-
-  const initial = workspaceName.trim().charAt(0).toUpperCase() || "W";
+  const home = pages.find((p) => p.id === "pg-home") || topPages[0];
+  const initial = workspaceName.trim().charAt(0).toUpperCase() || "D";
 
   return (
     <aside className={`sidebar${open ? "" : " is-closed"}`} aria-label="Sidebar">
@@ -37,7 +102,19 @@ export function Sidebar({
         </button>
       </div>
 
-      <div className="sidebar-search" title="Search (coming soon)">
+      {/* Home pill row like real Notion */}
+      {home && (
+        <button
+          type="button"
+          className={`sidebar-home-pill${activePageId === home.id ? " is-active" : ""}`}
+          onClick={() => onSelect(home.id)}
+        >
+          <span>⌂</span>
+          <span>Home</span>
+        </button>
+      )}
+
+      <div className="sidebar-search" title="Search">
         <span>🔍</span>
         <span>Search</span>
       </div>
@@ -46,35 +123,15 @@ export function Sidebar({
 
       <div className="sidebar-scroll">
         {topPages.map((page) => (
-          <div
+          <PageTreeItem
             key={page.id}
-            className={`page-row${page.id === activePageId ? " is-active" : ""}`}
-          >
-            <button
-              type="button"
-              className="page-row-main"
-              onClick={() => onSelect(page.id)}
-            >
-              <span className="page-emoji">{page.icon}</span>
-              <span className="page-title-side">
-                {page.title.trim() || "Untitled"}
-              </span>
-            </button>
-            <div className="page-row-actions">
-              <button
-                type="button"
-                className="page-mini-btn"
-                title="Delete page"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (pages.length <= 1) return;
-                  if (window.confirm("Delete this page?")) onDeletePage(page.id);
-                }}
-              >
-                ×
-              </button>
-            </div>
-          </div>
+            page={page}
+            pages={pages}
+            activePageId={activePageId}
+            depth={0}
+            onSelect={onSelect}
+            onDeletePage={onDeletePage}
+          />
         ))}
       </div>
 
@@ -83,11 +140,30 @@ export function Sidebar({
         <span>New page</span>
       </button>
 
-      <div className="sidebar-footer">
-        <button type="button" className="sidebar-new" style={{ margin: 0, width: "100%" }} onClick={onNewPage}>
-          <span>👤</span>
-          <span style={{ fontSize: 13 }}>Add a page</span>
+      {onReimport && (
+        <button
+          type="button"
+          className="sidebar-new"
+          style={{ color: "rgba(55,53,47,0.55)", fontSize: 12 }}
+          onClick={() => {
+            if (
+              window.confirm(
+                "Re-import full Dr. Melani export? This replaces the workspace tree (your typed edits on old pages may be lost)."
+              )
+            ) {
+              onReimport();
+            }
+          }}
+        >
+          <span>↺</span>
+          <span>Re-import Dr. Melani</span>
         </button>
+      )}
+
+      <div className="sidebar-footer">
+        <div className="sidebar-footer-note">
+          Full health system from Dr. Melani · light Notion UI
+        </div>
       </div>
     </aside>
   );

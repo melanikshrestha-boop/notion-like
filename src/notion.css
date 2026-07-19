@@ -154,6 +154,31 @@ textarea {
   color: var(--text);
 }
 
+.sidebar-home-pill {
+  margin: 2px 8px 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: calc(100% - 16px);
+  border: none;
+  background: transparent;
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.sidebar-home-pill:hover {
+  background: var(--sidebar-hover);
+}
+
+.sidebar-home-pill.is-active {
+  background: rgba(55, 53, 47, 0.1);
+}
+
 .sidebar-search {
   margin: 2px 8px 8px;
   display: flex;
@@ -168,6 +193,53 @@ textarea {
 
 .sidebar-search:hover {
   background: var(--sidebar-hover);
+}
+
+.sidebar-footer-note {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-faint);
+  padding: 4px 6px;
+}
+
+/* Nested page links on parent pages (Notion style) */
+.child-page-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.child-page-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  padding: 6px 4px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  font-size: 16px;
+  font-family: var(--notion-font);
+}
+
+.child-page-link:hover {
+  background: rgba(55, 53, 47, 0.06);
+}
+
+.child-page-icon {
+  font-size: 18px;
+  width: 24px;
+  text-align: center;
+}
+
+.child-page-title {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(55, 53, 47, 0.35);
+  font-weight: 500;
 }
 
 .sidebar-section-label {
