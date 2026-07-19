@@ -99,12 +99,22 @@ export function MinimalIcon({ name, size = 16, className = "" }: Props) {
         </svg>
       );
     case "labs":
-    case "data":
       return (
         <svg {...common}>
           <path {...stroke} d="M9 3h6" />
           <path {...stroke} d="M10 3v6.5L5.5 20h13L14 9.5V3" />
           <path {...stroke} d="M7 15h10" />
+        </svg>
+      );
+    case "data":
+      // mini bar graph
+      return (
+        <svg {...common}>
+          <path {...stroke} d="M4 19V11" />
+          <path {...stroke} d="M10 19V5" />
+          <path {...stroke} d="M16 19v-7" />
+          <path {...stroke} d="M22 19V8" />
+          <path {...stroke} d="M2 19h20" />
         </svg>
       );
     case "hard":
@@ -214,8 +224,9 @@ export function iconForPage(page: Pick<Page, "id" | "title" | "kind" | "icon">):
   if (id.includes("work") || t === "work") return "work";
   if (id.includes("hygiene") || t.includes("hygiene") || t.includes("shower") || t.includes("skin") || t.includes("hair"))
     return "hygiene";
-  if (id.includes("lab") || id.includes("my-data") || t.includes("lab") || t.includes("data"))
-    return "labs";
+  if (id === "pg-data" || id === "pg-my-data" || t === "data" || t === "my data")
+    return "data";
+  if (id.includes("lab") || t.includes("lab")) return "labs";
   if (id.includes("75") || t.includes("75 hard")) return "hard";
   if (id.includes("book") || t.includes("book") || t.includes("reading") || t.includes("innovator") || t.includes("photo"))
     return "books";

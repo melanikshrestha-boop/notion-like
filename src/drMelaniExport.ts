@@ -54,10 +54,7 @@ export function buildDrMelaniWorkspace(): Workspace {
   const HAIR = "pg-hair";
   const AM_SKIN = "pg-am-skin";
   const PM_SKIN = "pg-pm-skin";
-  const MY_DATA = "pg-my-data";
-  const PROFILE = "pg-profile";
-  const CYCLE = "pg-cycle";
-  const LABS = "pg-labs";
+  const DATA = "pg-data";
   const TESTS = "pg-tests";
   const WEARABLES = "pg-wearables";
   const ANALYTICS = "pg-analytics";
@@ -94,7 +91,7 @@ export function buildDrMelaniWorkspace(): Workspace {
       ),
       b("heading2", "Health"),
       b("bullet", "Fitness — Sleep · Meals · Gym · Body"),
-      b("bullet", "My Data — labs, period, profile"),
+      b("bullet", "Data — profile, period, labs (one page)"),
       b("bullet", "75 Hard · Supplements · Grocery"),
       b("heading2", "Life (from your old Notion)"),
       b("bullet", "Books · Real Life · Document Hub"),
@@ -300,83 +297,22 @@ export function buildDrMelaniWorkspace(): Workspace {
       b("todo", "Log tonight’s PM type"),
     ]),
 
-    // ── My Data hub ──
-    page(MY_DATA, "My Data", "📊", null, [
-      b("heading1", "My Data"),
-      b("paragraph", "Labs, period, profile, wearables — neon status lives in the app; numbers exported here."),
-      b("heading2", "Sections"),
-      b("bullet", "Profile"),
-      b("bullet", "Period tracker"),
-      b("bullet", "Labs (results)"),
-      b("bullet", "Upcoming tests"),
-      b("bullet", "Wearables (WHOOP + Apple Health)"),
-      b("bullet", "Health Analytics"),
+    // ── Data (one page: profile + period toggle + labs) ──
+    page(DATA, "Data", "data", null, [
+      b("heading1", "Data"),
+      b(
+        "paragraph",
+        "Profile, period tracker, and labs on one page — open Data in the sidebar."
+      ),
     ]),
 
-    page(PROFILE, "Profile", "👤", MY_DATA, [
-      b("heading1", "Profile"),
-      b("bullet", "Name: Melani Shrestha"),
-      b("bullet", "DOB: 2007-08-24"),
-      b("bullet", "Sex: F"),
-      b("bullet", "Height: 5 ft 0 in"),
-      b("bullet", "Provider: Ververis, Megan"),
-      b("bullet", "Patient ID: 2581279882"),
-      b("bullet", "Conditions: migraine/chronic pain; cardio/metabolic monitoring"),
-      b("bullet", "Water goal: 4000 ml"),
-      b("bullet", "Meals per day: 3"),
-    ]),
-
-    page(CYCLE, "Period tracker", "🩸", MY_DATA, [
-      b("heading1", "Period tracker"),
-      b("paragraph", "Flow levels, phase chips, ovulation window — full UI in My Data."),
-      b("heading2", "Log"),
-      b("bullet", "Today’s flow: spotting / light / medium / heavy"),
-      b("todo", "Tap Period started today when needed"),
-      b("heading2", "Phases to learn"),
-      b("bullet", "Menstrual"),
-      b("bullet", "Follicular"),
-      b("bullet", "Ovulation"),
-      b("bullet", "Luteal / pre-period"),
-      b("callout", "Pink = flow · gold = ovulation · blue = today (app calendar)."),
-    ]),
-
-    page(LABS, "Labs", "🧪", MY_DATA, [
-      b("heading1", "Labs"),
-      b("paragraph", "Exported from Dr. Melani lab draws. Discuss with Dr. Ververis."),
-      b("heading2", "Quest · 2026-03-26 · Lipids + A1C"),
-      b("bullet", "Total Cholesterol: 207 mg/dL · HIGH"),
-      b("bullet", "HDL: 64 mg/dL · OK"),
-      b("bullet", "Triglycerides: 119 mg/dL · HIGH"),
-      b("bullet", "LDL: 120 mg/dL · HIGH"),
-      b("bullet", "Chol/HDL ratio: 3.2"),
-      b("bullet", "Non-HDL: 143 mg/dL · HIGH"),
-      b("bullet", "Hemoglobin A1c: 5.3%"),
-      b("divider"),
-      b("heading2", "Quest · 2026-04-07 · Thyroid"),
-      b("bullet", "TSH: 1.06 mIU/L"),
-      b("divider"),
-      b("heading2", "USC · 2026-03-25 · CBC + CMP"),
-      b("bullet", "WBC 9.3 · RBC 4.94 · HGB 13.6 · HCT 40.2 · PLT 223"),
-      b("bullet", "Albumin 4.8 · ALT 14 · ALP 66 · AST 22"),
-      b("divider"),
-      b("heading2", "USC · 2026-04-06 · CBC + BMP"),
-      b("bullet", "WBC 7.5 · RBC 4.63 (see app for full panel)"),
-      b("divider"),
-      b("heading2", "What this means for food"),
-      b("bullet", "Prioritize soluble fiber, omega-3 fish, EVOO, nuts"),
-      b("bullet", "Limit sat fat, refined carbs, added sugar"),
-      b("bullet", "Upload new PDF in app → Lab PDF section"),
-      b("callout", "Neon HIGH/OK chips live on My Data in the app (not this text page)."),
-    ]),
-
-    page(TESTS, "Upcoming tests", "📅", MY_DATA, [
+    page(TESTS, "Upcoming tests", "📅", null, [
       b("heading1", "Upcoming tests"),
       b("paragraph", "Screening schedule from Dr. Melani."),
-      b("bullet", "Open My Data → Upcoming tests for due dates + fasting notes"),
-      b("todo", "Check overdue / due soon badges in app"),
+      b("todo", "Check due dates in live health app if needed"),
     ]),
 
-    page(WEARABLES, "Wearables", "⌚", MY_DATA, [
+    page(WEARABLES, "Wearables", "⌚", null, [
       b("heading1", "Wearables"),
       b("paragraph", "Raw WHOOP + Apple Health only — no Recovery/Strain scores."),
       b("heading2", "WHOOP"),
@@ -384,7 +320,6 @@ export function buildDrMelaniWorkspace(): Workspace {
       b("bullet", "HRV 7-day avg · Resting HR 7-day avg"),
       b("heading2", "Apple Health"),
       b("bullet", "Export CSV → import in app"),
-      b("bullet", "Steps week total when available"),
     ]),
 
     // ── Analytics ──
@@ -689,8 +624,8 @@ export function buildDrMelaniWorkspace(): Workspace {
     pages,
     activePageId: HOME,
     sidebarOpen: true,
-    exportVersion: 4,
+    exportVersion: 5,
   } as Workspace & { exportVersion?: number };
 }
 
-export const DR_MELANI_EXPORT_VERSION = 4;
+export const DR_MELANI_EXPORT_VERSION = 5;

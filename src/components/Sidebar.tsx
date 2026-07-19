@@ -30,7 +30,7 @@ function loadCollapsed(): Record<string, boolean> {
   } catch {
     /* ignore */
   }
-  return { "pg-fitness": true, "pg-hygiene": true, "pg-my-data": true, "pg-books": true };
+  return { "pg-fitness": true, "pg-hygiene": true, "pg-books": true };
 }
 
 function saveCollapsed(map: Record<string, boolean>) {
