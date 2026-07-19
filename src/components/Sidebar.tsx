@@ -186,13 +186,10 @@ export function Sidebar({
     .filter(Boolean)
     .slice(0, 5) as Page[];
 
-  const initial = workspaceName.trim().charAt(0).toUpperCase() || "D";
-
   return (
     <aside className={`sidebar${open ? "" : " is-closed"}`} aria-label="Sidebar">
       <div className="sidebar-top">
         <button type="button" className="workspace-btn" title={workspaceName}>
-          <span className="workspace-icon">{initial}</span>
           <span className="workspace-name">{workspaceName}</span>
         </button>
         <button type="button" className="sidebar-icon-btn" onClick={onClose}>
