@@ -363,12 +363,53 @@ textarea {
   font-size: 14px;
 }
 
-.page-emoji {
+.page-emoji,
+.page-icon-wrap {
   width: 20px;
-  text-align: center;
+  height: 20px;
   flex-shrink: 0;
-  font-size: 15px;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.min-icon {
+  display: block;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.page-row.is-active .page-icon-wrap,
+.page-row:hover .page-icon-wrap {
+  color: #fff;
+}
+
+/* Recents section toggle */
+.sidebar-section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: calc(100% - 8px);
+  margin: 8px 4px 4px;
+  padding: 4px 6px 4px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-faint);
+  font-family: inherit;
+}
+
+.sidebar-section-toggle:hover {
+  background: var(--sidebar-hover);
+  color: var(--text-muted);
+}
+
+.sidebar-empty-hint {
+  margin: 0 14px 8px;
+  font-size: 12px;
+  color: var(--text-faint);
 }
 
 .page-title-side {
@@ -434,11 +475,27 @@ textarea {
 .main {
   flex: 1;
   min-width: 0;
+  min-height: 0; /* allow flex child to scroll */
   height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--bg);
   position: relative;
+  overflow: hidden;
+}
+
+/* Content under topbar scrolls (Labs, long pages, notes) */
+.main-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.main.is-fitness .main-scroll {
+  /* fitness is full-bleed; still allow scroll if needed */
+  overflow-y: auto;
 }
 
 .topbar {

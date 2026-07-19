@@ -248,25 +248,28 @@ export default function App() {
               </div>
             </header>
 
-            {melaniMode ? (
-              <MelaniRichPage pageId={activePage.id} onGo={openPage} />
-            ) : (
-              <PageEditor
-                page={activePage}
-                allPages={ws.pages}
-                childPages={childPages}
-                onUpdatePage={(page) => setWs((p) => updatePageInWs(p, page))}
-                onOpenPage={openPage}
-                onCreateSubpage={(blockIndex) =>
-                  setWs((p) =>
-                    createSubpageFromBlock(p, activePage.id, blockIndex)
-                  )
-                }
-                onCreateDatabase={() =>
-                  setWs((p) => addDatabasePage(p, activePage.id))
-                }
-              />
-            )}
+            {/* Scrollable content — Labs and long pages can scroll */}
+            <div className="main-scroll">
+              {melaniMode ? (
+                <MelaniRichPage pageId={activePage.id} onGo={openPage} />
+              ) : (
+                <PageEditor
+                  page={activePage}
+                  allPages={ws.pages}
+                  childPages={childPages}
+                  onUpdatePage={(page) => setWs((p) => updatePageInWs(p, page))}
+                  onOpenPage={openPage}
+                  onCreateSubpage={(blockIndex) =>
+                    setWs((p) =>
+                      createSubpageFromBlock(p, activePage.id, blockIndex)
+                    )
+                  }
+                  onCreateDatabase={() =>
+                    setWs((p) => addDatabasePage(p, activePage.id))
+                  }
+                />
+              )}
+            </div>
           </>
         )}
       </main>

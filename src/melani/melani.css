@@ -16,14 +16,17 @@
   background: var(--m-bg);
   color: var(--m-text);
   font-family: var(--m-font);
-  min-height: 100%;
-  padding: 8px 0 48px;
+  /* Don't trap scroll — parent .main.is-melani scrolls */
+  min-height: min-content;
+  height: auto;
+  padding: 8px 0 80px;
+  overflow: visible;
 }
 
 .melani-inner {
   max-width: 480px;
   margin: 0 auto;
-  padding: 0 16px 40px;
+  padding: 0 16px 64px;
 }
 
 .melani-subnav {

@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Page } from "../types";
+import { iconForPage, MinimalIcon } from "./MinimalIcon";
 
 type Props = {
   workspaceName: string;
-  pages: Page[]; // active only
+  pages: Page[];
   allPages: Page[];
   recents: string[];
   activePageId: string;
@@ -20,6 +21,7 @@ type Props = {
 };
 
 const COLLAPSE_KEY = "dr-melani-sidebar-collapsed";
+const RECENTS_KEY = "dr-melani-show-recents";
 
 function loadCollapsed(): Record<string, boolean> {
   try {
@@ -28,8 +30,7 @@ function loadCollapsed(): Record<string, boolean> {
   } catch {
     /* ignore */
   }
-  // Default: Fitness collapsed so Sleep/Meals/Gym/Body stay hidden until toggled
-  return { "pg-fitness": true, "pg-hygiene": true, "pg-my-data": true };
+  return { "pg-fitness": true, "pg-hygiene": true, "pg-my-data": true, "pg-books": true };
 }
 
 function saveCollapsed(map: Record<string, boolean>) {
@@ -38,6 +39,33 @@ function saveCollapsed(map: Record<string, boolean>) {
   } catch {
     /* ignore */
   }
+}
+
+function loadShowRecents(): boolean {
+  try {
+    const raw = localStorage.getItem(RECENTS_KEY);
+    if (raw === "1") return true;
+    if (raw === "0") return false;
+  } catch {
+    /* ignore */
+  }
+  return false; // default OFF — user asked not to always see recents
+}
+
+function saveShowRecents(show: boolean) {
+  try {
+    localStorage.setItem(RECENTS_KEY, show ? "1" : "0");
+  } catch {
+    /* ignore */
+  }
+}
+
+function PageIcon({ page }: { page: Page }) {
+  return (
+    <span className="page-icon-wrap">
+      <MinimalIcon name={iconForPage(page)} size={16} />
+    </span>
+  );
 }
 
 function PageTreeItem({
@@ -92,9 +120,7 @@ function PageTreeItem({
           className={`page-row-main${hasKids ? " has-kids" : ""}`}
           onClick={() => onSelect(page.id)}
         >
-          <span className="page-emoji">
-            {page.kind === "database" ? "▦" : page.icon}
-          </span>
+          <PageIcon page={page} />
           <span className="page-title-side">
             {page.title.trim() || "Untitled"}
           </span>
@@ -161,19 +187,20 @@ export function Sidebar({
   onReimport,
 }: Props) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(loadCollapsed);
-
-  // Auto-expand parent when you're on a child page (so you can see where you are)
-  useEffect(() => {
-    const active = pages.find((p) => p.id === activePageId);
-    if (active?.parentId && collapsed[active.parentId]) {
-      // keep collapsed unless user opens — don't force expand
-    }
-  }, [activePageId, pages, collapsed]);
+  const [showRecents, setShowRecents] = useState(loadShowRecents);
 
   function toggleCollapse(id: string) {
     setCollapsed((prev) => {
       const next = { ...prev, [id]: !prev[id] };
       saveCollapsed(next);
+      return next;
+    });
+  }
+
+  function toggleRecents() {
+    setShowRecents((prev) => {
+      const next = !prev;
+      saveShowRecents(next);
       return next;
     });
   }
@@ -203,13 +230,13 @@ export function Sidebar({
           className={`sidebar-home-pill${activePageId === home.id ? " is-active" : ""}`}
           onClick={() => onSelect(home.id)}
         >
-          <span>⌂</span>
+          <MinimalIcon name="home" size={15} />
           <span>Home</span>
         </button>
       )}
 
       <button type="button" className="sidebar-search" onClick={onOpenSearch}>
-        <span>🔍</span>
+        <MinimalIcon name="search" size={15} />
         <span>Search</span>
         <span className="sidebar-kbd">⌘K</span>
       </button>
@@ -228,9 +255,7 @@ export function Sidebar({
                   className="page-row-main"
                   onClick={() => onSelect(p.id)}
                 >
-                  <span className="page-emoji">
-                    {p.kind === "database" ? "▦" : p.icon}
-                  </span>
+                  <PageIcon page={p} />
                   <span className="page-title-side">
                     {p.title.trim() || "Untitled"}
                   </span>
@@ -241,31 +266,43 @@ export function Sidebar({
         </>
       )}
 
-      {recentPages.length > 0 && (
-        <>
-          <div className="sidebar-section-label">Recents</div>
-          <div className="sidebar-scroll" style={{ flex: "0 0 auto", maxHeight: 120 }}>
-            {recentPages.map((p) => (
-              <div
-                key={p.id}
-                className={`page-row${p.id === activePageId ? " is-active" : ""}`}
+      {/* Recents — collapsible, default hidden */}
+      <button
+        type="button"
+        className="sidebar-section-toggle"
+        onClick={toggleRecents}
+        aria-expanded={showRecents}
+      >
+        <span className="sidebar-section-label" style={{ margin: 0 }}>
+          Recents
+        </span>
+        <span className="page-collapse-btn is-open" aria-hidden>
+          {showRecents ? "▾" : "▸"}
+        </span>
+      </button>
+      {showRecents && recentPages.length > 0 && (
+        <div className="sidebar-scroll" style={{ flex: "0 0 auto", maxHeight: 160 }}>
+          {recentPages.map((p) => (
+            <div
+              key={p.id}
+              className={`page-row${p.id === activePageId ? " is-active" : ""}`}
+            >
+              <button
+                type="button"
+                className="page-row-main"
+                onClick={() => onSelect(p.id)}
               >
-                <button
-                  type="button"
-                  className="page-row-main"
-                  onClick={() => onSelect(p.id)}
-                >
-                  <span className="page-emoji">
-                    {p.kind === "database" ? "▦" : p.icon}
-                  </span>
-                  <span className="page-title-side">
-                    {p.title.trim() || "Untitled"}
-                  </span>
-                </button>
-              </div>
-            ))}
-          </div>
-        </>
+                <PageIcon page={p} />
+                <span className="page-title-side">
+                  {p.title.trim() || "Untitled"}
+                </span>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      {showRecents && recentPages.length === 0 && (
+        <p className="sidebar-empty-hint">No recent pages yet</p>
       )}
 
       <div className="sidebar-section-label">Private</div>
@@ -296,7 +333,7 @@ export function Sidebar({
         <span>New top-level page</span>
       </button>
       <button type="button" className="sidebar-new" onClick={onNewDatabase}>
-        <span>▦</span>
+        <MinimalIcon name="docs" size={14} />
         <span>New database</span>
       </button>
 
@@ -314,7 +351,7 @@ export function Sidebar({
 
       <div className="sidebar-footer">
         <div className="sidebar-footer-note">
-          Your second brain · health + life · auto-saves · / for blocks
+          Recents ▸/▾ · Fitness ▸/▾ hides sub-pages
         </div>
       </div>
     </aside>
