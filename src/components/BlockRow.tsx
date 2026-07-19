@@ -137,21 +137,14 @@ export function BlockRow({
       value={block.text}
       rows={1}
       placeholder={
+        // No coaching copy — empty line, you know what to do
         block.type === "heading1"
           ? "Heading 1"
           : block.type === "heading2"
             ? "Heading 2"
             : block.type === "heading3"
               ? "Heading 3"
-              : block.type === "todo"
-                ? "To-do"
-                : block.type === "bullet"
-                  ? "List"
-                  : block.type === "quote"
-                    ? "Empty quote"
-                    : empty
-                      ? "Type something, or press '/' for commands…"
-                      : ""
+              : ""
       }
       onChange={(e) => {
         onChange(block.id, { text: e.target.value });

@@ -112,11 +112,12 @@ export function createPage(parentId: string | null = null): Page {
   return {
     id: uid(),
     title: "",
-    icon: "📄",
+    icon: "",
     parentId,
     createdAt: now,
     updatedAt: now,
-    blocks: [newBlock("paragraph")],
+    // One blank line — no starter fluff
+    blocks: [newBlock("paragraph", "")],
     kind: "page",
     favorite: false,
     trashedAt: null,

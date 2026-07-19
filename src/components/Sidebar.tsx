@@ -367,9 +367,7 @@ export function Sidebar({
       )}
 
       <div className="sidebar-footer">
-        <div className="sidebar-footer-note">
-          Recents ▸/▾ · Fitness ▸/▾ hides sub-pages
-        </div>
+        <div className="sidebar-footer-note" />
       </div>
     </aside>
   );
