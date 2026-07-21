@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "gmail": "bash server/start_gmail.sh",
+    "ai": "bash server/start_melani_ai.sh",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview"

@@ -3,8 +3,8 @@ import type { Workspace } from "./types";
 import { forceImportDrMelani, loadWorkspace, saveWorkspace } from "./storage";
 import {
   activePages,
+  addAgentPage,
   addChildPage,
-  addDatabasePage,
   breadcrumbTrail,
   createSubpageFromBlock,
   duplicatePage,
@@ -18,14 +18,31 @@ import {
 import { Sidebar } from "./components/Sidebar";
 import { PageEditor } from "./components/PageEditor";
 import { SearchModal } from "./components/SearchModal";
+import { iconForPage, MinimalIcon } from "./components/MinimalIcon";
 import { isMelaniRichPage, MelaniRichPage } from "./melani/MelaniViews";
-import { isFitnessPage } from "./melani/FitnessExact";
+import { MelaniAI } from "./melani/MelaniAI";
 import "./notion.css";
 
+/**
+ * Notion workspace shell ALWAYS stays on.
+ * Gym / Fitness / Data are special content INSIDE a Notion page —
+ * never full-bleed that hides the sidebar, breadcrumbs, or New page.
+ * (Restored from commit 1009966 layout before fitness full-bleed.)
+ */
 export default function App() {
   const [ws, setWs] = useState<Workspace>(() => {
     if (typeof window === "undefined") return forceImportDrMelani();
-    return loadWorkspace();
+    // Allow deep-link: ?page=pg-meals (opens that page on load)
+    const base = loadWorkspace();
+    try {
+      const page = new URLSearchParams(window.location.search).get("page");
+      if (page && base.pages?.some((p) => p.id === page)) {
+        return { ...base, activePageId: page };
+      }
+    } catch {
+      /* ignore */
+    }
+    return base;
   });
   const [searchOpen, setSearchOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -93,8 +110,8 @@ export default function App() {
     minute: "2-digit",
   })}`;
 
+  // Melani UI is content inside this Notion page (not a separate app mode)
   const melaniMode = isMelaniRichPage(activePage.id);
-  const fitnessMode = isFitnessPage(activePage.id);
 
   return (
     <div className="app">
@@ -108,15 +125,17 @@ export default function App() {
         onSelect={openPage}
         onNewPage={() => setWs((p) => addChildPage(p, p.activePageId))}
         onNewTopPage={() => setWs((p) => addChildPage(p, null))}
-        onNewDatabase={() => setWs((p) => addDatabasePage(p, p.activePageId))}
+        onNewAgent={() => setWs((p) => addAgentPage(p))}
         onDeletePage={(id) => setWs((p) => softDeletePage(p, id))}
         onToggleFavorite={(id) => setWs((p) => toggleFavorite(p, id))}
         onOpenSearch={() => setSearchOpen(true)}
         onClose={() => setWs((p) => ({ ...p, sidebarOpen: false }))}
+        onRestorePage={(id) => setWs((p) => restorePage(p, id))}
+        onEmptyTrash={() => setWs((p) => emptyTrash(p))}
         onReimport={() => {
           if (
             window.confirm(
-              "Re-import full Dr. Melani export? Local edits to the tree may be replaced."
+              "Re-import full Wonder export? Local edits to the tree may be replaced."
             )
           ) {
             setWs(forceImportDrMelani());
@@ -124,154 +143,140 @@ export default function App() {
         }}
       />
 
-      <main
-        className={`main${melaniMode ? " is-melani" : ""}${
-          fitnessMode ? " is-fitness" : ""
-        }`}
-      >
-        {/* Fitness = full-bleed Melani page only (no Notion junk chrome on top) */}
-        {fitnessMode ? (
-          <>
-            <button
-              type="button"
-              className="fx-menu-btn"
-              title="Sidebar"
-              onClick={() =>
-                setWs((p) => ({ ...p, sidebarOpen: !p.sidebarOpen }))
-              }
-            >
-              ☰
-            </button>
-            <MelaniRichPage pageId={activePage.id} onGo={openPage} />
-          </>
-        ) : (
-          <>
-            <header className="topbar">
-              <button
-                type="button"
-                className="topbar-btn"
-                onClick={() =>
-                  setWs((p) => ({ ...p, sidebarOpen: !p.sidebarOpen }))
-                }
-                title="Toggle sidebar"
-              >
-                ☰
-              </button>
+      {/* Always Notion main: topbar + breadcrumbs + page body */}
+      <main className={`main${melaniMode ? " is-melani" : ""}`}>
+        <header className="topbar">
+          <button
+            type="button"
+            className="topbar-btn"
+            onClick={() =>
+              setWs((p) => ({ ...p, sidebarOpen: !p.sidebarOpen }))
+            }
+            title="Toggle sidebar"
+          >
+            ☰
+          </button>
 
-              <div className="breadcrumb">
-                {crumbs.map((c, i) => (
-                  <span key={c.id} className="breadcrumb-seg">
-                    {i > 0 && <span className="breadcrumb-sep">/</span>}
-                    <button
-                      type="button"
-                      className="breadcrumb-link"
-                      onClick={() => openPage(c.id)}
-                    >
-                      <span className="breadcrumb-icon">
-                        {c.kind === "database" ? "▦" : c.icon}
-                      </span>
-                      <span className="breadcrumb-title">
-                        {c.title.trim() || "Untitled"}
-                      </span>
-                    </button>
-                  </span>
-                ))}
-              </div>
-
-              <div className="topbar-spacer" />
-              <span className="topbar-meta">{editedLabel}</span>
-              <button
-                type="button"
-                className="topbar-btn"
-                title="Favorite"
-                onClick={() => setWs((p) => toggleFavorite(p, activePage.id))}
-              >
-                {activePage.favorite ? "★" : "☆"}
-              </button>
-              <button
-                type="button"
-                className="topbar-btn"
-                title="Search (⌘K)"
-                onClick={() => setSearchOpen(true)}
-              >
-                ⌕
-              </button>
-              <div className="topbar-more-wrap">
+          <div className="breadcrumb">
+            {crumbs.map((c, i) => (
+              <span key={c.id} className="breadcrumb-seg">
+                {i > 0 && <span className="breadcrumb-sep">/</span>}
                 <button
                   type="button"
-                  className="topbar-btn"
-                  title="More"
-                  onClick={() => setMoreOpen((v) => !v)}
+                  className="breadcrumb-link"
+                  onClick={() => openPage(c.id)}
                 >
-                  ···
+                  <span className="breadcrumb-icon" aria-hidden>
+                    <MinimalIcon
+                      name={
+                        c.kind === "database" ? "docs" : iconForPage(c)
+                      }
+                      size={14}
+                    />
+                  </span>
+                  <span className="breadcrumb-title">
+                    {c.title.trim() || "Untitled"}
+                  </span>
                 </button>
-                {moreOpen && (
-                  <div className="more-menu">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setWs((p) => duplicatePage(p, activePage.id));
-                        setMoreOpen(false);
-                      }}
-                    >
-                      Duplicate
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setWs((p) => softDeletePage(p, activePage.id));
-                        setMoreOpen(false);
-                      }}
-                    >
-                      Move to Trash
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setWs((p) => addDatabasePage(p, activePage.id));
-                        setMoreOpen(false);
-                      }}
-                    >
-                      New database here
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setWs((p) => emptyTrash(p));
-                        setMoreOpen(false);
-                      }}
-                    >
-                      Empty trash
-                    </button>
-                  </div>
-                )}
-              </div>
-            </header>
+              </span>
+            ))}
+          </div>
 
-            {/* Scrollable content — Labs and long pages can scroll */}
-            <div className="main-scroll">
-              {melaniMode ? (
+          <div className="topbar-spacer" />
+          <span className="topbar-meta">{editedLabel}</span>
+          <button
+            type="button"
+            className="topbar-btn"
+            title="Favorite"
+            onClick={() => setWs((p) => toggleFavorite(p, activePage.id))}
+          >
+            {activePage.favorite ? "★" : "☆"}
+          </button>
+          <button
+            type="button"
+            className="topbar-btn"
+            title="Search (⌘K)"
+            onClick={() => setSearchOpen(true)}
+          >
+            ⌕
+          </button>
+          <div className="topbar-more-wrap">
+            <button
+              type="button"
+              className="topbar-btn"
+              title="More"
+              onClick={() => setMoreOpen((v) => !v)}
+            >
+              ···
+            </button>
+            {moreOpen && (
+              <div className="more-menu">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWs((p) => duplicatePage(p, activePage.id));
+                    setMoreOpen(false);
+                  }}
+                >
+                  Duplicate
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWs((p) => softDeletePage(p, activePage.id));
+                    setMoreOpen(false);
+                  }}
+                >
+                  Move to Trash
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWs((p) => addChildPage(p, p.activePageId));
+                    setMoreOpen(false);
+                  }}
+                >
+                  New sub-page here
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWs((p) => emptyTrash(p));
+                    setMoreOpen(false);
+                  }}
+                >
+                  Empty trash
+                </button>
+              </div>
+            )}
+          </div>
+        </header>
+
+        {/* Page body scrolls here — Notion pages OR Melani content inside page */}
+        <div className="main-scroll">
+          {melaniMode ? (
+            /* Sleep / Meals / Gym live in the SIDEBAR only */
+            <div className="notion-melani-page">
+              <div className="notion-melani-body">
                 <MelaniRichPage pageId={activePage.id} onGo={openPage} />
-              ) : (
-                <PageEditor
-                  page={activePage}
-                  allPages={ws.pages}
-                  childPages={childPages}
-                  onUpdatePage={(page) => setWs((p) => updatePageInWs(p, page))}
-                  onOpenPage={openPage}
-                  onCreateSubpage={(blockIndex) =>
-                    setWs((p) =>
-                      createSubpageFromBlock(p, activePage.id, blockIndex)
-                    )
-                  }
-                  onCreateDatabase={() =>
-                    setWs((p) => addDatabasePage(p, activePage.id))
-                  }
-                />
-              )}
+              </div>
             </div>
-          </>
-        )}
+          ) : (
+            <PageEditor
+              page={activePage}
+              allPages={ws.pages}
+              childPages={childPages}
+              onUpdatePage={(page) => setWs((p) => updatePageInWs(p, page))}
+              onOpenPage={openPage}
+              onCreateSubpage={(blockIndex) =>
+                setWs((p) =>
+                  createSubpageFromBlock(p, activePage.id, blockIndex)
+                )
+              }
+              onDeletePage={(id) => setWs((p) => softDeletePage(p, id))}
+            />
+          )}
+        </div>
       </main>
 
       {searchOpen && (
@@ -285,6 +290,9 @@ export default function App() {
           }}
         />
       )}
+
+      {/* Mel — floating chat on every page */}
+      <MelaniAI pageId={activePage.id} pageTitle={activePage.title} />
     </div>
   );
 }

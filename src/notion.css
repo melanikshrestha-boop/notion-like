@@ -110,8 +110,10 @@ textarea {
 
 /* ── Sidebar ── */
 .sidebar {
+  --sb-inset: 12px; /* one left edge for everything LTR */
   width: var(--sidebar-w);
   min-width: var(--sidebar-w);
+  max-width: var(--sidebar-w);
   height: 100%;
   background: var(--sidebar-bg); /* same black as page */
   border-right: 1px solid var(--border);
@@ -119,21 +121,39 @@ textarea {
   flex-direction: column;
   padding: 0;
   user-select: none;
-  transition: margin 0.15s ease, opacity 0.15s ease;
+  flex-shrink: 0;
+  /* When open/closed, width changes so .main reflows (content not cut off) */
+  transition:
+    width 0.18s ease,
+    min-width 0.18s ease,
+    max-width 0.18s ease,
+    opacity 0.15s ease,
+    border-color 0.15s ease;
   color: var(--text);
+  text-align: left;
+  direction: ltr;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
+/* Closed = take no horizontal space → main expands to full width */
 .sidebar.is-closed {
-  margin-left: calc(-1 * var(--sidebar-w));
+  width: 0;
+  min-width: 0;
+  max-width: 0;
   opacity: 0;
+  border-right-color: transparent;
   pointer-events: none;
 }
 
 .sidebar-top {
   display: flex;
+  flex-direction: row;
   align-items: center;
+  justify-content: flex-start;
   gap: 6px;
-  padding: 12px 10px 8px 14px;
+  padding: 12px var(--sb-inset) 8px;
+  box-sizing: border-box;
 }
 
 .workspace-btn {
@@ -169,46 +189,10 @@ textarea {
   flex-shrink: 0;
 }
 
-/* Collapse toggle for parent pages (Fitness, Hygiene…) */
-.page-collapse-btn {
-  width: 18px;
-  height: 28px;
-  flex-shrink: 0;
-  border: none;
-  background: transparent;
-  border-radius: 3px;
-  color: var(--text-faint);
-  cursor: pointer;
-  font-size: 9px;
-  line-height: 1;
-  padding: 0;
-  margin: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  align-self: center;
-}
-
-.page-collapse-btn:hover {
-  background: var(--sidebar-hover);
-  color: var(--text);
-}
-
-.page-collapse-btn.is-open {
-  color: var(--text-muted);
-}
-
-/* Smooth chevron rotation (Notion-like) */
+/* Visible collapse ▸ removed — click the page name to expand/collapse */
+.page-collapse-btn,
 .page-collapse-chev {
-  display: inline-block;
-  transform: rotate(0deg);
-  transition: transform 0.2s ease;
-  font-size: 11px;
-  line-height: 1;
-}
-
-.page-collapse-btn.is-open .page-collapse-chev {
-  transform: rotate(90deg);
+  display: none !important;
 }
 
 /* Smooth expand / collapse of nested pages */
@@ -233,6 +217,27 @@ textarea {
 
 .page-row-main.has-kids {
   padding-left: 0;
+}
+
+.workspace-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.workspace-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .workspace-name {
@@ -263,20 +268,23 @@ textarea {
 }
 
 .sidebar-home-pill {
-  margin: 2px 8px 6px;
+  margin: 0;
   display: flex;
+  flex-direction: row;
   align-items: center;
+  justify-content: flex-start;
   gap: 8px;
-  width: calc(100% - 16px);
+  width: 100%;
   border: none;
   background: transparent;
-  border-radius: 20px;
-  padding: 6px 12px;
+  border-radius: 4px;
+  padding: 6px 8px;
   font-size: 14px;
   font-weight: 500;
   color: var(--text);
   cursor: pointer;
   text-align: left;
+  box-sizing: border-box;
 }
 
 .sidebar-home-pill:hover {
@@ -284,7 +292,7 @@ textarea {
 }
 
 .sidebar-home-pill.is-active {
-  background: rgba(55, 53, 47, 0.1);
+  background: var(--sidebar-active);
 }
 
 .sidebar-search {
@@ -311,6 +319,38 @@ textarea {
 }
 
 /* Nested page links on parent pages (Notion style) */
+.child-page-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 4px;
+}
+
+.child-page-delete {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.child-page-delete:hover {
+  color: #fb7185;
+  background: rgba(251, 113, 133, 0.12);
+}
+
+.block-page-link-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
 .child-page-list {
   margin-top: 8px;
   display: flex;
@@ -329,7 +369,7 @@ textarea {
   cursor: pointer;
   text-align: left;
   color: var(--text);
-  font-size: 16px;
+  font-size: 14px; /* same as body text */
   font-family: var(--notion-font);
 }
 
@@ -350,31 +390,46 @@ textarea {
   font-weight: 500;
 }
 
+/* Section labels (Private, Favorites) — same left edge as every row */
 .sidebar-section-label {
-  padding: 8px 14px 4px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px var(--sb-inset) 4px;
+  margin: 0;
   font-size: 12px;
   font-weight: 500;
   color: var(--text-faint);
+  text-align: left;
 }
 
 .sidebar-scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 0 8px 12px;
+  padding: 0 var(--sb-inset) 12px;
+  box-sizing: border-box;
 }
 
 .page-row {
   display: flex;
-  align-items: center; /* vertical center: toggle + icon + text */
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
   gap: 0;
-  border-radius: 6px;
-  min-height: 32px;
-  height: 32px;
-  padding: 0 6px 0 2px;
+  border-radius: 4px;
+  min-height: 30px;
+  height: 30px;
+  padding: 0 2px 0 0;
+  margin: 0;
   cursor: pointer;
   color: var(--text);
   position: relative;
   box-sizing: border-box;
+  width: 100%;
+  text-align: left;
 }
 
 .page-row:hover {
@@ -388,14 +443,16 @@ textarea {
 .page-row-main {
   flex: 1;
   display: flex;
-  align-items: center; /* icon vertically middle of label */
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
   gap: 8px;
   min-width: 0;
-  min-height: 32px;
-  height: 32px;
+  min-height: 30px;
+  height: 30px;
   border: none;
   background: transparent;
-  padding: 0 4px;
+  padding: 0 4px 0 0;
   margin: 0;
   cursor: pointer;
   color: inherit;
@@ -444,20 +501,26 @@ textarea {
   display: inline-flex;
 }
 
-/* Recents section toggle */
+/* Recents toggle — ▸ then label, flush left like everything else */
 .sidebar-section-toggle {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  justify-content: space-between;
-  width: calc(100% - 8px);
-  margin: 8px 4px 4px;
-  padding: 4px 6px 4px 10px;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+  margin: 2px 0 0;
+  padding: 6px var(--sb-inset);
   border: none;
   background: transparent;
-  border-radius: 4px;
+  border-radius: 0;
   cursor: pointer;
   color: var(--text-faint);
   font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  box-sizing: border-box;
 }
 
 .sidebar-section-toggle:hover {
@@ -465,10 +528,42 @@ textarea {
   color: var(--text-muted);
 }
 
+.sidebar-section-chev {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  flex-shrink: 0;
+  font-size: 10px;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+.sidebar-section-chev.is-open {
+  transform: rotate(90deg);
+}
+
+.sidebar-section-text {
+  flex: 0 1 auto;
+  text-align: left;
+}
+
+.sidebar-section-private {
+  padding-left: var(--sb-inset);
+}
+
+.sidebar-recents-list {
+  padding-left: 0;
+  padding-right: 0;
+}
+
 .sidebar-empty-hint {
-  margin: 0 14px 8px;
+  margin: 0;
+  padding: 2px var(--sb-inset) 8px;
   font-size: 12px;
   color: var(--text-faint);
+  text-align: left;
+  box-sizing: border-box;
 }
 
 .page-title-side {
@@ -513,19 +608,22 @@ textarea {
 }
 
 .sidebar-new {
-  margin: 4px 8px 12px;
-  width: calc(100% - 16px);
+  margin: 4px 0 8px;
+  width: 100%;
   display: flex;
+  flex-direction: row;
   align-items: center;
+  justify-content: flex-start;
   gap: 8px;
   border: none;
   background: transparent;
   border-radius: 4px;
-  padding: 6px 8px;
+  padding: 6px 4px;
   color: var(--text-muted);
   font-size: 14px;
   cursor: pointer;
   text-align: left;
+  box-sizing: border-box;
 }
 
 .sidebar-new:hover {
@@ -535,33 +633,38 @@ textarea {
 
 .sidebar-footer {
   padding: 8px;
-  border-top: 1px solid var(--border);
+  border-top: none;
 }
 
-/* ── Main column ── */
+/* ── Main column — always the leftover space next to the sidebar ── */
 .main {
-  flex: 1;
-  min-width: 0;
-  min-height: 0; /* allow flex child to scroll */
+  flex: 1 1 0;
+  min-width: 0; /* critical: allow shrink when sidebar opens */
+  min-height: 0;
   height: 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
   background: var(--bg);
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
-/* Content under topbar scrolls (Labs, long pages, notes) */
+/* Content under topbar scrolls vertically only (never sideways under sidebar) */
 .main-scroll {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   min-height: 0;
-  overflow-y: auto;
+  width: 100%;
   overflow-x: hidden;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
 }
 
 .main.is-fitness .main-scroll {
-  /* fitness is full-bleed; still allow scroll if needed */
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
@@ -607,6 +710,18 @@ textarea {
 }
 
 .breadcrumb-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  flex-shrink: 0;
+}
+
+.breadcrumb-icon .min-icon {
+  display: block;
+}
+
+.breadcrumb-icon-legacy {
   font-size: 14px;
 }
 
@@ -629,25 +744,41 @@ textarea {
 
 /* ── Page canvas ── */
 .page-scroll {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  /* Parent .main-scroll already scrolls — don't trap height at 0 */
+  min-height: 100%;
+  overflow: visible;
 }
 
 .page-inner {
   max-width: var(--page-max);
   margin: 0 auto;
   padding: 0 96px 30vh;
+  /* Clickable typing surface */
+  min-height: 70vh;
+}
+
+/* Always allow typing / selecting in the doc surface */
+.page-inner .block-input,
+.page-inner .page-title-input {
+  pointer-events: auto;
+  user-select: text;
+  -webkit-user-select: text;
+  caret-color: #fff;
+  color: var(--text);
 }
 
 @media (max-width: 768px) {
   .page-inner {
     padding: 0 24px 30vh;
   }
+  /* Keep sidebar in document flow (not overlay) so main always reflows */
   .sidebar {
-    position: absolute;
+    position: relative;
     z-index: 20;
     height: 100%;
+    box-shadow: none;
+  }
+  .sidebar:not(.is-closed) {
     box-shadow: var(--shadow-menu);
   }
 }
@@ -656,44 +787,47 @@ textarea {
   height: 48px;
 }
 
+/* Small page icon — not a giant emoji hero */
 .page-icon-btn {
-  width: 78px;
-  height: 78px;
+  width: 28px;
+  height: 28px;
   border: none;
   background: transparent;
   border-radius: 4px;
-  font-size: 70px;
+  font-size: 20px;
   line-height: 1;
   cursor: pointer;
-  margin: 0 0 4px -6px;
+  margin: 0 0 2px 0;
   padding: 0;
   display: block;
 }
 
 .page-icon-btn:hover {
-  background: rgba(55, 53, 47, 0.04);
+  background: rgba(255, 255, 255, 0.06);
 }
 
+/* Page title — same family + scale as body (synced, not huge) */
 .page-title-input {
   width: 100%;
   border: none;
   outline: none;
   background: transparent;
-  font-size: 40px;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
+  font-size: 18px; /* synced with H1 — not poster-sized */
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: 0;
   color: var(--text);
-  padding: 3px 2px;
-  margin: 0 0 4px;
+  padding: 2px 0;
+  margin: 0 0 6px;
   resize: none;
   overflow: hidden;
   font-family: var(--notion-font);
+  user-select: text;
 }
 
 .page-title-input::placeholder {
   color: var(--text-placeholder);
-  font-weight: 700;
+  font-weight: 650;
 }
 
 .page-controls {
@@ -800,15 +934,16 @@ textarea {
   background: transparent;
   color: var(--text);
   font-family: var(--notion-font);
-  font-size: 16px;
-  line-height: 1.5;
-  padding: 3px 2px;
+  font-size: 14px; /* body — synced with rest of app */
+  line-height: 1.45;
+  padding: 1px 2px;
   margin: 0;
   resize: none;
   overflow: hidden;
-  min-height: 1.5em;
+  min-height: 1.45em;
   white-space: pre-wrap;
   word-break: break-word;
+  user-select: text;
 }
 
 .block-input::placeholder {
@@ -819,41 +954,51 @@ textarea {
   color: var(--text-placeholder);
 }
 
-/* Block type styles — Notion scale */
+/* One tight scale: title = H1 = 18 · H2 = 15 · body/H3 = 14 */
 .block-input.type-paragraph {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 400;
 }
 
 .block-input.type-heading1 {
-  font-size: 1.875em;
-  font-weight: 700;
+  font-size: 18px; /* same as page title */
+  font-weight: 650;
   line-height: 1.3;
-  margin-top: 2rem;
-  margin-bottom: 4px;
+  margin-top: 0.75rem;
+  margin-bottom: 2px;
 }
 
 .block-input.type-heading2 {
-  font-size: 1.5em;
+  font-size: 15px;
   font-weight: 600;
-  line-height: 1.3;
-  margin-top: 1.4rem;
+  line-height: 1.35;
+  margin-top: 0.65rem;
   margin-bottom: 1px;
 }
 
 .block-input.type-heading3 {
-  font-size: 1.25em;
+  font-size: 14px;
   font-weight: 600;
-  line-height: 1.3;
-  margin-top: 1rem;
+  line-height: 1.35;
+  margin-top: 0.55rem;
   margin-bottom: 1px;
 }
 
 .block-input.type-quote {
   border-left: 3px solid currentColor;
-  padding-left: 14px;
-  font-size: 1.05em;
+  padding-left: 12px;
+  font-size: 14px;
   color: var(--text);
+}
+
+/* Whole-page select — one Cmd+A, then Delete wipes everything */
+.blocks.is-all-selected .block-row .block-input,
+.blocks.is-all-selected .block-row .block-page-link {
+  background: var(--selection);
+  border-radius: 2px;
+}
+.blocks.is-all-selected .block-row {
+  border-radius: 3px;
 }
 
 .block-input.type-code {
@@ -913,10 +1058,20 @@ textarea {
   color: var(--text-faint);
 }
 
-.block-divider {
+/* Never show block dividers */
+.block-divider,
+hr.block-divider {
+  display: none !important;
+  border: none !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.block-divider-legacy {
   width: 100%;
   border: none;
-  border-top: 1px solid rgba(55, 53, 47, 0.16);
+  border-top: none;
   margin: 12px 0;
 }
 
@@ -1054,7 +1209,7 @@ textarea {
   align-items: center;
   gap: 6px;
   padding: 10px 10px 6px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
 }
 
 .emoji-picker-search {
@@ -1095,7 +1250,7 @@ textarea {
   flex-wrap: wrap;
   gap: 2px;
   padding: 6px 8px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
 }
 
 .emoji-picker-tab {
@@ -1175,7 +1330,7 @@ textarea {
 }
 
 .emoji-picker-foot {
-  border-top: 1px solid var(--border);
+  border-top: none;
   padding: 6px 10px;
 }
 
@@ -1313,7 +1468,7 @@ textarea {
   align-items: center;
   gap: 10px;
   padding: 14px 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: none;
 }
 
 .search-modal-mag {
@@ -1435,7 +1590,7 @@ textarea {
 
 .search-trash-block {
   margin-top: 8px;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: none;
   padding-top: 4px;
 }
 
@@ -1503,3 +1658,250 @@ textarea {
 }
 
 /* ── App shell ── */
+/* Melani / Library: fill the MAIN column only (sidebar-aware) */
+.notion-melani-page {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 16px 20px 64px;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.notion-melani-body {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.notion-melani-body > * {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.notion-melani-head {
+  margin-bottom: 6px;
+}
+
+.notion-melani-icon {
+  font-size: 18px; /* small icon, not a giant emoji */
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.notion-melani-title {
+  margin: 0 0 8px;
+  font-size: 16px; /* same scale as other page headers */
+  font-weight: 650;
+  letter-spacing: 0;
+  color: rgba(255, 255, 255, 0.95);
+  font-family: var(--notion-serif, "Times New Roman", Times, serif);
+}
+
+.notion-melani-children {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0 0 14px;
+  padding-bottom: 10px;
+  border-bottom: none;
+}
+
+.notion-melani-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.88);
+  font-family: inherit;
+  font-size: 14px;
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.notion-melani-child:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.notion-melani-child-icon {
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.notion-melani-body {
+  min-height: 200px;
+}
+
+/* Melani pages: vertical scroll only — never hide content under the sidebar */
+.main.is-melani .main-scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* ── Notion-style sidebar extras (Agents, bottom links) ── */
+.sidebar-home-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  padding: 0 var(--sb-inset) 2px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.sidebar-home-row .sidebar-home-pill {
+  margin: 0;
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  padding-left: 0; /* already inside --sb-inset */
+}
+
+.sidebar-tool-btn {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-tool-btn:hover {
+  background: var(--sidebar-hover);
+  color: #fff;
+}
+
+.sidebar-new-soft {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 5px var(--sb-inset);
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.sidebar-new-soft:hover {
+  color: rgba(255, 255, 255, 0.75);
+  background: var(--sidebar-hover);
+}
+
+/* Same inset as labels — so Agents / Private / Favorites pages line up */
+.sidebar-block {
+  padding: 0 var(--sb-inset) 2px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* Already inside inset — don’t double-indent “+ New agent” */
+.sidebar-block .sidebar-new-soft {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.side-emoji {
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.sidebar-bottom {
+  flex-shrink: 0;
+  border-top: none;
+  padding: 8px 0 12px;
+  margin-top: auto;
+}
+
+.sidebar-bottom-link {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 6px var(--sb-inset);
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.sidebar-bottom-link:hover {
+  background: var(--sidebar-hover);
+  color: #fff;
+}
+
+.sidebar-bottom-link.is-active {
+  background: var(--sidebar-active);
+  color: #fff;
+}
+
+.sidebar-trash-toggle {
+  margin-top: 2px;
+}
+
+/* Agents: delete × always visible, stays on the right */
+.page-row-agent .page-agent-delete {
+  opacity: 0.55;
+  flex-shrink: 0;
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.page-row-agent:hover .page-agent-delete,
+.page-row-agent.is-active .page-agent-delete {
+  opacity: 1;
+}
+
+/* Private list shares the same left inset as Agents / Favorites */
+.sidebar > .sidebar-scroll {
+  padding-left: var(--sb-inset);
+  padding-right: var(--sb-inset);
+}
+
+/* Sidebar flex column so bottom sticks */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+}
+/* page notes under normal pages */
+/* Page notes removed — keep rule inert so old CSS does not break layout */
+.page-notes-wrap {
+  display: none;
+
+  max-width: var(--page-max, 900px);
+  margin: 0 auto;
+  padding: 0 96px 48px;
+}
+

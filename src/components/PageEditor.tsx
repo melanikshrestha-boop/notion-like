@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Block, Page } from "../types";
 import { newBlock } from "../storage";
 import { moveBlock } from "../workspaceOps";
@@ -16,6 +16,7 @@ type Props = {
   onOpenPage?: (id: string) => void;
   onCreateSubpage?: (blockIndex: number) => void;
   onCreateDatabase?: () => void;
+  onDeletePage?: (id: string) => void;
 };
 
 type SlashState = {
@@ -46,12 +47,48 @@ export function PageEditor({
   onOpenPage,
   onCreateSubpage,
   onCreateDatabase,
+  onDeletePage,
 }: Props) {
   const [focusId, setFocusId] = useState<string | null>(null);
   const [slash, setSlash] = useState<SlashState>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [coverOpen, setCoverOpen] = useState(false);
+  /** One Cmd/Ctrl+A selects the whole page so Delete can wipe everything */
+  const [allSelected, setAllSelected] = useState(false);
+  // Ref stays in sync so Delete works even before React re-renders
+  const allSelectedRef = useRef(false);
   const dragFrom = useRef<number | null>(null);
+  const blocksWrapRef = useRef<HTMLDivElement | null>(null);
+  // Never leave a page with zero editable lines (Books / empty hubs felt dead)
+  const blocks: Block[] =
+    page.blocks && page.blocks.length > 0
+      ? page.blocks
+      : [newBlock("paragraph", "")];
+
+  function setAllSelectedSync(v: boolean) {
+    allSelectedRef.current = v;
+    setAllSelected(v);
+  }
+
+  // If storage had zero blocks, write one empty line so typing sticks
+  useEffect(() => {
+    if (!page.blocks || page.blocks.length === 0) {
+      onUpdatePage({
+        ...page,
+        blocks: [newBlock("paragraph", "")],
+        updatedAt: Date.now(),
+      });
+    }
+  }, [page.id, page.blocks?.length]);
+
+  // Land on page → focus first typing line so you can start immediately
+  useEffect(() => {
+    const first = (page.blocks || []).find(
+      (x) => x.type !== "divider" && x.type !== "page_link"
+    );
+    if (first) setFocusId(first.id);
+    else setFocusId(null);
+  }, [page.id]);
 
   const slashItems = useMemo(
     () => (slash ? filterSlash(slash.query) : []),
@@ -64,23 +101,27 @@ export function PageEditor({
     return m;
   }, [allPages]);
 
-  function setBlocks(blocks: Block[], extra?: Partial<Page>) {
+  function setBlocks(nextBlocks: Block[], extra?: Partial<Page>) {
+    const safe =
+      nextBlocks && nextBlocks.length > 0
+        ? nextBlocks
+        : [newBlock("paragraph", "")];
     onUpdatePage({
       ...page,
       ...extra,
-      blocks,
+      blocks: safe,
       updatedAt: Date.now(),
     });
   }
 
   function updateBlock(id: string, patch: Partial<Block>) {
-    const blocks = page.blocks.map((b) => {
+    const nextBlocks = blocks.map((b) => {
       if (b.id !== id) return b;
-      const next = { ...b, ...patch };
+      const next = { ...b, ...patch, text: patch.text ?? b.text ?? "" };
       if (typeof patch.text === "string") {
         const m = patch.text.match(/^\/(.*)$/);
         if (m) {
-          const idx = page.blocks.findIndex((x) => x.id === id);
+          const idx = blocks.findIndex((x) => x.id === id);
           setSlash({
             blockId: id,
             index: idx,
@@ -93,13 +134,13 @@ export function PageEditor({
       }
       return next;
     });
-    setBlocks(blocks);
+    setBlocks(nextBlocks);
   }
 
   function applySlash(cmd: SlashCommand) {
     if (!slash) return;
-    const blocks = [...page.blocks];
-    const b = blocks[slash.index];
+    const next = [...blocks];
+    const b = next[slash.index];
     if (!b) return;
 
     if (cmd.type === "new_page") {
@@ -114,11 +155,11 @@ export function PageEditor({
     }
 
     if (cmd.type === "divider") {
-      blocks[slash.index] = { ...b, type: "divider", text: "" };
-      blocks.splice(slash.index + 1, 0, newBlock("paragraph"));
-      setFocusId(blocks[slash.index + 1].id);
+      next[slash.index] = { ...b, type: "divider", text: "" };
+      next.splice(slash.index + 1, 0, newBlock("paragraph"));
+      setFocusId(next[slash.index + 1].id);
     } else {
-      blocks[slash.index] = {
+      next[slash.index] = {
         ...b,
         type: cmd.type as Block["type"],
         text: "",
@@ -127,7 +168,22 @@ export function PageEditor({
       };
       setFocusId(b.id);
     }
-    setBlocks(blocks);
+    setBlocks(next);
+    setSlash(null);
+  }
+
+  function clearAllBlocks() {
+    // Wipe every block and leave one empty line to type in
+    const nb = newBlock("paragraph", "");
+    setBlocks([nb]);
+    setFocusId(nb.id);
+    setAllSelectedSync(false);
+    setSlash(null);
+  }
+
+  function selectAllPage() {
+    // Highlight every block at once (works across multi-line pages)
+    setAllSelectedSync(true);
     setSlash(null);
   }
 
@@ -136,6 +192,49 @@ export function PageEditor({
     block: Block,
     index: number
   ) {
+    const meta = e.metaKey || e.ctrlKey;
+    const ta = e.currentTarget;
+    const pageSelected = allSelectedRef.current;
+
+    // Cmd/Ctrl+A once → whole page selected (blue), then Delete clears it all
+    if (meta && e.key.toLowerCase() === "a") {
+      e.preventDefault();
+      e.stopPropagation();
+      // Also select native text in this box so the browser shows a real highlight
+      try {
+        ta.setSelectionRange(0, ta.value.length);
+      } catch {
+        /* ignore */
+      }
+      selectAllPage();
+      return;
+    }
+
+    // Whole page selected → delete / replace
+    if (pageSelected) {
+      if (e.key === "Backspace" || e.key === "Delete") {
+        e.preventDefault();
+        e.stopPropagation();
+        clearAllBlocks();
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setAllSelectedSync(false);
+        return;
+      }
+      // Typing replaces entire page with that character
+      if (e.key.length === 1 && !meta && !e.altKey) {
+        e.preventDefault();
+        const nb = newBlock("paragraph", e.key);
+        setBlocks([nb]);
+        setFocusId(nb.id);
+        setAllSelectedSync(false);
+        setSlash(null);
+        return;
+      }
+    }
+
     if (slash && slash.blockId === block.id) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -165,6 +264,7 @@ export function PageEditor({
     // Tab / Shift+Tab indent
     if (e.key === "Tab") {
       e.preventDefault();
+      setAllSelectedSync(false);
       const indent = block.indent || 0;
       const next = e.shiftKey
         ? Math.max(0, indent - 1)
@@ -175,9 +275,10 @@ export function PageEditor({
 
     // Arrow up/down between blocks at edges
     if (e.key === "ArrowUp" && e.currentTarget.selectionStart === 0) {
-      const prev = page.blocks[index - 1];
+      const prev = blocks[index - 1];
       if (prev && prev.type !== "divider" && prev.type !== "page_link") {
         e.preventDefault();
+        setAllSelectedSync(false);
         setFocusId(prev.id);
       }
     }
@@ -185,15 +286,17 @@ export function PageEditor({
       e.key === "ArrowDown" &&
       e.currentTarget.selectionStart === e.currentTarget.value.length
     ) {
-      const nxt = page.blocks[index + 1];
+      const nxt = blocks[index + 1];
       if (nxt && nxt.type !== "divider" && nxt.type !== "page_link") {
         e.preventDefault();
+        setAllSelectedSync(false);
         setFocusId(nxt.id);
       }
     }
 
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
+      setAllSelectedSync(false);
       let nextType: Block["type"] = "paragraph";
       if (block.type === "bullet") nextType = "bullet";
       else if (block.type === "numbered") nextType = "numbered";
@@ -203,34 +306,38 @@ export function PageEditor({
         ...newBlock(nextType),
         indent: block.indent || 0,
       };
-      const blocks = [...page.blocks];
-      blocks.splice(index + 1, 0, nb);
-      setBlocks(blocks);
+      const next = [...blocks];
+      next.splice(index + 1, 0, nb);
+      setBlocks(next);
       setFocusId(nb.id);
       setSlash(null);
       return;
     }
 
-    if (e.key === "Backspace" && block.text === "") {
+    if (e.key === "Backspace" && (block.text ?? "") === "") {
       e.preventDefault();
+      setAllSelectedSync(false);
       if ((block.indent || 0) > 0) {
         updateBlock(block.id, { indent: (block.indent || 0) - 1 });
         return;
       }
-      if (page.blocks.length <= 1) {
+      if (blocks.length <= 1) {
         // convert back to paragraph
         if (block.type !== "paragraph") {
           updateBlock(block.id, { type: "paragraph" });
         }
         return;
       }
-      const blocks = page.blocks.filter((b) => b.id !== block.id);
-      const prev = blocks[Math.max(0, index - 1)];
-      setBlocks(blocks);
+      const next = blocks.filter((b) => b.id !== block.id);
+      const prev = next[Math.max(0, index - 1)];
+      setBlocks(next);
       if (prev) setFocusId(prev.id);
       setSlash(null);
       return;
     }
+
+    // Any normal typing clears multi-block select highlight
+    if (allSelectedRef.current) setAllSelectedSync(false);
 
     if (e.key === " ") {
       const v = (e.currentTarget.value || "").trimEnd();
@@ -254,9 +361,9 @@ export function PageEditor({
 
   function addAfter(index: number) {
     const nb = newBlock("paragraph");
-    const blocks = [...page.blocks];
-    blocks.splice(index + 1, 0, nb);
-    setBlocks(blocks);
+    const next = [...blocks];
+    next.splice(index + 1, 0, nb);
+    setBlocks(next);
     setFocusId(nb.id);
   }
 
@@ -270,7 +377,7 @@ export function PageEditor({
     const from = dragFrom.current;
     dragFrom.current = null;
     if (from === null || from === toIndex) return;
-    setBlocks(moveBlock(page.blocks, from, toIndex));
+    setBlocks(moveBlock(blocks, from, toIndex));
   }
 
   const coverColor =
@@ -378,7 +485,7 @@ export function PageEditor({
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === "ArrowDown") {
               e.preventDefault();
-              const first = page.blocks.find(
+              const first = blocks.find(
                 (x) => x.type !== "divider" && x.type !== "page_link"
               );
               if (first) setFocusId(first.id);
@@ -426,14 +533,27 @@ export function PageEditor({
           <button
             type="button"
             className="page-control-chip"
-            onClick={() => onCreateSubpage?.(page.blocks.length - 1)}
+            onClick={() => onCreateSubpage?.(Math.max(0, blocks.length - 1))}
           >
             + Sub-page
           </button>
         </div>
 
-        <div className="blocks" style={{ position: "relative" }}>
-          {page.blocks.map((block, index) => {
+        <div
+          ref={blocksWrapRef}
+          className={`blocks${allSelected ? " is-all-selected" : ""}`}
+          style={{ position: "relative", minHeight: "40vh" }}
+          // Click empty canvas → focus last line so typing always works
+          onMouseDown={(e) => {
+            if (e.target !== e.currentTarget) return;
+            if (allSelectedRef.current) setAllSelectedSync(false);
+            const last = [...blocks]
+              .reverse()
+              .find((x) => x.type !== "divider" && x.type !== "page_link");
+            if (last) setFocusId(last.id);
+          }}
+        >
+          {blocks.map((block, index) => {
             if (block.type === "numbered") numberCounter += 1;
             else numberCounter = 0;
             const listIndex =
@@ -444,16 +564,31 @@ export function PageEditor({
             return (
               <div key={block.id} style={{ position: "relative" }}>
                 <BlockRow
-                  block={block}
+                  block={{ ...block, text: block.text ?? "" }}
                   index={index}
                   listIndex={listIndex}
                   autoFocus={focusId === block.id}
                   linkedTitle={linked?.title}
-                  onChange={updateBlock}
+                  onChange={(id, patch) => {
+                    // Editing text while multi-selected ends the multi-select
+                    if (allSelectedRef.current) setAllSelectedSync(false);
+                    updateBlock(id, patch);
+                  }}
                   onKeyDown={onKeyDown}
-                  onFocus={setFocusId}
+                  onFocus={(id) => {
+                    setFocusId(id);
+                    // Clicking into a line ends whole-page select so typing only edits that line
+                    setAllSelectedSync(false);
+                  }}
                   onPlus={addAfter}
                   onOpenPage={onOpenPage}
+                  onDeletePageLink={(pageId) => {
+                    // Remove the link block + trash the sub-page
+                    let next = blocks.filter((b) => b.id !== block.id);
+                    if (!next.length) next = [newBlock("paragraph", "")];
+                    setBlocks(next);
+                    onDeletePage?.(pageId);
+                  }}
                   onDragStart={onDragStart}
                   onDragOver={onDragOver}
                   onDrop={onDrop}
@@ -476,19 +611,28 @@ export function PageEditor({
         {childPages.length > 0 && (
           <div className="child-page-list">
             {childPages.map((child) => (
-              <button
-                key={child.id}
-                type="button"
-                className="child-page-link"
-                onClick={() => onOpenPage?.(child.id)}
-              >
-                <span className="child-page-icon">
-                  {child.kind === "database" ? "▦" : child.icon || "📄"}
-                </span>
-                <span className="child-page-title">
-                  {child.title.trim() || "Untitled"}
-                </span>
-              </button>
+              <div key={child.id} className="child-page-row">
+                <button
+                  type="button"
+                  className="child-page-link"
+                  onClick={() => onOpenPage?.(child.id)}
+                >
+                  <span className="child-page-icon">
+                    {child.kind === "database" ? "▦" : child.icon || "📄"}
+                  </span>
+                  <span className="child-page-title">
+                    {child.title.trim() || "Untitled"}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="child-page-delete"
+                  title="Delete page"
+                  onClick={() => onDeletePage?.(child.id)}
+                >
+                  ×
+                </button>
+              </div>
             ))}
           </div>
         )}

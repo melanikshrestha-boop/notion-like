@@ -6,13 +6,21 @@
   font-family: "Times New Roman", Times, ui-serif, Georgia, serif;
   min-height: 100%;
   padding: 8px 0 64px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .fx-inner {
-  max-width: 480px;
+  width: 100%;
+  max-width: min(480px, 100%);
   margin: 0 auto;
-  padding: 12px 20px 48px;
+  padding: 12px 16px 48px;
   text-align: left;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 /* Quote — plain text only */
@@ -77,14 +85,13 @@
 
 .fx-subnav-link.is-active {
   color: #fff;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  text-decoration-thickness: 1px;
+  font-weight: 650;
+  text-decoration: none; /* no underline */
 }
 
 .fx-subnav-link:hover {
   color: #fff;
+  text-decoration: none;
 }
 
 /* Sections */
@@ -104,6 +111,15 @@
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.95);
   font-family: "Times New Roman", Times, serif;
+}
+
+/* Sleep time hint when bed/wake don't form a real night */
+.fx-sleep-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: rgba(251, 113, 133, 0.9);
+  line-height: 1.35;
+  max-width: 28rem;
 }
 
 .fx-line {
@@ -134,8 +150,7 @@
   min-width: 5.5em;
   margin: 0;
   padding: 0 2px;
-  border: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+  border: none; /* no underline under bedtime / wake */
   border-radius: 0;
   background: transparent;
   color: #fff;
@@ -148,7 +163,7 @@
 
 .fx-input:focus {
   outline: none;
-  border-bottom-color: rgba(255, 255, 255, 0.85);
+  color: #9ccfff;
 }
 
 .fx-meta {
@@ -163,7 +178,7 @@
   font-weight: 650;
 }
 
-/* Brain fog Yes / No — underline text, not pills */
+/* Brain fog Yes / No — color only, no underlines */
 .fx-bf-btns {
   display: flex;
   gap: 14px;
@@ -178,22 +193,22 @@
   font-size: 14px;
   color: rgba(255, 255, 255, 0.55);
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-color: rgba(255, 255, 255, 0.3);
+  text-decoration: none;
 }
 
 .fx-bf-yes.is-on {
   color: #ef4444;
-  text-decoration-color: #ef4444;
+  font-weight: 650;
+  text-decoration: none;
 }
 
 .fx-bf-no.is-on {
   color: #22c55e;
-  text-decoration-color: #22c55e;
+  font-weight: 650;
+  text-decoration: none;
 }
 
-/* Week letters S S M T W T F */
+/* Week letters S S M T W T F — no underlines */
 .fx-bf-week {
   display: flex;
   flex-wrap: wrap;
@@ -209,16 +224,14 @@
   font-family: "Times New Roman", Times, serif;
   font-size: 14px;
   color: rgba(255, 255, 255, 0.55);
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
-  text-decoration-color: rgba(255, 255, 255, 0.3);
+  text-decoration: none;
   cursor: pointer;
 }
 
 .fx-bf-day.is-fog {
   color: #ef4444;
-  text-decoration-color: #ef4444;
+  font-weight: 650;
+  text-decoration: none;
 }
 
 .fx-bf-summary {
@@ -340,7 +353,7 @@
   align-items: center;
   gap: 8px;
   padding: 6px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: none;
   color: rgba(255, 255, 255, 0.85);
 }
 
@@ -386,13 +399,164 @@
   color: #fff;
 }
 
+.fx-line-muted {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* ── My usuals (one-tap breakfast log) ── */
+.usuals-section {
+  margin-top: 8px;
+}
+
+.usual-flash {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #6eb4ff;
+}
+
+.usual-card {
+  margin: 0 0 16px;
+  padding: 12px 0 14px;
+  border-bottom: none;
+}
+
+.usual-card.is-breakfast {
+  /* slight emphasis so breakfast is easy to find */
+  padding-top: 4px;
+}
+
+.usual-slot {
+  margin: 0 0 2px;
+  font-size: 12px;
+  text-transform: capitalize;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.usual-title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 650;
+  color: #fff;
+}
+
+.usual-macro-line {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Soft text button — not a fat pill */
+.usual-log-btn {
+  display: inline-block;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0 0 8px;
+  color: #6eb4ff;
+  font-family: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.usual-log-btn:hover {
+  color: #9ccfff;
+}
+
+.usual-logged-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 8px;
+}
+
+.usual-logged-label {
+  font-size: 13px;
+  color: rgba(46, 234, 127, 0.9);
+}
+
+.usual-undo-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  color: rgba(255, 255, 255, 0.45);
+  font-family: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.usual-details-toggle {
+  display: block;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 4px 0 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.usual-details-toggle:hover {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.usual-details {
+  margin-top: 8px;
+}
+
+.usual-notes {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.usual-ingredients {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.45;
+}
+
+.usual-ingredients li {
+  margin: 0 0 2px;
+}
+
+/* Group labels inside "What's in it" (Seeds + nuts, Fruit, …) */
+.usual-sec {
+  margin: 0 0 10px;
+}
+
+.usual-sec:last-child {
+  margin-bottom: 0;
+}
+
+.usual-sec-title {
+  margin: 8px 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.01em;
+}
+
+.usual-sec:first-child .usual-sec-title {
+  margin-top: 2px;
+}
+
 /* Daily consume checklist — meals, water, supplements */
 .consume-row {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: none;
   font-family: "Times New Roman", Times, serif;
 }
 
@@ -447,7 +611,7 @@
   width: 7.5em;
   flex-shrink: 0;
   border: none;
-  border-bottom: 1px solid rgba(110, 180, 255, 0.35);
+  border-bottom: none;
   border-radius: 0;
   background: transparent;
   color: #6eb4ff;
@@ -480,6 +644,149 @@
 .consume-row.is-done .consume-time {
   color: rgba(110, 180, 255, 0.55);
   text-decoration: none;
+}
+
+/* ── Water: Melani style — thin bar + plain text (NO underlines, NO boxes) ── */
+.fx-water-title {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 13px;
+  margin: 0 0 8px;
+}
+
+.fx-water-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  margin: 0 0 10px;
+}
+
+.fx-water-fill {
+  height: 100%;
+  border-radius: 999px;
+  /* green → blue fill like Melani */
+  background: linear-gradient(90deg, #4ade80 0%, #38bdf8 55%, #60a5fa 100%);
+  transition: width 0.2s ease;
+}
+
+.fx-water-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+  margin: 0 0 6px;
+}
+
+.fx-water-btn {
+  border: none;
+  background: none;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-family: "Times New Roman", Times, serif;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none !important;
+}
+
+.fx-water-btn:hover:not(:disabled) {
+  color: #fff;
+  background: none;
+  text-decoration: none !important;
+}
+
+.fx-water-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.fx-water-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+}
+
+.fx-water-action {
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.42);
+  font-family: "Times New Roman", Times, serif;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none !important;
+}
+
+.fx-water-action:hover:not(:disabled) {
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none !important;
+}
+
+.fx-water-action:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+/* ── Supplements: name (pink) · when (gold) like hygiene product labels ── */
+.fx-supp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fx-supp-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 4px 0;
+  margin: 0;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  line-height: 1.45;
+}
+
+.fx-supp-num {
+  flex-shrink: 0;
+  min-width: 1.4em;
+  color: #fb7185; /* rose number like hygiene */
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-supp-body {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Product name — soft pink (same family as La Roche step titles) */
+.fx-supp-name {
+  color: #fecdd3;
+  font-weight: 500;
+}
+
+/* Brand + when to take — warm gold (like hygiene role labels) */
+.fx-supp-when {
+  color: #fdba74;
+  font-weight: 500;
+}
+
+/* Number stays clear — only the writing (name / dose / when) gets crossed out */
+.fx-supp-item.is-done .fx-supp-num {
+  color: #fb7185; /* keep the rose number; never strike through 1. 2. 3. */
+  text-decoration: none;
+}
+
+.fx-supp-item.is-done .fx-supp-name,
+.fx-supp-item.is-done .fx-supp-when {
+  color: rgba(255, 255, 255, 0.32);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
 }
 
 /* Minimal menu only — no extra top junk on Fitness */

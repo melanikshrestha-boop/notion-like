@@ -16,17 +16,24 @@
   background: var(--m-bg);
   color: var(--m-text);
   font-family: var(--m-font);
-  /* Don't trap scroll — parent .main.is-melani scrolls */
+  /* Fill main column; parent .main-scroll handles vertical scroll */
   min-height: min-content;
   height: auto;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   padding: 8px 0 80px;
-  overflow: visible;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .melani-inner {
-  max-width: 480px;
+  width: 100%;
+  max-width: min(640px, 100%);
   margin: 0 auto;
-  padding: 0 16px 64px;
+  padding: 0 12px 64px;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 /* Period tracker toggle head */
@@ -64,7 +71,7 @@
 .melani-toggle-body {
   margin-top: 14px;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: none;
 }
 
 .melani-subnav {
@@ -74,7 +81,7 @@
   padding: 8px 0 16px;
   font-size: 14px;
   color: rgba(255, 255, 255, 0.55);
-  border-bottom: 1px solid var(--m-border);
+  border-bottom: none;
   margin-bottom: 16px;
 }
 
@@ -250,7 +257,7 @@
   align-items: center;
   gap: 8px;
   padding: 6px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.075);
+  border-top: none;
   color: rgba(255, 255, 255, 0.85);
 }
 
@@ -296,7 +303,7 @@
 .meal-usual {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: none;
 }
 
 .meal-usual-title {
@@ -492,69 +499,505 @@
   color: rgba(255, 255, 255, 0.7);
 }
 
-/* ── Neon lab chips ── */
-.neon-status-row {
-  display: flex;
-  flex-wrap: wrap;
+/* ── Labs — Melani Data layout ── */
+.lab-h2 {
+  margin: 18px 0 10px;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.lab-h2-muted {
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: 22px;
+}
+
+/* Status cards grid */
+.lab-status-block {
+  margin: 12px 0 14px;
+}
+
+.lab-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
-.neon-chip {
-  flex: 1 1 calc(33% - 8px);
-  min-width: 96px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 10px 8px;
+.lab-status-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 88px;
+  padding: 12px 8px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(74, 222, 128, 0.35);
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 0 18px rgba(74, 222, 128, 0.12),
+    inset 0 0 20px rgba(74, 222, 128, 0.05);
+  color: #fff;
+  font-family: "Times New Roman", Times, serif;
+  cursor: pointer;
   text-align: center;
 }
 
-.neon-chip-label {
-  display: block;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.55);
-  margin-bottom: 4px;
-}
-
-.neon-chip-value {
-  display: block;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #fff;
-  margin-bottom: 6px;
-}
-
-.neon-chip-badge {
-  display: inline-block;
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  padding: 3px 8px;
-  border-radius: 999px;
-}
-
-.neon-ok {
-  border-color: rgba(74, 222, 128, 0.45);
-  box-shadow: inset 0 0 22px rgba(74, 222, 128, 0.08),
-    0 0 14px rgba(74, 222, 128, 0.12);
-}
-.neon-ok .neon-chip-badge {
-  color: #4ade80;
-  background: rgba(74, 222, 128, 0.12);
-  text-shadow: 0 0 10px rgba(74, 222, 128, 0.85);
-}
-
-.neon-high {
+.lab-status-card.lab-status-high {
   border-color: rgba(251, 113, 133, 0.55);
-  box-shadow: inset 0 0 24px rgba(251, 113, 133, 0.1),
-    0 0 16px rgba(251, 113, 133, 0.15);
+  box-shadow: 0 0 18px rgba(251, 113, 133, 0.15),
+    inset 0 0 20px rgba(251, 113, 133, 0.06);
 }
-.neon-high .neon-chip-badge {
+
+.lab-status-card.lab-status-low {
+  border-color: rgba(96, 165, 250, 0.45);
+  box-shadow: 0 0 18px rgba(96, 165, 250, 0.12);
+}
+
+.lab-status-wide {
+  grid-column: 1 / -1;
+}
+
+.lab-status-name {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.lab-status-date {
+  font-size: 12px;
+  font-weight: 650;
+  color: #fff;
+}
+
+/* Pills OK / HIGH / LOW */
+.lab-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.lab-pill-ok {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.22);
+  box-shadow: 0 0 12px rgba(74, 222, 128, 0.35);
+}
+
+.lab-pill-high {
+  color: #fecdd3;
+  background: rgba(244, 63, 94, 0.28);
+  box-shadow: 0 0 12px rgba(251, 113, 133, 0.3);
+}
+
+.lab-pill-low {
+  color: #bfdbfe;
+  background: rgba(59, 130, 246, 0.25);
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.25);
+}
+
+/* Smart drop zone for new labs */
+.lab-drop {
+  margin: 14px 0 20px;
+  padding: 12px 12px 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.lab-drop.is-over {
+  border-color: rgba(110, 180, 255, 0.55);
+  background: rgba(110, 180, 255, 0.06);
+}
+
+.lab-drop-title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 650;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.lab-drop-hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.lab-drop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+.lab-drop-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  color: #93c5fd;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.lab-drop-btn:hover {
+  color: #bfdbfe;
+}
+
+.lab-file-input {
+  display: none;
+}
+
+.lab-paste {
+  margin-top: 10px;
+}
+
+.lab-paste-area {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 13px;
+  line-height: 1.35;
+  resize: vertical;
+}
+
+.lab-import-msg {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #86efac;
+}
+
+/* Section + table */
+.lab-section {
+  margin: 0 0 22px;
+}
+
+.lab-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 4px;
+}
+
+.lab-section-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.lab-section-label {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 0.02em;
+}
+
+.lab-section-blurb {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.72);
+  font-family: "Times New Roman", Times, serif;
+}
+
+/* Expandable long copy: 3 lines, then "..." */
+.lab-expand {
+  margin: 0;
+}
+
+.lab-expand-text {
+  margin: 0;
+  font-size: inherit;
+  line-height: 1.4;
+  color: inherit;
+  font-family: inherit;
+  word-break: break-word;
+}
+
+.lab-expand-text.is-expanded {
+  display: block !important;
+  -webkit-line-clamp: unset !important;
+  overflow: visible !important;
+}
+
+.lab-expand-more {
+  border: none;
+  background: none;
+  padding: 2px 0 0;
+  margin: 0;
+  color: #6eb4ff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.lab-expand-more:hover {
+  color: #9ccfff;
+}
+
+.lab-section-blurb .lab-expand-text {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.72);
+  font-family: "Times New Roman", Times, serif;
+}
+
+.lab-popup-oneliner .lab-expand-text {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.lab-popup-block .lab-expand-text {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.88);
+  line-height: 1.45;
+}
+
+.lab-section-date {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.lab-table {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.lab-table-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.lab-table-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  padding: 10px 0;
+  margin: 0;
+  color: #fff;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.lab-table-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.lab-table-name {
+  font-weight: 650;
+  color: rgba(255, 255, 255, 0.95);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lab-table-val {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.lab-table-status {
+  justify-self: end;
+}
+
+/* Popup — Melani detail card */
+.lab-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.lab-popup {
+  position: relative;
+  width: min(400px, 100%);
+  max-height: min(85vh, 680px);
+  overflow: auto;
+  background: #0a0f18;
+  border: 1px solid rgba(100, 140, 200, 0.35);
+  border-radius: 16px;
+  padding: 18px 16px 14px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6),
+    0 0 30px rgba(80, 120, 200, 0.12);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  line-height: 1.4;
+  font-family: "Times New Roman", Times, serif;
+}
+
+.lab-popup-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.lab-popup-close:hover {
+  color: #fff;
+}
+
+.lab-popup-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+  margin: 0 0 10px;
+  padding-right: 24px;
+}
+
+.lab-popup-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.lab-popup-top-val {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 14px;
+}
+
+.lab-popup-oneliner {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  display: block;
+  /* never clamp / ellipsis unfinished sentences */
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+}
+
+.lab-popup-block {
+  margin: 0 0 12px;
+}
+
+.lab-popup-label {
+  margin: 0 0 3px;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.lab-popup-block p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+
+.lab-popup-result {
+  font-size: 16px !important;
+}
+
+.lab-val-ok {
+  color: #4ade80;
+}
+.lab-val-high,
+.lab-val-low {
   color: #fb7185;
-  background: rgba(251, 113, 133, 0.15);
-  text-shadow: 0 0 12px rgba(251, 113, 133, 0.95);
+}
+
+.lab-popup-footer {
+  margin: 14px 0 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap; /* always one line — no wrapped pep talk */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lab-popup-footer-high {
+  color: #fecdd3;
+  background: rgba(244, 63, 94, 0.18);
+  box-shadow: 0 0 16px rgba(251, 113, 133, 0.15);
+}
+
+.lab-popup-footer-low {
+  color: #bfdbfe;
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.lab-popup-footer-ok {
+  color: #bbf7d0;
+  background: rgba(34, 197, 94, 0.15);
+}
+
+@media (max-width: 520px) {
+  .lab-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .lab-status-wide {
+    grid-column: 1 / -1;
+  }
 }
 
 /* Sleep / gym rows */
@@ -563,7 +1006,7 @@
   gap: 8px;
   align-items: baseline;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: none;
   font-size: 14px;
 }
 
@@ -654,7 +1097,7 @@
   z-index: 20;
   background: #000;
   padding: 12px 16px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: none;
   max-width: 480px;
   margin: 0 auto;
   width: 100%;
@@ -672,14 +1115,15 @@
 
 .main.is-melani .topbar {
   background: #000;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: none;
 }
 
 .main.is-melani .topbar-btn,
 .main.is-melani .breadcrumb-link,
 .main.is-melani .topbar-meta,
 .main.is-melani .breadcrumb-title,
-.main.is-melani .breadcrumb-sep {
+.main.is-melani .breadcrumb-sep,
+.main.is-melani .breadcrumb-icon {
   color: rgba(255, 255, 255, 0.75);
 }
 

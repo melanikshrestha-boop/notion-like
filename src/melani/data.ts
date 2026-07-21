@@ -22,64 +22,116 @@ export const MACRO_GOALS = {
   fiber_g: 30,
 };
 
-/** Demo “logged today” — rings fill from these (edit freely in UI local state later) */
+/** Empty day until you log a usual (rings start at 0) */
 export const MACRO_CURRENT = {
-  protein_g: 49,
-  calories: 715,
-  carbs_g: 58,
-  fat_g: 28,
-  fiber_g: 14,
+  protein_g: 0,
+  calories: 0,
+  carbs_g: 0,
+  fat_g: 0,
+  fiber_g: 0,
 };
 
-export const MEAL_PRESETS = [
+/** Optional groups under "What's in it" (Base / Seeds / Fruit / …) */
+export type MealSection = {
+  title?: string; // omit title for the top group (yogurt + kefir)
+  items: string[];
+};
+
+export type MealPreset = {
+  id: string;
+  slot: string; // breakfast | lunch | dinner | snack
+  title: string;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  fiber_g: number;
+  notes?: string;
+  /** Flat list (always kept for Mel + simple UIs) */
+  ingredients: string[];
+  /** Grouped list for the "What's in it" panel — same style as the app card */
+  sections?: MealSection[];
+};
+
+/** Same usuals as Melani app (one-tap log → updates today macros) */
+export const MEAL_PRESETS: MealPreset[] = [
   {
-    id: "breakfast",
-    title: "My usual breakfast",
-    calories: 715,
-    protein_g: 49,
-    carbs_g: 58,
-    fat_g: 28,
-    fiber_g: 14,
+    id: "breakfast_usual",
+    slot: "breakfast",
+    title: "Breakfast",
+    // Portions tightened (less volume, still high protein) — macros re-estimated
+    calories: 480,
+    protein_g: 38,
+    carbs_g: 42,
+    fat_g: 16,
+    fiber_g: 9,
+    notes: "0% added sugar · organic when possible · measured portions",
     ingredients: [
-      "Fage 0% Greek yogurt (plain, organic)",
-      "Fage 0% kefir (no added sugar)",
-      "2 tsp chia seeds",
-      "2 tsp flaxseeds",
-      "Small handful pumpkin seeds",
-      "Trader Joe’s raw honey (minimal)",
+      "Fage 0% Greek yogurt: 150g (about ⅔ cup)",
+      "Fage 0% kefir: 100ml (about ⅓–½ cup)",
+      "1 tsp chia seeds",
+      "1 tsp flaxseeds",
+      "1 flat tbsp pumpkin seeds",
+      "½ cup blueberries",
+      "3 medium strawberries",
+      "10–15 makhana (fox nuts)",
+      "1 tsp raw honey max (optional; skip if very sleepy)",
+      "1 boiled egg with yolk + 1 egg white (optional)",
     ],
-  },
-  {
-    id: "chipotle",
-    title: "Chipotle burrito bowl",
-    calories: 585,
-    protein_g: 27,
-    carbs_g: 59,
-    fat_g: 23,
-    fiber_g: 12,
-    ingredients: ["Chicken", "Rice", "Beans", "Fajita veggies", "Salsa"],
+    // Same look as the open card: notes line + bullets, with small section labels
+    sections: [
+      {
+        items: [
+          "Fage 0% Greek yogurt: 150g (about ⅔ cup)",
+          "Fage 0% kefir: 100ml (about ⅓–½ cup)",
+        ],
+      },
+      {
+        title: "Seeds + nuts",
+        items: [
+          "1 tsp chia seeds",
+          "1 tsp flaxseeds",
+          "1 flat tbsp pumpkin seeds",
+        ],
+      },
+      {
+        title: "Fruit",
+        items: ["½ cup blueberries", "3 medium strawberries"],
+      },
+      {
+        title: "Extras",
+        items: [
+          "10–15 makhana (fox nuts)",
+          "1 tsp raw honey max (optional; skip if very sleepy)",
+        ],
+      },
+      {
+        title: "Eggs",
+        items: ["1 boiled egg with yolk + 1 egg white (optional)"],
+      },
+    ],
   },
 ];
 
-/** Daily stack — everything you take (meals section) */
+/** Daily stack — name · brand/dose · when to take (gold timing label) */
 export const DAILY_SUPPLEMENTS = [
   {
     id: "vit-d",
     name: "Vitamin D",
     dose: "",
-    defaultTime: "after breakfast",
+    when: "right after breakfast",
   },
   {
     id: "ashwa",
     name: "Ashwagandha",
-    dose: "Patanjali",
-    defaultTime: "7:00 PM",
+    dose: "",
+    when: "after dinner",
   },
   {
     id: "creatine",
     name: "Creatine",
     dose: "Monohydrate",
-    defaultTime: "with water",
+    when: "any time · with water",
   },
 ];
 

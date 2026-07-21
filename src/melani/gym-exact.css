@@ -1,77 +1,658 @@
-/* Exact Melani gym embed — full height iframe */
+/* Gym — Melani-style workout UI inside Fitness → Gym (native, no iframe) */
 
-.melani-gym-embed {
-  display: flex;
-  flex-direction: column;
-  /* Fill remaining viewport under Fitness subnav */
-  height: calc(100vh - 140px);
-  min-height: 480px;
-  margin: 0 -4px;
+.gx {
+  color: #fff;
+  font-family: "Times New Roman", Times, serif;
+  padding: 0 0 48px;
 }
 
-.melani-gym-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 4px;
-  align-items: center;
-  padding: 0 0 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  margin-bottom: 0;
-  flex-shrink: 0;
+.gx-h2,
+.gx-title {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.95);
 }
 
-.melani-gym-tab {
+.gx-title {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 18px;
+}
+
+.gx-sub {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.35;
+}
+
+.gx-err {
+  color: #f87171;
+  font-size: 13px;
+}
+
+.gx-back {
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.5);
-  font-family: "Times New Roman", Times, serif;
+  color: rgba(255, 255, 255, 0.65);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  margin: 0 0 12px;
+}
+
+.gx-back:hover {
+  color: #fff;
+}
+
+.gx-btn {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: inherit;
   font-size: 13px;
-  padding: 4px 10px;
-  border-radius: 6px;
   cursor: pointer;
 }
 
-.melani-gym-tab:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.06);
+.gx-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.melani-gym-tab.is-active {
+.gx-btn-sm {
+  margin-bottom: 16px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.gx-section {
+  margin: 0 0 18px;
+}
+
+.gx-sec-title {
+  margin: 12px 0 6px;
+  font-size: 14px;
+  font-weight: 650;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Today link — blue like Melani */
+.gx-today-link {
+  display: inline-block;
+  border: none;
+  background: none;
+  padding: 0;
+  color: #6eb4ff;
+  font-family: inherit;
+  font-size: 15px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.gx-today-link:hover {
+  color: #9ccfff;
+}
+
+/* Week plan */
+.gx-week-range {
+  margin-bottom: 4px;
+}
+
+.gx-plan-heading {
+  margin: 4px 0 2px;
+  font-size: 13px;
+  font-weight: 650;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* 7-col week strip — same idea as Hygiene (day + date + icon under) */
+.gx-week-strip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin: 8px 0 10px;
+  width: 100%;
+}
+
+.gx-week-cell {
+  min-width: 0;
+  text-align: center;
+  padding: 2px 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.gx-week-cell.is-today {
+  background: transparent; /* no box — only text underline */
+}
+
+.gx-week-day {
+  display: block;
+  font-size: 12px;
+  font-weight: 650;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.gx-week-cell.is-today .gx-week-day {
+  color: #6eb4ff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.gx-week-date {
+  display: block;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 2px;
+}
+
+/* Same gym icons under the day (cardio / lower / upper / rest) */
+.gx-week-icon-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 16px;
+  margin-top: 3px;
+}
+
+/* Same gym SVG icons, tinted per type (currentColor via mask) */
+.gx-type-icon {
+  display: inline-block;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  vertical-align: middle;
+}
+
+.gx-plan-type {
+  margin: 0 0 8px;
+}
+
+.gx-plan-type-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 3px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.88); /* writing stays white — only icons are tinted */
+}
+
+.gx-plan-type-icon {
+  /* legacy img class — prefer .gx-type-icon */
+  opacity: 0.9;
+}
+
+/* Align under week strip — 7 equal columns */
+.gx-plan-day-picks {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  width: 100%;
+}
+
+/* Thin day chips (not fat pills) — like Hygiene */
+.gx-day-pick {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.32);
+  border-radius: 0;
+  padding: 2px 0;
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.gx-day-pick.is-today {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.gx-day-pick.is-on {
+  background: transparent;
+  border: none;
+  color: #93c5fd;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+/* Lower body blocked on consecutive days — grayed out, not clickable */
+.gx-day-pick.is-blocked,
+.gx-day-pick:disabled {
+  color: rgba(255, 255, 255, 0.18);
+  text-decoration: none;
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.gx-day-pick:hover:not(:disabled):not(.is-blocked) {
+  color: rgba(255, 255, 255, 0.7);
+  background: transparent;
+}
+
+.gx-save-week {
+  border: none;
+  background: none;
+  padding: 0;
+  margin-top: 4px;
+  color: #6eb4ff;
+  font-family: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.gx-save-flash {
+  margin-left: 12px;
+  font-size: 13px;
+  color: rgba(46, 234, 127, 0.9);
+}
+
+/* Workout rows — plain list, NO boxes (user said no boxes until asked) */
+.gx-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 2px;
+}
+
+.gx-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 8px 0;
+  cursor: pointer;
   color: #fff;
-  background: rgba(255, 255, 255, 0.1);
+  font-family: inherit;
+  text-align: left;
+}
+
+.gx-nav-row:hover {
+  background: transparent;
+  opacity: 0.92;
+}
+
+.gx-nav-icon {
+  flex-shrink: 0;
+  opacity: 0.95;
+}
+
+/* Only invert old plain <img> icons — colored mask icons keep their tint */
+img.gx-nav-icon {
+  filter: invert(1);
+  opacity: 0.85;
+}
+
+.gx-nav-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.gx-nav-text strong {
+  font-size: 14px;
   font-weight: 600;
 }
 
-.melani-gym-tab-ext {
-  margin-left: auto;
+.gx-nav-text small {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.gx-chev {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 14px;
+}
+
+/* Track hub (Lower body 1 / 2 / 3) — no cards/boxes */
+.gx-track-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gx-track-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 6px 0;
+  cursor: pointer;
+  color: #fff;
+  font-family: inherit;
+  text-align: left;
+}
+
+.gx-track-num {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #5c4a6e;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 650;
+  flex-shrink: 0;
+}
+
+.gx-track-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gx-track-body strong {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.gx-track-body small {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.gx-track-prog {
+  color: #6eb4ff;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.gx-track-prog-empty {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* Body weight: blank underscore line + LB tight next to it */
+.gx-body-line {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 6px; /* Weight: ___ LB — close, not stretched */
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.gx-body-key {
+  flex: 0 0 auto;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.gx-body-input {
+  display: inline-block;
+  width: 3.25em; /* short blank line for number */
+  min-width: 2.5em;
+  max-width: 4.5em;
+  margin: 0;
+  padding: 0 2px 1px;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.55); /* underscore line */
+  border-radius: 0;
+  background: transparent;
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  text-align: center;
+  outline: none;
+  flex: 0 0 auto;
+}
+
+.gx-body-input:focus {
+  outline: none;
+  color: #9ccfff;
+  border-bottom-color: rgba(156, 207, 255, 0.75);
+}
+
+.gx-body-input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+  opacity: 1;
+}
+
+.gx-body-unit {
+  color: #fff;
+  font-size: 14px;
+  flex: 0 0 auto;
+  margin-left: 0; /* right next to the line */
+  letter-spacing: 0.04em;
+}
+
+/* Warm-up list — gray when done, NO strikethrough (user preference) */
+.gx-warmup {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.gx-warmup > li {
+  margin: 0;
+  padding: 0;
+}
+
+.gx-warmup-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.88);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 0; /* single-spaced list: no extra gap between rows */
+  margin: 0;
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.gx-warmup-item.is-done {
+  /* gray only — no line-through */
   text-decoration: none;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* Exercise cards */
+.gx-ex {
+  border: none;
+  border-radius: 0;
+  padding: 4px 0 16px;
+  margin: 0 0 8px;
+  background: transparent;
+  border-bottom: none;
+}
+
+.gx-ex.is-done {
+  opacity: 0.7;
+}
+
+.gx-ex-name {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 650;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.gx-ex-sub {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+.gx-ex-meta {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.gx-notes {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.gx-notes summary {
+  cursor: pointer;
   color: #6eb4ff;
 }
 
-.melani-gym-frame {
-  flex: 1;
+.gx-notes ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.gx-sets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gx-set {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
-  min-height: 0;
   border: none;
-  background: #000;
-  border-radius: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #6eb4ff;
+  font-family: inherit;
+  font-size: 14px;
+  padding: 8px 4px;
+  cursor: pointer;
+  text-align: left;
 }
 
-.melani-gym-hint {
-  flex-shrink: 0;
-  margin: 6px 0 0;
-  font-size: 11px;
+.gx-set:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Done sets: dim gray only — NEVER strikethrough */
+.gx-set.is-done {
+  border-color: transparent;
+  color: rgba(255, 255, 255, 0.4);
+  text-decoration: none;
+}
+
+.gx-set.is-fail {
+  color: #f9a8d4;
+}
+
+.gx-set.is-fail.is-done {
   color: rgba(255, 255, 255, 0.35);
-  font-family: "Times New Roman", Times, serif;
 }
 
-.melani-gym-hint strong {
-  color: rgba(255, 255, 255, 0.55);
+.gx-set-box {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 11px;
+  color: #fff;
+}
+
+.gx-set.is-done .gx-set-box {
+  border-color: #22c55e;
+  background: #22c55e;
+  color: #fff;
+}
+
+.gx-set.is-fail .gx-set-box {
+  border-color: rgba(249, 168, 212, 0.55);
+}
+
+/* Rest timer overlay */
+.gx-timer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.gx-timer-card {
+  width: min(320px, 100%);
+  background: #0a0a0a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 28px 24px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.gx-timer-msg {
+  margin: 0;
+  font-size: 18px;
   font-weight: 600;
+  color: #fff;
+  line-height: 1.35;
 }
 
-/* Fitness page: give gym tab more vertical room */
-.fx-page:has(.melani-gym-embed) .fx-inner {
-  max-width: 720px;
-  padding-bottom: 8px;
+.gx-timer-label {
+  margin: 0 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.gx-timer-count {
+  margin: 0 0 8px;
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.gx-timer-hint {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.gx-timer-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
 }

@@ -173,6 +173,14 @@ export function addChildPage(ws: Workspace, parentId: string | null): Workspace 
   return setActivePage({ ...ws, pages: [...ws.pages, page] }, page.id);
 }
 
+/** New agent under Agents hub — blank page for Melani to fill in */
+export function addAgentPage(ws: Workspace): Workspace {
+  const page = createPage("pg-agents");
+  page.title = "Untitled agent";
+  page.icon = "🤖";
+  return setActivePage({ ...ws, pages: [...ws.pages, page] }, page.id);
+}
+
 export function addDatabasePage(ws: Workspace, parentId: string | null): Workspace {
   const page = createDatabasePage(parentId);
   return setActivePage({ ...ws, pages: [...ws.pages, page] }, page.id);

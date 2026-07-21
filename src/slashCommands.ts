@@ -26,14 +26,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     icon: "📄",
     keywords: ["page", "subpage", "nested"],
   },
-  {
-    id: "database",
-    type: "new_database",
-    name: "Table — Database",
-    description: "Create a full-page database table.",
-    icon: "▦",
-    keywords: ["database", "table", "db", "board"],
-  },
+  // No auto "New database" — that stub Name/Status/Notes table is banned
   {
     id: "h1",
     type: "heading1",
@@ -98,14 +91,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     icon: "“",
     keywords: ["quote", "citation"],
   },
-  {
-    id: "divider",
-    type: "divider",
-    name: "Divider",
-    description: "Visually divide blocks.",
-    icon: "—",
-    keywords: ["divider", "line", "hr", "separator"],
-  },
+  // Divider slash command removed — no divider lines unless user asks
   {
     id: "callout",
     type: "callout",

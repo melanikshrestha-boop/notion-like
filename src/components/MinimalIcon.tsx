@@ -91,11 +91,76 @@ export function MinimalIcon({ name, size = 16, className = "" }: Props) {
         </svg>
       );
     case "hygiene":
+      // sparkle + drop — clean / self-care hub
       return (
         <svg {...common}>
-          <path {...stroke} d="M8 4h8v4a4 4 0 0 1-8 0V4Z" />
-          <path {...stroke} d="M12 12v8" />
-          <path {...stroke} d="M8 20h8" />
+          <path {...stroke} d="M12 3v3" />
+          <path {...stroke} d="M12 18v3" />
+          <path {...stroke} d="M3 12h3" />
+          <path {...stroke} d="M18 12h3" />
+          <path {...stroke} d="m6.2 6.2 2 2" />
+          <path {...stroke} d="m15.8 15.8 2 2" />
+          <path {...stroke} d="m17.8 6.2-2 2" />
+          <path {...stroke} d="m8.2 15.8-2 2" />
+          <circle {...stroke} cx="12" cy="12" r="2.2" />
+        </svg>
+      );
+    case "shower-daily":
+      // shower head raining — quick daily rinse
+      return (
+        <svg {...common}>
+          <path {...stroke} d="M8 4h6a3 3 0 0 1 3 3v1" />
+          <path {...stroke} d="M17 8H9.5A2.5 2.5 0 0 0 7 10.5V11" />
+          <path {...stroke} d="M9 14v4" />
+          <path {...stroke} d="M12 15v4" />
+          <path {...stroke} d="M15 14v4" />
+          <path {...stroke} d="M7 13.5h.01" />
+          <path {...stroke} d="M17 13.5h.01" />
+        </svg>
+      );
+    case "shower-everything":
+      // bathtub with bubbles — deep full wash day
+      return (
+        <svg {...common}>
+          <path {...stroke} d="M5 12h14v3.5a3.5 3.5 0 0 1-3.5 3.5h-7A3.5 3.5 0 0 1 5 15.5V12Z" />
+          <path {...stroke} d="M5 12V9.5A1.5 1.5 0 0 1 6.5 8H8" />
+          <path {...stroke} d="M4 19h16" />
+          <circle {...stroke} cx="10" cy="6.5" r="1.2" />
+          <circle {...stroke} cx="14" cy="5.5" r="1.6" />
+          <circle {...stroke} cx="17" cy="7.5" r="1" />
+        </svg>
+      );
+    case "hair":
+      // flowing hair strands — hair care
+      return (
+        <svg {...common}>
+          <path {...stroke} d="M8 4c0 4 1.5 7 1.5 11.5S8 21 8 21" />
+          <path {...stroke} d="M12 3c0 5 1 8 1 12.5S12 22 12 22" />
+          <path {...stroke} d="M16 4c0 4-1 7.5-1 12s1 6 1 6" />
+          <path {...stroke} d="M7 8h2" />
+          <path {...stroke} d="M15 9h2" />
+        </svg>
+      );
+    case "am-skin":
+      // clean morning sun — no extra squiggle
+      return (
+        <svg {...common}>
+          <circle {...stroke} cx="12" cy="12" r="3.4" />
+          <path {...stroke} d="M12 3.5v2" />
+          <path {...stroke} d="M12 18.5v2" />
+          <path {...stroke} d="M3.5 12h2" />
+          <path {...stroke} d="M18.5 12h2" />
+          <path {...stroke} d="m6.2 6.2 1.4 1.4" />
+          <path {...stroke} d="m16.4 16.4 1.4 1.4" />
+          <path {...stroke} d="m16.4 6.2-1.4 1.4" />
+          <path {...stroke} d="m7.6 16.4-1.4 1.4" />
+        </svg>
+      );
+    case "pm-skin":
+      // clean crescent moon — night skincare (no drip)
+      return (
+        <svg {...common}>
+          <path {...stroke} d="M15 5a6.5 6.5 0 1 0 4.2 11.5A7.5 7.5 0 1 1 15 5Z" />
         </svg>
       );
     case "labs":
@@ -122,20 +187,6 @@ export function MinimalIcon({ name, size = 16, className = "" }: Props) {
       return (
         <svg {...common}>
           <path {...stroke} d="M12 3 14 9h6l-5 3.5L17 19l-5-3.5L7 19l2-6.5L4 9h6L12 3Z" />
-        </svg>
-      );
-    case "books":
-      return (
-        <svg {...common}>
-          <path {...stroke} d="M5 4h10a2 2 0 0 1 2 2v14H7a2 2 0 0 0-2 2V4Z" />
-          <path {...stroke} d="M7 20a2 2 0 0 1 2-2h10" />
-        </svg>
-      );
-    case "todo":
-      return (
-        <svg {...common}>
-          <rect {...stroke} x="4" y="4" width="16" height="16" rx="2" />
-          <path {...stroke} d="m8 12 2.5 2.5L16 9" />
         </svg>
       );
     case "goals":
@@ -198,6 +249,48 @@ export function MinimalIcon({ name, size = 16, className = "" }: Props) {
           <path {...stroke} d="M10 16h6" />
         </svg>
       );
+    case "life":
+      // simple leaf / life mark
+      return (
+        <svg {...common}>
+          <path {...stroke} d="M12 21V10" />
+          <path {...stroke} d="M12 10c0-4 3-7 8-7-1 5-4 7-8 7Z" />
+          <path {...stroke} d="M12 13c0-3-2.5-5.5-6.5-6 1 4 3 6 6.5 6Z" />
+        </svg>
+      );
+    case "library":
+    case "books":
+      // open book
+      return (
+        <svg {...common}>
+          <path {...stroke} d="M4 5.5c2.5-1 5-.8 8 .5 3-1.3 5.5-1.5 8-.5v13c-2.5-1-5-.8-8 .5-3-1.3-5.5-1.5-8-.5v-13Z" />
+          <path {...stroke} d="M12 6v13" />
+        </svg>
+      );
+    case "tasks":
+    case "todo":
+      return (
+        <svg {...common}>
+          <rect {...stroke} x="4" y="4" width="16" height="16" rx="2" />
+          <path {...stroke} d="m8 12 2.5 2.5L16 9" />
+        </svg>
+      );
+    case "help":
+      return (
+        <svg {...common}>
+          <circle {...stroke} cx="12" cy="12" r="8.5" />
+          <path {...stroke} d="M9.5 9.5a2.5 2.5 0 1 1 3.2 2.4c-.9.4-1.7 1.1-1.7 2.1" />
+          <path {...stroke} d="M12 17h.01" />
+        </svg>
+      );
+    case "trash":
+      return (
+        <svg {...common}>
+          <path {...stroke} d="M5 7h14" />
+          <path {...stroke} d="M9 7V5h6v2" />
+          <path {...stroke} d="M8 7l1 13h6l1-13" />
+        </svg>
+      );
     case "page":
     default:
       return (
@@ -222,15 +315,34 @@ export function iconForPage(page: Pick<Page, "id" | "title" | "kind" | "icon">):
   if (id.includes("gym") || t.includes("gym")) return "gym";
   if (id.includes("body") || t === "body") return "body";
   if (id.includes("work") || t === "work") return "work";
-  if (id.includes("hygiene") || t.includes("hygiene") || t.includes("shower") || t.includes("skin") || t.includes("hair"))
-    return "hygiene";
+  // Hygiene family — each page gets its own creative icon (not one shared glass)
+  if (id === "pg-shower-daily" || (t.includes("daily") && t.includes("shower")))
+    return "shower-daily";
+  if (id === "pg-shower-everything" || (t.includes("everything") && t.includes("shower")))
+    return "shower-everything";
+  if (id === "pg-hair" || t.includes("hair care") || t === "hair")
+    return "hair";
+  if (id === "pg-am-skin" || (t.includes("am") && t.includes("skin")))
+    return "am-skin";
+  if (id === "pg-pm-skin" || (t.includes("pm") && t.includes("skin")))
+    return "pm-skin";
+  if (id.includes("hygiene") || t.includes("hygiene")) return "hygiene";
+  // leftover shower / skin / hair titles still get something sensible
+  if (t.includes("shower")) return "shower-daily";
+  if (t.includes("skin")) return "am-skin";
+  if (t.includes("hair")) return "hair";
   if (id === "pg-data" || id === "pg-my-data" || t === "data" || t === "my data")
     return "data";
   if (id.includes("lab") || t.includes("lab")) return "labs";
   if (id.includes("75") || t.includes("75 hard")) return "hard";
+  if (id === "pg-life" || t === "life") return "life";
+  if (id.includes("library") || t.includes("library")) return "library";
   if (id.includes("book") || t.includes("book") || t.includes("reading") || t.includes("innovator") || t.includes("photo"))
     return "books";
-  if (id.includes("todo") || t.includes("to do")) return "todo";
+  if (id.includes("todo") || id.includes("task") || t.includes("to do") || t.includes("task"))
+    return "tasks";
+  if (id.includes("help") || t === "help") return "help";
+  if (id.includes("trash") || t.includes("trash")) return "trash";
   if (id.includes("goal") || t.includes("goal")) return "goals";
   if (id.includes("journal") || t.includes("journal")) return "journal";
   if (id.includes("personal") || t.includes("personal life")) return "home";
@@ -253,6 +365,8 @@ export function iconForPage(page: Pick<Page, "id" | "title" | "kind" | "icon">):
   if (id.includes("suppl") || t.includes("suppl")) return "doctor";
   if (id.includes("finance") || t.includes("finance")) return "goals";
   if (id.includes("startup") || t.includes("startup")) return "work";
+  if (id.includes("gmail") || t.includes("gmail") || t.includes("email"))
+    return "work";
   if (id.includes("agent") || t.includes("agent")) return "brain";
   if (id.includes("cycle") || t.includes("period") || t.includes("profile") || t.includes("wearable") || t.includes("test") || t.includes("analytic"))
     return "labs";

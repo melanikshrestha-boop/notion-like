@@ -1,6 +1,6 @@
 # Dr. Melani — personal workspace
 
-**This replaces Notion for you.** One black workspace: health (Dr. Melani systems) + life pages (Books, Goals, Docs, Meetings, …).
+Notion-style workspace **plus** Dr. Melani health pages. You can still **add pages**, databases, and write notes anytime. Gym / Meals / Data are special pages that do the same jobs as the Melani app — they do **not** replace your ability to create pages.
 
 ## Run
 
@@ -14,17 +14,16 @@ Open **http://127.0.0.1:5173/**
 
 ## What’s inside
 
-### Health (live-style pages)
-- **Fitness** — Sleep · Meals · Gym · Body (same UI as the Melani app)
+### Health pages (built-in UI)
+- **Fitness** — Sleep · Meals · Gym · Body  
+  - **Gym**: Today → week day chooser (cardio/lower/upper/rest) → workouts → **warm-up last** · set checklists · rest timer · **no PIN**
 - **My Data** — Labs neon chips, period tracker, profile
 - **75 Hard**, supplements, grocery, My doctor notes
 
-### Life (migrated from your Notion “Live Longer” structure)
-- Books (+ Innovators, History of Photography)
-- Real Life · Document Hub · Meetings · Agents
-- Goals Tracker · To Do · Journal
-- Classes · Content · Finance · Startups · Reading list
-- OpenNeuro notes · Neurotech · Work · Hygiene
+### Life pages (your second brain)
+- Books, Real Life, Document Hub, Meetings, Goals, To Do, Journal
+- Classes, Content, Finance, Startups, Neurotech, Work, Hygiene
+- **+ New page** / **+ New top-level page** / **New database** in the sidebar anytime
 
 ## Write like Notion
 - Click title → type  
@@ -35,11 +34,8 @@ Open **http://127.0.0.1:5173/**
 - **⌘K** = search  
 - Everything **auto-saves** in this browser  
 
-## Fitness sub-pages
-Use **▸ / ▾** next to Fitness (and Hygiene / My Data) to hide or show nested pages in the sidebar.
-
 ## Restore
-Sidebar → **Restore full workspace** reloads the full page tree (keeps your structure if you only edit text inside pages).
+Sidebar → **Restore full workspace** reloads the full page tree.
 
 ## Related
-Live logging still works on the Melani health server: **http://127.0.0.1:8781** (PIN 8299).
+Live Melani health server (optional): **http://127.0.0.1:8781**

@@ -104,7 +104,7 @@ export function SearchModal({ ws, onOpen, onClose, onRestore }: Props) {
             {page.title.trim() || "Untitled"}
           </span>
           {path ? (
-            <span className="search-row-path"> — {path}</span>
+            <span className="search-row-path"> / {path}</span>
           ) : null}
         </span>
       </button>

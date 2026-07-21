@@ -1,0 +1,910 @@
+/* Hygiene — one tight, coherent layout (no fat boxes, tight rows) */
+
+.hx {
+  color: #fff;
+  font-family: "Times New Roman", Times, serif;
+  padding: 0 0 32px;
+  max-width: min(420px, 100%);
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+/* ── Type scale ── */
+.hx-h2 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.hx-h3 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #fda4af; /* soft rose section label */
+  text-shadow: none;
+}
+
+.hx-title,
+.hx-page-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #fda4af;
+}
+
+.hx-section {
+  margin: 0 0 16px;
+}
+
+.hx-muted {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.38);
+  margin: 0;
+}
+
+/* Today — plain text link, not a fat pill/box */
+.hx-today-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: #f9a8d4;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.hx-today-pill:hover {
+  color: #fbcfe8;
+  background: transparent;
+}
+
+.hx-today-emoji {
+  font-size: 14px;
+}
+
+/* ── Week strip ── */
+.hx-week-strip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+  margin: 0 0 6px;
+  width: 100%;
+}
+
+.hx-week-cell {
+  min-width: 0;
+  text-align: center;
+  padding: 2px 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.hx-week-dow {
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.hx-week-cell.is-today .hx-week-dow {
+  color: #6eb4ff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 700;
+}
+
+.hx-week-num {
+  display: block;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.38);
+  margin-top: 1px;
+}
+
+.hx-week-icons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  min-height: 15px;
+  margin-top: 3px;
+}
+
+.hx-week-ic-wrap {
+  display: inline-flex;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.hx-week-ic-wrap.is-shower-daily {
+  color: #6eb4ff;
+}
+.hx-week-ic-wrap.is-shower-everything {
+  color: #f9a8d4;
+}
+.hx-week-ic-wrap.is-hair {
+  color: #c4b5fd;
+}
+
+.hx-week-ic {
+  display: block;
+}
+
+.hx-title-icon,
+.hx-today-icon,
+.hx-nav-ic {
+  display: block;
+  flex-shrink: 0;
+  color: currentColor;
+  opacity: 0.95;
+}
+
+.hx-choose-label-ic {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Choose toggle */
+.hx-choose-toggle {
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0 0 6px;
+  color: rgba(255, 255, 255, 0.42);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.hx-choose-toggle:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.hx-choose {
+  margin: 0 0 8px;
+  padding: 0;
+  width: 100%;
+}
+
+.hx-choose-row {
+  margin: 0 0 6px;
+  width: 100%;
+}
+
+.hx-choose-label {
+  margin: 0 0 2px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: left;
+}
+
+.hx-day-picks {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+  width: 100%;
+}
+
+.hx-day-pick {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.3);
+  border-radius: 0;
+  padding: 1px 0;
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+  box-sizing: border-box;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.hx-day-pick:hover {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.hx-day-pick.is-on {
+  background: transparent;
+  border: none;
+  color: #93c5fd;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+
+/* Day taken by another PM type — gray out */
+.hx-day-pick.is-blocked,
+.hx-day-pick:disabled {
+  color: rgba(255, 255, 255, 0.16);
+  text-decoration: none;
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* ── Nav list (Daily / Everything / Hair / AM / PM) — tight, coherent ── */
+.hx-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 4px 0 0;
+}
+
+.hx-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 5px 0; /* tight — was 14px */
+  margin: 0;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.hx-nav-row:hover {
+  opacity: 0.88;
+}
+
+.hx-nav-ic {
+  width: 18px;
+  flex-shrink: 0;
+}
+
+.hx-nav-label {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.hx-nav-text-stack {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  text-align: left;
+}
+
+.hx-nav-sub {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.38);
+  font-weight: 400;
+}
+
+.hx-nav-chev {
+  font-size: 13px;
+  opacity: 0.75;
+  flex-shrink: 0;
+}
+
+/* Colored labels + matching line icons */
+.hx-nav-row.is-daily .hx-nav-label,
+.hx-nav-row.is-daily .hx-nav-chev,
+.hx-nav-row.is-daily .hx-nav-ic {
+  color: #6eb4ff;
+}
+.hx-nav-row.is-everything .hx-nav-label,
+.hx-nav-row.is-everything .hx-nav-chev,
+.hx-nav-row.is-everything .hx-nav-ic {
+  color: #f9a8d4;
+}
+.hx-nav-row.is-hair .hx-nav-label,
+.hx-nav-row.is-hair .hx-nav-chev,
+.hx-nav-row.is-hair .hx-nav-ic {
+  color: #c4b5fd;
+}
+.hx-nav-row.is-am .hx-nav-label,
+.hx-nav-row.is-am .hx-nav-chev,
+.hx-nav-row.is-am .hx-nav-ic {
+  color: #fbbf24;
+}
+.hx-nav-row.is-pm .hx-nav-label,
+.hx-nav-row.is-pm .hx-nav-chev,
+.hx-nav-row.is-pm .hx-nav-ic {
+  color: #f9a8d4;
+}
+
+/* PM hub nav */
+.hx-nav-pm .hx-nav-label {
+  color: #fff !important;
+}
+.hx-nav-pm .hx-nav-chev {
+  color: #f9a8d4 !important;
+}
+.hx-nav-pm .hx-nav-sub {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Products & restock — empty until user adds via + */
+.hx-products-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.hx-products-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hx-products-head .hx-h2 {
+  margin: 0;
+}
+
+/* Plus next to "Products & restock" */
+.hx-restock-plus {
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 16px;
+  line-height: 1;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.hx-restock-plus:hover,
+.hx-restock-plus.is-open {
+  border-color: rgba(110, 180, 255, 0.55);
+  color: #9ccfff;
+  background: rgba(110, 180, 255, 0.08);
+}
+
+.hx-restock-menu {
+  margin: 0 0 12px;
+  padding: 10px 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.hx-restock-menu-hint {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.35;
+}
+
+.hx-restock-group-label {
+  margin: 10px 0 4px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(253, 164, 175, 0.85);
+}
+
+.hx-restock-group-label:first-of-type {
+  margin-top: 0;
+}
+
+.hx-restock-pick-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.hx-restock-pick {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.82);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.3;
+  padding: 5px 2px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.hx-restock-pick:hover:not(:disabled) {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.hx-restock-pick.is-added,
+.hx-restock-pick:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.hx-restock-pick-mark {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: #6eb4ff;
+}
+
+.hx-restock-pick.is-added .hx-restock-pick-mark {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.hx-restock-custom {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.hx-restock-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  outline: none;
+}
+
+.hx-restock-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.hx-restock-input:focus {
+  border-color: rgba(110, 180, 255, 0.45);
+}
+
+.hx-restock-add-btn {
+  border: none;
+  border-radius: 6px;
+  background: rgba(110, 180, 255, 0.2);
+  color: #9ccfff;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.hx-restock-add-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.hx-restock-add-btn:hover:not(:disabled) {
+  background: rgba(110, 180, 255, 0.3);
+}
+
+.hx-restock-amazon-note {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.32);
+}
+
+.hx-restock-empty {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.38);
+  line-height: 1.4;
+}
+
+/* Amazon restock — plain text actions (match rest of Hygiene, no fat boxes) */
+.hx-amazon-connect {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: baseline;
+  margin: 4px 0 2px;
+}
+
+.hx-amazon-login {
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.75);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(255, 255, 255, 0.28);
+  cursor: pointer;
+  text-align: left;
+}
+
+.hx-amazon-login:hover {
+  color: #fff;
+  text-decoration-color: rgba(255, 255, 255, 0.55);
+}
+
+.hx-amazon-login.is-ready {
+  color: #7fd4b4;
+  text-decoration-color: rgba(127, 212, 180, 0.45);
+}
+
+.hx-amazon-unlink {
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.35);
+  font-family: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.hx-amazon-unlink:hover {
+  color: #fb7185;
+}
+
+.hx-amazon-bar {
+  margin: 0 0 10px;
+  padding: 0;
+}
+
+.hx-amazon-cart-all {
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  color: #6eb4ff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(110, 180, 255, 0.4);
+  cursor: pointer;
+  text-align: left;
+  width: auto;
+}
+
+.hx-amazon-cart-all:hover:not(:disabled) {
+  color: #9ccfff;
+  text-decoration-color: rgba(156, 207, 255, 0.7);
+  background: none;
+}
+
+.hx-amazon-cart-all:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.hx-amazon-bar-note {
+  margin: 0 0 8px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.32);
+  line-height: 1.35;
+  max-width: 28rem;
+}
+
+.hx-amazon-flash {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #6eb4ff;
+  line-height: 1.35;
+}
+
+.hx-buy-cart {
+  color: #6eb4ff !important;
+}
+
+.hx-product-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hx-product-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.hx-product-name {
+  flex: 1 1 160px;
+  min-width: 0;
+  font-size: 13px;
+  color: #fecdd3;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.hx-product-buys {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  flex-shrink: 0;
+}
+
+.hx-restock-remove {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  font-family: inherit;
+}
+
+.hx-restock-remove:hover {
+  color: #fb7185;
+}
+
+/* Back link on detail pages */
+.hx-back {
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0 0 8px;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.hx-back:hover {
+  color: #fff;
+}
+
+/* ── Guide pages (Daily shower steps) ── */
+.hx-guide-section {
+  margin: 0 0 14px;
+}
+
+.hx-section-head {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #fda4af;
+}
+
+.hx-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hx-step-wrap {
+  margin: 0 0 2px;
+}
+
+.hx-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 4px 0;
+  margin: 0;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 0.92rem;
+  text-align: left;
+  cursor: pointer;
+  line-height: 1.4;
+  text-decoration: none;
+  /* No blue selection bar when you tap a product line */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hx-step:focus,
+.hx-step:focus-visible,
+.hx-step:active {
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.hx-step *::selection,
+.hx-step::selection {
+  background: transparent;
+  color: inherit;
+}
+
+.hx-step-num {
+  flex-shrink: 0;
+  min-width: 1.3em;
+  color: #fb7185;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.hx-step-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.hx-step-line {
+  display: inline;
+}
+
+.hx-step-title {
+  color: #fecdd3;
+  font-weight: 500;
+}
+
+.hx-step-sub {
+  color: #fdba74;
+  font-weight: 500;
+}
+
+.hx-step-note {
+  color: #fdba74;
+  font-style: italic;
+  font-weight: 400;
+}
+
+.hx-step-panel {
+  margin: 2px 0 8px 2em;
+  padding: 0;
+}
+
+.hx-step-details {
+  list-style: disc;
+  margin: 0 0 6px 0;
+  padding: 0 0 0 0.55em;
+  color: rgba(254, 205, 211, 0.75);
+  font-family: "Times New Roman", Times, serif;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.hx-step-details li {
+  margin: 0 0 3px;
+}
+
+.hx-step-details li::marker {
+  color: rgba(253, 186, 116, 0.5);
+}
+
+/*
+ * Melani timing callouts — soft mauve highlight on wait / crucial phrases
+ * (same look as the highlighted lines in your PM screenshots).
+ */
+.hx-tip-mark {
+  background: rgba(120, 72, 82, 0.72);
+  color: #fde2e4;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-weight: 500;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* Never strikethrough product names when open */
+.hx-step .hx-step-title,
+.hx-step .hx-step-sub,
+.hx-step .hx-step-note,
+.hx-step .hx-step-num {
+  text-decoration: none !important;
+}
+
+/* Buy links — always visible under how-to */
+.hx-buy-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 6px;
+}
+
+.hx-buy-link {
+  display: inline;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  color: #93c5fd !important;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: underline !important;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.hx-buy-link:hover {
+  color: #bfdbfe !important;
+}
+
+.hx-buy-alt {
+  color: rgba(147, 197, 253, 0.7) !important;
+  font-size: 0.8rem;
+}
+
+/* Themes */
+.hx-theme-body .hx-page-title,
+.hx-theme-skin .hx-page-title {
+  color: #fda4af;
+}
+.hx-theme-body .hx-section-head,
+.hx-theme-skin .hx-section-head {
+  color: #fda4af;
+}
+.hx-theme-body .hx-step-title,
+.hx-theme-skin .hx-step-title {
+  color: #fecdd3;
+}
+.hx-theme-body .hx-step-num,
+.hx-theme-skin .hx-step-num {
+  color: #fb7185;
+}
+.hx-theme-body .hx-step-sub,
+.hx-theme-body .hx-step-note,
+.hx-theme-skin .hx-step-sub,
+.hx-theme-skin .hx-step-note {
+  color: #fdba74;
+}
+
+.hx-theme-hair .hx-page-title {
+  color: #f472b6;
+}
+.hx-theme-hair .hx-section-head {
+  color: #f472b6;
+}
+.hx-theme-hair .hx-step-title {
+  color: #fbcfe8;
+}
+.hx-theme-hair .hx-step-num {
+  color: #f9a8d4;
+}
+.hx-theme-hair .hx-step-sub,
+.hx-theme-hair .hx-step-note {
+  color: #d8b4fe;
+}
+.hx-theme-hair .hx-step-details {
+  color: rgba(251, 207, 232, 0.75);
+}
+
+.hx-tonight {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #f9a8d4;
+}

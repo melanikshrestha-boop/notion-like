@@ -46,7 +46,6 @@ export function buildDrMelaniWorkspace(): Workspace {
   const SLEEP = "pg-sleep";
   const MEALS = "pg-meals";
   const GYM = "pg-gym";
-  const BODY = "pg-body";
   const WORK = "pg-work";
   const HYGIENE = "pg-hygiene";
   const SHOWER_DAILY = "pg-shower-daily";
@@ -55,9 +54,6 @@ export function buildDrMelaniWorkspace(): Workspace {
   const AM_SKIN = "pg-am-skin";
   const PM_SKIN = "pg-pm-skin";
   const DATA = "pg-data";
-  const TESTS = "pg-tests";
-  const WEARABLES = "pg-wearables";
-  const ANALYTICS = "pg-analytics";
   const HARD75 = "pg-75hard";
   const GROCERY = "pg-grocery";
   const DOCTOR = "pg-doctor";
@@ -65,6 +61,8 @@ export function buildDrMelaniWorkspace(): Workspace {
   const TODO = "pg-todo";
   const JOURNAL = "pg-journal";
   const NEURO = "pg-neurotech";
+  // Life hub + leisure writing
+  const LIFE = "pg-life";
   // Personal pages (migrated from your old Notion — Live Longer workspace)
   const BOOKS = "pg-books";
   const BOOK_INNOVATORS = "pg-book-innovators";
@@ -97,18 +95,17 @@ export function buildDrMelaniWorkspace(): Workspace {
       b("heading1", "Home"),
       b(
         "paragraph",
-        "This is your full workspace now — health + life + work. No more Notion."
+        "Notion-style pages + Dr. Melani health. Use + New page anytime. Fitness, Gym, Data, and life pages all live in this same sidebar."
       ),
       b("heading2", "Health"),
-      b("bullet", "Fitness — Sleep · Meals · Gym · Body"),
+      b("bullet", "Fitness: Sleep, Meals, Gym (weight under Gym)"),
       b("bullet", "Data — profile, period, labs (one page)"),
       b("bullet", "75 Hard · Grocery"),
-      b("heading2", "Life (from your old Notion)"),
-      b("bullet", "Personal Life · Books · Document Hub"),
-      b("bullet", "Goals Tracker · To Do · Journal"),
-      b("bullet", "Meetings · Classes · Content · Finance"),
+      b("heading2", "Life"),
+      b("bullet", "Life → Books (reading log, quotes)"),
+      b("bullet", "Personal Life"),
       b("heading2", "Build"),
-      b("bullet", "Neurotech · Work · OpenNeuro notes"),
+      b("bullet", "Work"),
       b("divider"),
       b("heading2", "Today"),
       b("todo", "Log sleep + brain fog"),
@@ -121,10 +118,9 @@ export function buildDrMelaniWorkspace(): Workspace {
     page(FITNESS, "Fitness", "💪", null, [
       b("heading1", "Fitness"),
       b("heading2", "Pages"),
-      b("bullet", "Sleep — bedtime, wake, brain fog, weekly chart"),
-      b("bullet", "Meals — macros, usuals, water, bowel"),
-      b("bullet", "Gym — week plan, warm-up, day checklists"),
-      b("bullet", "Body — weight, progress photos"),
+      b("bullet", "Sleep: bedtime, wake, brain fog, weekly chart"),
+      b("bullet", "Meals: macros, usuals, water"),
+      b("bullet", "Gym: week plan, warm-up, weight, day checklists"),
       b("divider"),
     ]),
 
@@ -155,22 +151,29 @@ export function buildDrMelaniWorkspace(): Workspace {
       b("heading1", "Meals"),
       b("heading2", "Goals"),
       b("bullet", "Protein priority (from app goals)"),
-      b("bullet", "0% added sugar · organic when possible"),
-      b("bullet", "Shop: Trader Joe’s + Target only"),
+      b("bullet", "0% added sugar · organic when possible · measured portions"),
       b("divider"),
       b("heading2", "Usual breakfast (exported)"),
-      b("paragraph", "Melani’s usual breakfast — ~715 cal · 49g protein · 58g C · 28g F · 14g fiber"),
-      b("bullet", "Fage 0% Greek yogurt (plain, organic)"),
-      b("bullet", "Fage 0% kefir (no added sugar)"),
-      b("bullet", "2 tsp chia seeds"),
-      b("bullet", "2 tsp flaxseeds"),
-      b("bullet", "Small handful pumpkin seeds"),
-      b("bullet", "Trader Joe’s raw honey (minimal)"),
+      b("paragraph", "Usual breakfast — ~480 cal · 38g protein · 42g C · 16g F · 9g fiber"),
+      b("paragraph", "0% added sugar · organic when possible · measured portions"),
+      b("bullet", "Fage 0% Greek yogurt: 150g (about ⅔ cup)"),
+      b("bullet", "Fage 0% kefir: 100ml (about ⅓–½ cup)"),
+      b("heading3", "Seeds + nuts"),
+      b("bullet", "1 tsp chia seeds"),
+      b("bullet", "1 tsp flaxseeds"),
+      b("bullet", "1 flat tbsp pumpkin seeds"),
+      b("heading3", "Fruit"),
+      b("bullet", "½ cup blueberries"),
+      b("bullet", "3 medium strawberries"),
+      b("heading3", "Extras"),
+      b("bullet", "10–15 makhana (fox nuts)"),
+      b("bullet", "1 tsp raw honey max (optional; skip if very sleepy)"),
+      b("heading3", "Eggs"),
+      b("bullet", "1 boiled egg with yolk + 1 egg white (optional)"),
       b("divider"),
       b("heading2", "Common / usuals"),
-      b("bullet", "Chipotle burrito bowl — ~585 cal · 27g protein"),
-      b("bullet", "Lunch usual — edit in app Meals"),
-      b("bullet", "Dinner usual — edit in app Meals"),
+      b("bullet", "Breakfast usual — edit in app Meals"),
+      b("bullet", "Lunch / dinner — add when you want"),
       b("divider"),
       b("heading2", "Water"),
       b("paragraph", "Goal: 4000 ml / day (profile)"),
@@ -206,34 +209,18 @@ export function buildDrMelaniWorkspace(): Workspace {
       b("todo", "Complete warm-up checklist before main lifts"),
     ]),
 
-    page(BODY, "Body", "📏", FITNESS, [
-      b("heading1", "Body"),
-      b("heading2", "Weight"),
-      b("paragraph", "Log weekly weight in Fitness → Body / vitals."),
-      b("heading2", "Progress photos"),
-      b("bullet", "Front"),
-      b("bullet", "Side"),
-      b("bullet", "Back"),
-      b("todo", "Add progress photo (also 75 Hard daily photo)"),
-      b("divider"),
-      b("heading2", "Measurements (optional)"),
-      b("bullet", "Waist —"),
-      b("bullet", "Hips —"),
-      b("bullet", "Notes —"),
-    ]),
+    // Body removed: weight/photos live under Gym
 
     // ── Work ──
     page(WORK, "Work", "💼", null, [
-      b("heading1", "Work"),
       b("heading2", "Focus"),
-      b("todo", "Neurotech device — early disease catch"),
       b("todo", "Clinic plan: SF · NY · LA"),
+      b("todo", "Neurotech device: early disease catch"),
       b("todo", "Silicon Valley / biotech updates"),
       b("heading2", "Learning"),
       b("bullet", "Electrical engineering"),
       b("bullet", "Computer engineering"),
       b("bullet", "Personal finance + business"),
-      b("divider"),
       b("heading2", "Content"),
       b("todo", "Post ideas / LinkedIn"),
       b("todo", "Video / photography project"),
@@ -296,52 +283,10 @@ export function buildDrMelaniWorkspace(): Workspace {
       b("todo", "Log tonight’s PM type"),
     ]),
 
-    // ── Data (one page: profile + period toggle + labs) ──
-    page(DATA, "Data", "data", null, [
+    // ── Data (one page only: cycle + labs inside the app UI) ──
+    // No separate Profile / Period tracker / Labs / Wearables sidebar pages
+    page(DATA, "My Data", "data", null, [
       b("paragraph", ""),
-    ]),
-
-    page(TESTS, "Upcoming tests", "📅", null, [
-      b("heading1", "Upcoming tests"),
-      b("todo", "Check due dates in live health app if needed"),
-    ]),
-
-    page(WEARABLES, "Wearables", "⌚", null, [
-      b("heading1", "Wearables"),
-      b("heading2", "WHOOP"),
-      b("bullet", "Connect / sync last 7 days in app"),
-      b("bullet", "HRV 7-day avg · Resting HR 7-day avg"),
-      b("heading2", "Apple Health"),
-      b("bullet", "Export CSV → import in app"),
-    ]),
-
-    // ── Analytics ──
-    page(ANALYTICS, "Health Analytics", "📈", null, [
-      b("heading1", "Health Analytics"),
-      b("paragraph", "Your private dashboard of flags + habits. Numbers from chart export."),
-      b("heading2", "Lipid flags (latest Quest)"),
-      b("bullet", "LDL 120 HIGH"),
-      b("bullet", "Total chol 207 HIGH"),
-      b("bullet", "TG 119 HIGH"),
-      b("bullet", "Non-HDL 143 HIGH"),
-      b("bullet", "HDL 64 OK · A1c 5.3 OK · TSH 1.06 OK"),
-      b("divider"),
-      b("heading2", "Habit scoreboard (fill daily)"),
-      b("todo", "Sleep logged"),
-      b("todo", "Brain fog logged"),
-      b("todo", "Water ≥ goal"),
-      b("todo", "Protein on track"),
-      b("todo", "Training done"),
-      b("todo", "No cheat / no alcohol (75 Hard)"),
-      b("todo", "10 pages read"),
-      b("todo", "Progress photo"),
-      b("divider"),
-      b("heading2", "Brain fog week"),
-      b("paragraph", "Track Yes-days / 7 in Fitness → Sleep (doctor-visible)."),
-      b("heading2", "What to improve first"),
-      b("numbered", "Fiber + omega-3 for lipids"),
-      b("numbered", "Sleep consistency for migraines + fog"),
-      b("numbered", "Gallon water + two workouts on 75 Hard days"),
     ]),
 
     // ── 75 Hard ──
@@ -380,89 +325,25 @@ export function buildDrMelaniWorkspace(): Workspace {
       b("todo", "Fage 0% yogurt + kefir"),
     ]),
 
-    // ── Doctor chat notes ──
-    page(DOCTOR, "My doctor", "💬", null, [
-      b("paragraph", ""),
-    ]),
-
-    // ── Goals / Todo / Journal / Neurotech (like her real Notion) ──
-    page(GOALS, "Goals Tracker", "🎯", null, [
-      b("heading1", "Goals Tracker"),
-      b("heading2", "Health"),
-      b("todo", "Improve lipids with food + training"),
-      b("todo", "Finish 75 Hard streak"),
-      b("todo", "Sleep 7.5–8.5h most nights"),
-      b("heading2", "Build"),
-      b("todo", "Neurotech wearable — early disease detection"),
-      b("todo", "Ship Dr. Melani product quality"),
-      b("heading2", "Career"),
-      b("todo", "Med school path + inventor path"),
-      b("todo", "Clinics vision: SF · NY · LA"),
-    ]),
-
-    page(TODO, "To Do List", "✅", null, [
-      b("heading1", "To Do List"),
-      b("heading2", "Today"),
-      b("todo", "Dr. Melani daily logs"),
-      b("todo", "75 Hard scorecard"),
-      b("todo", "One deep work block"),
-      b("heading2", "This week"),
-      b("todo", "Review lab plan with provider if due"),
-      b("todo", "Grocery restock (TJ / Target)"),
-    ]),
-
-    page(JOURNAL, "Journal", "📓", null, [
-      b("paragraph", ""),
-    ]),
-
-    page(NEURO, "Neurotech", "🧠", null, [
-      b("heading1", "Neurotech"),
-      b(
-        "paragraph",
-        "Device goal: catch disease early — wear daily like Oura, but nervous-system focused."
-      ),
-      b("heading2", "Research lanes"),
-      b("bullet", "Closed-loop neuromodulation"),
-      b("bullet", "Vagal / thermal signals"),
-      b("bullet", "Early detection biomarkers"),
-      b("heading2", "Product principles"),
-      b("bullet", "Simple to use every day"),
-      b("bullet", "Doctor-ready data"),
-      b("bullet", "Save lives at scale"),
-    ]),
-
     // ══════════════════════════════════════════
-    // From your Notion (Live Longer) — full pages
+    // Life — leisure hub (Books lives under here)
     // ══════════════════════════════════════════
 
-    page(BOOKS, "Books", "📚", null, [
-      b("heading1", "Books"),
-      b("heading2", "Now reading / library"),
-      b("bullet", "Innovators by Walter Isaacson"),
-      b("bullet", "History of Photography"),
-      b("divider"),
-      b("paragraph", ""),
+    page(LIFE, "Life", "life", null, [
+      b("paragraph", "Life hub — open Books for the real library."),
     ]),
 
+    // Real library app (rich page) — shelves, quotes, notes database
+    page(BOOKS, "Books", "📚", LIFE, [
+      b("paragraph", "Library app loads here."),
+    ]),
+
+    // Optional book notes as sub-pages under Books (same editor)
     page(BOOK_INNOVATORS, "Innovators by Walter Isaacson", "📖", BOOKS, [
-      b("heading1", "Innovators"),
-      b("paragraph", "Walter Isaacson — notes & quotes"),
-      b("heading2", "Why this book"),
-      b("paragraph", "How collaboration built the digital age."),
-      b("heading2", "Notes"),
       b("paragraph", ""),
-      b("heading2", "Quotes"),
-      b("quote", ""),
-      b("heading2", "Action ideas"),
-      b("todo", ""),
     ]),
 
     page(BOOK_PHOTO, "History of Photography", "📷", BOOKS, [
-      b("heading1", "History of Photography"),
-      b("paragraph", "Course / book notes"),
-      b("heading2", "Key periods"),
-      b("bullet", ""),
-      b("heading2", "Notes"),
       b("paragraph", ""),
     ]),
 
@@ -557,106 +438,36 @@ export function buildDrMelaniWorkspace(): Workspace {
       b("paragraph", ""),
     ]),
 
-    page(OPENNEURO, "Downloading OpenNeuro data", "📄", null, [
-      b("heading1", "Downloading OpenNeuro data"),
-      b("heading2", "Goal"),
-      b("paragraph", "Pull neuroimaging data for analysis / neurotech work."),
-      b("heading2", "Steps"),
-      b("numbered", "Create OpenNeuro account / CLI"),
-      b("numbered", "Pick dataset accession"),
-      b("numbered", "Download subset first"),
-      b("numbered", "Document paths + license"),
-      b("heading2", "Links & commands"),
-      b("code", "# example\n# openneuro download --dataset ds00xxxx"),
-      b("heading2", "Notes"),
-      b("paragraph", ""),
-    ]),
-
-    page(DOC_HUB, "Document Hub", "📁", null, [
-      b("heading1", "Document Hub"),
-      b("heading2", "School"),
-      b("bullet", ""),
-      b("heading2", "Research papers"),
-      b("bullet", ""),
-      b("heading2", "Personal / admin"),
-      b("bullet", ""),
-      b("heading2", "Inbox (drop notes here)"),
-      b("paragraph", ""),
-    ]),
-
-    page(MEETINGS, "Meetings", "📅", null, [
-      b("heading1", "Meetings"),
-      b("heading2", "Template"),
-      b("bullet", "Date:"),
-      b("bullet", "Who:"),
-      b("bullet", "Goal:"),
-      b("bullet", "Notes:"),
-      b("bullet", "Next actions:"),
-      b("divider"),
-      b("heading2", "Log"),
-      b("paragraph", ""),
-    ]),
-
+    // Agents hub (hidden from sidebar list — only children show under Agents)
     page(AGENTS, "Agents", "🤖", null, [
       b("heading1", "Agents"),
-      b("heading2", "Active"),
-      b("bullet", "Dr. Melani health coach (in-app chat)"),
-      b("bullet", "Grok / build agents"),
-      b("heading2", "Ideas"),
-      b("todo", "Weekly lab + sleep summary agent"),
-      b("todo", "Content draft agent for LinkedIn"),
+      b(
+        "paragraph",
+        "Build your own agents here. Use + New agent in the sidebar."
+      ),
     ]),
 
-    page(CLASSES, "Classes", "🎓", null, [
-      b("heading1", "Classes"),
-      b("heading2", "This term"),
-      b("bullet", ""),
-      b("heading2", "Exam prep"),
+    page("pg-library", "Library", "📚", null, [
+      b("heading1", "Library"),
+      b("paragraph", "Books, notes, and saved references."),
+    ]),
+
+    page("pg-my-tasks", "My Tasks", "✅", null, [
+      b("heading1", "My Tasks"),
       b("todo", ""),
-      b("heading2", "Free notes"),
-      b("paragraph", ""),
     ]),
 
-    page(CONTENT, "Content", "🎬", null, [
-      b("heading1", "Content"),
-      b("heading2", "Ideas queue"),
-      b("bullet", ""),
-      b("heading2", "This week’s posts"),
-      b("todo", ""),
-      b("heading2", "Drafts"),
-      b("paragraph", ""),
-    ]),
-
-    page(FINANCE, "Finance", "💰", null, [
-      b("heading1", "Finance"),
-      b("heading2", "Goals"),
-      b("todo", ""),
-      b("heading2", "Notes"),
-      b("paragraph", ""),
-    ]),
-
-    page(STARTUPS, "Startups / Silicon Valley", "🚀", null, [
-      b("heading1", "Startups / Silicon Valley"),
-      b("heading2", "This week"),
-      b("bullet", ""),
-      b("heading2", "People / companies"),
-      b("bullet", ""),
-      b("heading2", "Ideas for clinics + device"),
-      b("paragraph", ""),
-    ]),
-
-    page(READING, "Reading list", "🔖", null, [
-      b("heading1", "Reading list"),
-      b("todo", "Innovation / neurotech titles"),
-      b("todo", "Healthcare breakthroughs"),
-      b("todo", "Building products that change the world"),
-      b("heading2", "Finished"),
-      b("bullet", ""),
+    page("pg-help", "Help", "❓", null, [
+      b("heading1", "Help"),
+      b(
+        "paragraph",
+        "Tips: ⌘K search · ⌘N new page · / for blocks · sidebar + New page anytime."
+      ),
     ]),
   ];
 
   return {
-    name: "Dr. Melani",
+    name: "Wonder",
     pages,
     activePageId: HOME,
     sidebarOpen: true,
@@ -664,4 +475,4 @@ export function buildDrMelaniWorkspace(): Workspace {
   } as Workspace & { exportVersion?: number };
 }
 
-export const DR_MELANI_EXPORT_VERSION = 8;
+export const DR_MELANI_EXPORT_VERSION = 13;

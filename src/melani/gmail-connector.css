@@ -1,0 +1,345 @@
+/* Real Gmail client + connect form */
+
+.gc {
+  color: #fff;
+  font-family: "Times New Roman", Times, serif;
+  padding: 0 0 40px;
+  max-width: 520px;
+}
+
+.gc-h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.gc-muted {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.45;
+}
+
+.gc-steps {
+  margin: 0 0 16px;
+  padding-left: 18px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.55;
+}
+
+.gc-link {
+  color: #6eb4ff;
+}
+
+.gc-label {
+  display: block;
+  margin: 10px 0 4px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.gc-input {
+  width: 100%;
+  max-width: 360px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+}
+
+.gc-input:focus {
+  outline: none;
+  border-color: rgba(110, 180, 255, 0.5);
+}
+
+.gc-btn {
+  border: 1px solid rgba(110, 180, 255, 0.4);
+  background: rgba(110, 180, 255, 0.12);
+  color: #9ccfff;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.gc-btn:hover {
+  background: rgba(110, 180, 255, 0.2);
+}
+
+.gc-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.gc-btn-ghost {
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 6px 8px;
+}
+
+.gc-btn-ghost:hover {
+  color: #fff;
+}
+
+.gc-err {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: #fb7185;
+  line-height: 1.4;
+}
+
+.gc-flash {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: #6eb4ff;
+}
+
+.gc-hint {
+  margin: 14px 0 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.gc-hint code {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* ── Live mail layout (Safari-like mail inside app) ── */
+.gm {
+  color: #fff;
+  font-family: "Times New Roman", Times, serif;
+  padding: 0 0 24px;
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.gm-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.gm-brand {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-right: 10px;
+}
+
+.gm-email {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.gm-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gm-folders {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.gm-folder {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.gm-folder.is-on {
+  color: #fff;
+  font-weight: 650;
+}
+
+.gm-search-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.gm-search {
+  max-width: none;
+  flex: 1;
+}
+
+.gm-split {
+  display: grid;
+  grid-template-columns: minmax(220px, 34%) 1fr;
+  gap: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 480px;
+  flex: 1;
+}
+
+@media (max-width: 720px) {
+  .gm-split {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+}
+
+.gm-list {
+  border-right: none;
+  overflow-y: auto;
+  max-height: 70vh;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.gm-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 2px 8px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-bottom: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.75);
+  font-family: inherit;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.gm-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.gm-row.is-active {
+  background: rgba(110, 180, 255, 0.1);
+}
+
+.gm-row.is-unread .gm-row-from,
+.gm-row.is-unread .gm-row-sub {
+  color: #fff;
+  font-weight: 650;
+}
+
+.gm-row-from {
+  grid-column: 1;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gm-row-date {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.gm-row-sub {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gm-read {
+  padding: 16px 18px;
+  overflow-y: auto;
+  max-height: 70vh;
+}
+
+.gm-read-empty {
+  margin-top: 40px;
+  text-align: center;
+}
+
+.gm-read-sub {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 650;
+  color: #fff;
+}
+
+.gm-read-meta {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.gm-read-date {
+  margin-bottom: 14px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.gm-read-body {
+  margin: 0 0 16px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.gm-compose-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.gm-compose {
+  width: min(480px, 100%);
+  background: #0c0c0c;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.gm-compose .gc-input {
+  max-width: none;
+  margin-bottom: 4px;
+}
+
+.gm-textarea {
+  resize: vertical;
+  min-height: 140px;
+}
+
+.gm-compose-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 8px;
+}

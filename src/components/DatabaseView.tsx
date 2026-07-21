@@ -44,7 +44,7 @@ export function DatabaseView({ page, onUpdatePage }: Props) {
     for (const c of db.columns) {
       if (c.type === "checkbox") cells[c.id] = false;
       else if (c.type === "select") cells[c.id] = c.options?.[0] || "";
-      else if (c.type === "title") cells[c.id] = "New item";
+      else if (c.type === "title") cells[c.id] = "";
       else cells[c.id] = "";
     }
     save({ ...db, rows: [...db.rows, { id: uid(), cells }] });

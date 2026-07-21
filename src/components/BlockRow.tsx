@@ -12,6 +12,7 @@ type Props = {
   onFocus: (id: string) => void;
   onPlus: (index: number) => void;
   onOpenPage?: (pageId: string) => void;
+  onDeletePageLink?: (pageId: string) => void;
   onDragStart: (index: number) => void;
   onDragOver: (index: number) => void;
   onDrop: (index: number) => void;
@@ -34,12 +35,13 @@ export function BlockRow({
   onFocus,
   onPlus,
   onOpenPage,
+  onDeletePageLink,
   onDragStart,
   onDragOver,
   onDrop,
 }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null);
-  const empty = !block.text;
+  const empty = !(block.text ?? "").length;
   const indent = Math.min(Math.max(block.indent || 0, 0), 4);
 
   useEffect(() => {
@@ -82,69 +84,50 @@ export function BlockRow({
             ⋮⋮
           </button>
         </div>
-        <button
-          type="button"
-          className="block-page-link"
-          onClick={() => onOpenPage?.(block.pageId!)}
-        >
-          <span className="block-page-link-icon">📄</span>
-          <span className="block-page-link-title">
-            {linkedTitle || block.text || "Untitled"}
-          </span>
-        </button>
+        <div className="block-page-link-wrap">
+          <button
+            type="button"
+            className="block-page-link"
+            onClick={() => onOpenPage?.(block.pageId!)}
+          >
+            <span className="block-page-link-icon">📄</span>
+            <span className="block-page-link-title">
+              {linkedTitle || block.text || "Untitled"}
+            </span>
+          </button>
+          <button
+            type="button"
+            className="child-page-delete"
+            title="Delete page"
+            onClick={() => onDeletePageLink?.(block.pageId!)}
+          >
+            ×
+          </button>
+        </div>
       </div>
     );
   }
 
+  // Dividers never shown — user does not want divider lines
   if (block.type === "divider") {
-    return (
-      <div
-        className="block-row"
-        style={{ paddingLeft: 42 + indent * 24 }}
-        onDragOver={(e) => {
-          e.preventDefault();
-          onDragOver(index);
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          onDrop(index);
-        }}
-      >
-        <div className="block-gutter" style={{ left: indent * 24 }}>
-          <button type="button" className="block-plus" onClick={() => onPlus(index)}>
-            +
-          </button>
-          <button
-            type="button"
-            className="block-handle"
-            draggable
-            onDragStart={() => onDragStart(index)}
-          >
-            ⋮⋮
-          </button>
-        </div>
-        <div className="block-body">
-          <hr className="block-divider" />
-        </div>
-      </div>
-    );
+    return null;
   }
 
   const input = (
     <textarea
       ref={ref}
       className={`block-input type-${block.type}${block.checked ? " is-checked" : ""}`}
-      value={block.text}
+      value={block.text ?? ""}
       rows={1}
       placeholder={
-        // No coaching copy — empty line, you know what to do
+        // Empty line — click and type (Google Docs / Notion style)
         block.type === "heading1"
           ? "Heading 1"
           : block.type === "heading2"
             ? "Heading 2"
             : block.type === "heading3"
               ? "Heading 3"
-              : ""
+              : "Type…"
       }
       onChange={(e) => {
         onChange(block.id, { text: e.target.value });

@@ -1,194 +1,337 @@
 /**
  * Rich Melani pages inside workspace shell.
- * Fitness = FitnessExact. Data = one stacked page (profile + period toggle + labs).
+ * Fitness = FitnessExact. Data = profile + cycle + smart labs.
  */
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  buildCycleCalendar,
-  CYCLE,
-  LAB_DRAWS,
-  LAB_STATUS,
-  PHASES,
-  PROFILE,
-} from "./data";
+  footerForLab,
+  formatLabDate,
+  labDisplayName,
+  labOneLiner,
+  statusLabel,
+  type LabItem,
+} from "./labData";
+import {
+  buildSections,
+  importLabPayload,
+  loadLabs,
+  saveLabs,
+  type BuiltSection,
+} from "./labEngine";
 import { FitnessExact, isFitnessPage } from "./FitnessExact";
+import { HygieneExact, isHygienePage } from "./HygieneExact";
+import { BooksLibrary, isBooksPage } from "./BooksLibrary";
+import { GmailConnector, isGmailAgentPage } from "./GmailConnector";
+import { CycleTracker } from "./CycleTracker";
+import { ExpandableText } from "./ExpandableText";
 import "./melani.css";
 
-/** One page: Profile → Period (toggle) → Labs neon + draws — like original My Data */
+/** One page: Profile → Period → Labs (status cards + tables + smart import) */
 export function MelaniData() {
-  const days = useMemo(() => buildCycleCalendar(), []);
-  const [flow, setFlow] = useState<string | null>("medium");
-  const [phase, setPhase] = useState("luteal");
-  const [periodOpen, setPeriodOpen] = useState(false);
+  const [labs, setLabs] = useState<LabItem[]>(() => loadLabs());
+  const [labPopup, setLabPopup] = useState<LabItem | null>(null);
+  const [importMsg, setImportMsg] = useState("");
+  const [dragOver, setDragOver] = useState(false);
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!labPopup) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setLabPopup(null);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [labPopup]);
+
+  const sections: BuiltSection[] = useMemo(
+    () => buildSections(labs),
+    [labs]
+  );
+
+  const applyImport = useCallback((raw: string) => {
+    const result = importLabPayload(labs, raw);
+    setLabs(result.items);
+    setImportMsg(result.message);
+    window.setTimeout(() => setImportMsg(""), 4000);
+  }, [labs]);
+
+  async function handleFiles(files: FileList | null) {
+    if (!files?.length) return;
+    const file = files[0];
+    const name = file.name.toLowerCase();
+
+    if (name.endsWith(".pdf")) {
+      // Browser can't parse PDF without a library — ask for paste of text
+      setPasteOpen(true);
+      setImportMsg(
+        "PDF detected — copy the results text from the PDF and paste below (or drop a .txt/.csv export)."
+      );
+      return;
+    }
+
+    const text = await file.text();
+    applyImport(text);
+  }
+
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    void handleFiles(e.dataTransfer.files);
+  }
 
   return (
     <div className="melani-shell">
-      {/* Sticky strip — age + height only, always on top while scrolling */}
-      <div className="profile-sticky">
-        <div className="profile-stat-row profile-stat-row-minimal">
-          <span className="profile-stat">
-            <em>Age</em>
-            {PROFILE.ageDisplay} · {PROFILE.sex}
-          </span>
-          <span className="profile-stat">
-            <em>Height</em>
-            {PROFILE.height}
-          </span>
-        </div>
-      </div>
+      {/* No age/sex/height banner — profile lives in context for Mel, not this page chrome */}
+      <div className="melani-inner">
+        <CycleTracker />
 
-      <div className="melani-inner melani-inner-below-profile">
-        {/* Period tracker — collapsed by default, toggle to open */}
-        <div className="melani-card melani-toggle-card">
-          <button
-            type="button"
-            className="melani-toggle-head"
-            onClick={() => setPeriodOpen((v) => !v)}
-            aria-expanded={periodOpen}
-          >
-            <span>
-              <span className="melani-h2" style={{ display: "block", margin: 0 }}>
-                Period tracker
-              </span>
-              <span className="melani-hint" style={{ margin: "4px 0 0" }}>
-                {CYCLE.phase} · next {CYCLE.predictedNextDisplay}
-              </span>
-            </span>
-            <span className="melani-toggle-chevron" aria-hidden>
-              {periodOpen ? "▾" : "▸"}
-            </span>
-          </button>
-
-          {periodOpen && (
-            <div className="melani-toggle-body">
-              <p className="cycle-status">{CYCLE.statusLine}</p>
-              <p className="cycle-phase">{CYCLE.phase}</p>
-
-              <p className="cycle-subhead">Last period</p>
-              <p className="cycle-meta">
-                {CYCLE.lastPeriodDisplay} · short (~{CYCLE.periodLengthDays}{" "}
-                days)
-              </p>
-              <p className="cycle-meta">
-                Next expected: {CYCLE.predictedNextDisplay}
-              </p>
-
-              <p className="cycle-subhead">Today's flow</p>
-              <div className="cycle-flow-btns">
-                {CYCLE.flowLevels.map((level) => (
-                  <button
-                    key={level}
-                    type="button"
-                    className={`cycle-flow-btn cycle-flow-${level}${
-                      flow === level ? " active" : ""
-                    }`}
-                    onClick={() => setFlow(level)}
-                  >
-                    {level}
-                  </button>
-                ))}
-              </div>
-
-              <button type="button" className="cycle-start-btn">
-                Period started today
-              </button>
-
-              <p className="cycle-subhead">Tap a phase to learn</p>
-              <div className="cycle-phase-chips">
-                {PHASES.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    className={`cycle-phase-chip${
-                      phase === p.id ? " is-current" : ""
-                    }`}
-                    onClick={() => setPhase(p.id)}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-
-              <p className="cycle-subhead">This cycle</p>
-              <p className="cycle-meta">
-                Ovulation (estimated): {CYCLE.predictedOvulationDisplay}
-              </p>
-
-              <div className="cycle-calendar">
-                {days.map((d) => (
-                  <div
-                    key={d.iso}
-                    className={[
-                      "cycle-day",
-                      d.isToday ? "cycle-day-today" : "",
-                      d.isOvulation ? "cycle-day-ovulation" : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    title={d.iso}
-                  >
-                    <span className="cycle-day-label">{d.weekday}</span>
-                    <span
-                      className={`cycle-dot cycle-dot-${d.flow || "empty"}`}
-                    />
-                    <span className="cycle-day-num">{d.label}</span>
-                  </div>
-                ))}
-              </div>
-              <p className="melani-hint">
-                Pink = flow · gold ring = ovulation · blue ring = today
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Labs — neon status + draws stacked */}
-        <div className="melani-card">
-          <h2 className="melani-h2">Current status</h2>
-          <p className="melani-hint">Key lab flags from your latest draw</p>
-          <div className="neon-status-row">
-            {LAB_STATUS.map((s) => (
-              <div key={s.short} className={`neon-chip neon-${s.chip}`}>
-                <span className="neon-chip-label">{s.short}</span>
-                <span className="neon-chip-value">
-                  {s.value} {s.unit}
+        {/* ── CURRENT STATUS cards ── */}
+        <section className="lab-status-block">
+          <h2 className="lab-h2">Current status</h2>
+          <div className="lab-status-grid">
+            {sections.map((sec) => (
+              <button
+                key={sec.id}
+                type="button"
+                className={`lab-status-card lab-status-${sec.status}${
+                  sections.length % 3 === 1 &&
+                  sec === sections[sections.length - 1]
+                    ? " lab-status-wide"
+                    : ""
+                }`}
+                onClick={() => {
+                  document
+                    .getElementById(`lab-sec-${sec.id}`)
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              >
+                <span className="lab-status-name">{sec.label}</span>
+                <span className="lab-status-date">
+                  Date: {formatLabDate(sec.date)}
                 </span>
-                <span className="neon-chip-badge">{s.badge}</span>
-              </div>
+                <span className={`lab-pill lab-pill-${sec.status}`}>
+                  {statusLabel(sec.status)}
+                </span>
+              </button>
             ))}
           </div>
+        </section>
+
+        {/* Smart drop / import */}
+        <div
+          className={`lab-drop${dragOver ? " is-over" : ""}`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={onDrop}
+        >
+          <p className="lab-drop-title">Drop new lab results</p>
+          <p className="lab-drop-hint">
+            Drop a .txt / .csv / .json export, or paste results. Same tests update
+            (HIGH → OK). New tests get their own section and explanation.
+          </p>
+          <div className="lab-drop-actions">
+            <button
+              type="button"
+              className="lab-drop-btn"
+              onClick={() => fileRef.current?.click()}
+            >
+              Choose file
+            </button>
+            <button
+              type="button"
+              className="lab-drop-btn"
+              onClick={() => setPasteOpen((v) => !v)}
+            >
+              {pasteOpen ? "Hide paste" : "Paste text"}
+            </button>
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".txt,.csv,.json,.tsv,text/plain,text/csv,application/json"
+            className="lab-file-input"
+            onChange={(e) => void handleFiles(e.target.files)}
+          />
+          {pasteOpen ? (
+            <div className="lab-paste">
+              <textarea
+                className="lab-paste-area"
+                placeholder={`Example:\nLDL Cholesterol 95 mg/dL OK\nGlucose 88 mg/dL\nFerritin 22 ng/mL Low\nVitamin D 28 ng/mL`}
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+                rows={5}
+              />
+              <button
+                type="button"
+                className="lab-drop-btn"
+                onClick={() => {
+                  applyImport(pasteText);
+                  setPasteText("");
+                }}
+              >
+                Import paste
+              </button>
+            </div>
+          ) : null}
+          {importMsg ? <p className="lab-import-msg">{importMsg}</p> : null}
         </div>
 
-        {LAB_DRAWS.map((draw) => (
-          <div key={draw.title} className="melani-card">
-            <h2
-              className="melani-h2"
-              style={{ textTransform: "none", letterSpacing: 0 }}
-            >
-              {draw.title}
-            </h2>
-            {draw.lines.map((line) => (
-              <div key={line} className="melani-line">
-                <span>{line}</span>
+        {/* Section tables — no extra “results by section” header */}
+        {sections.map((sec) => (
+          <section
+            key={sec.id}
+            id={`lab-sec-${sec.id}`}
+            className="lab-section"
+          >
+            <div className="lab-section-head">
+              <div className="lab-section-text">
+                <h3 className="lab-section-label">{sec.label}</h3>
+                <ExpandableText
+                  text={sec.blurb}
+                  className="lab-section-blurb"
+                  lines={3}
+                />
               </div>
-            ))}
-          </div>
+              <span className={`lab-pill lab-pill-${sec.status}`}>
+                {statusLabel(sec.status)}
+              </span>
+            </div>
+            <p className="lab-section-date">
+              Date: {formatLabDate(sec.date)}
+            </p>
+
+            <div className="lab-table" role="table">
+              <div className="lab-table-head" role="row">
+                <span role="columnheader">Test</span>
+                <span role="columnheader">Result</span>
+                <span role="columnheader">Status</span>
+              </div>
+              {sec.items.map((lab) => (
+                <button
+                  key={lab.id}
+                  type="button"
+                  role="row"
+                  className="lab-table-row"
+                  onClick={() => setLabPopup(lab)}
+                >
+                  <span className="lab-table-name" role="cell">
+                    {labDisplayName(lab)}
+                  </span>
+                  <span className="lab-table-val" role="cell">
+                    {lab.value}
+                    {lab.unit ? ` ${lab.unit}` : ""}
+                  </span>
+                  <span role="cell" className="lab-table-status">
+                    <span className={`lab-pill lab-pill-${lab.status}`}>
+                      {statusLabel(lab.status)}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
         ))}
       </div>
+
+      {labPopup && (
+        <div
+          className="lab-popup-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="lab-popup-title"
+          onClick={() => setLabPopup(null)}
+        >
+          <div className="lab-popup" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="lab-popup-close"
+              onClick={() => setLabPopup(null)}
+              aria-label="Close"
+            >
+              ×
+            </button>
+
+            <div className="lab-popup-top">
+              <h3 id="lab-popup-title" className="lab-popup-title">
+                {labDisplayName(labPopup)}
+              </h3>
+              <span className="lab-popup-top-val">
+                {labPopup.value}
+                {labPopup.unit ? ` ${labPopup.unit}` : ""}
+              </span>
+              <span className={`lab-pill lab-pill-${labPopup.status}`}>
+                {statusLabel(labPopup.status)}
+              </span>
+            </div>
+
+            <ExpandableText
+              text={labOneLiner(labPopup)}
+              className="lab-popup-oneliner"
+              lines={3}
+            />
+
+            <div className="lab-popup-block">
+              <p className="lab-popup-label">Normal range</p>
+              <p>{labPopup.normalRange}</p>
+            </div>
+
+            <div className="lab-popup-block">
+              <p className="lab-popup-label">Your result</p>
+              <p className={`lab-popup-result lab-val-${labPopup.status}`}>
+                <strong>
+                  {labPopup.value}
+                  {labPopup.unit ? ` ${labPopup.unit}` : ""}
+                </strong>
+              </p>
+            </div>
+
+            <div className="lab-popup-block">
+              <p className="lab-popup-label">What it is</p>
+              <ExpandableText text={labPopup.simple} lines={3} />
+            </div>
+
+            <div className="lab-popup-block">
+              <p className="lab-popup-label">Why we measure it</p>
+              <ExpandableText text={labPopup.testsFor} lines={3} />
+            </div>
+
+            <div className="lab-popup-block">
+              <p className="lab-popup-label">If high</p>
+              <ExpandableText text={labPopup.highMeans} lines={3} />
+            </div>
+
+            <div className="lab-popup-block">
+              <p className="lab-popup-label">If low</p>
+              <ExpandableText text={labPopup.lowMeans} lines={3} />
+            </div>
+
+            <p
+              className={`lab-popup-footer lab-popup-footer-${labPopup.status}`}
+            >
+              {footerForLab(labPopup)}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 export function isMelaniRichPage(pageId: string): boolean {
-  return [
-    "pg-fitness",
-    "pg-sleep",
-    "pg-meals",
-    "pg-gym",
-    "pg-body",
-    "pg-data",
-    "pg-my-data", // legacy id → same Data page
-  ].includes(pageId);
+  return (
+    isFitnessPage(pageId) ||
+    isHygienePage(pageId) ||
+    isGmailAgentPage(pageId) ||
+    isBooksPage(pageId) ||
+    pageId === "pg-life" ||
+    pageId === "pg-data" ||
+    pageId === "pg-my-data"
+  );
 }
 
 export function MelaniRichPage({
@@ -202,7 +345,19 @@ export function MelaniRichPage({
     return <FitnessExact pageId={pageId} onGo={onGo} />;
   }
 
-  // Single Data page (profile + period toggle + labs)
+  if (isHygienePage(pageId)) {
+    return <HygieneExact pageId={pageId} onGo={onGo} />;
+  }
+
+  if (isGmailAgentPage(pageId)) {
+    return <GmailConnector onGo={onGo} />;
+  }
+
+  // Life + Books both open the real library (not a blank Notion page)
+  if (pageId === "pg-life" || isBooksPage(pageId)) {
+    return <BooksLibrary onGo={onGo} />;
+  }
+
   if (pageId === "pg-data" || pageId === "pg-my-data") {
     return <MelaniData />;
   }

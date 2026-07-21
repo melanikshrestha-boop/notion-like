@@ -1,0 +1,58 @@
+/* Per-page free notes */
+
+.pn-root {
+  margin: 20px 0 8px;
+  max-width: 420px;
+}
+
+.pn-label {
+  margin: 0 0 6px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+  font-family: "Times New Roman", Times, serif;
+}
+
+.main:not(.is-melani) .pn-label {
+  color: rgba(55, 53, 47, 0.45);
+}
+
+.pn-box {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 88px;
+  margin: 0;
+  padding: 10px 0;
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.88);
+  font-family: "Times New Roman", Times, serif;
+  font-size: 14px;
+  line-height: 1.45;
+  resize: vertical;
+  outline: none;
+}
+
+.pn-box::placeholder {
+  color: rgba(255, 255, 255, 0.28);
+}
+
+/* Light pages (non-melani) keep readable dark text if needed */
+.main:not(.is-melani) .pn-toggle {
+  color: rgba(55, 53, 47, 0.45);
+}
+
+.main:not(.is-melani) .pn-box {
+  color: #37352f;
+  border-top-color: rgba(55, 53, 47, 0.12);
+  border-bottom-color: rgba(55, 53, 47, 0.12);
+}
+
+.main:not(.is-melani) .pn-box::placeholder {
+  color: rgba(55, 53, 47, 0.35);
+}
