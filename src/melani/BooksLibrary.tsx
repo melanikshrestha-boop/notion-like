@@ -660,6 +660,7 @@ export function BooksLibrary({
               placeholder="Author"
               onChange={(event) => patchBook(open.id, { author: event.target.value })}
             />
+            {/* One main action — no pile of fat buttons */}
             <div className="bl-detail-actions">
               {open.readerUrl ? (
                 <button
@@ -673,110 +674,128 @@ export function BooksLibrary({
               ) : null}
               {open.externalUrl ? (
                 <a
-                  className="bl-btn"
+                  className="bl-link-quiet"
                   href={open.externalUrl}
                   target="_blank"
                   rel="noreferrer"
                 >
-                  <ArrowSquareOut size={15} aria-hidden />
-                  Open in Apple Books
+                  Apple Books
                 </a>
               ) : null}
               {open.wonderPageId && onGo ? (
                 <button
                   type="button"
-                  className="bl-btn"
+                  className="bl-link-quiet"
                   onClick={() => onGo(open.wonderPageId as string)}
                 >
-                  <ArrowSquareOut size={15} aria-hidden />
-                  Open notes page
+                  Notes
                 </button>
               ) : null}
             </div>
-            <div className="bl-row">
-              <label>Status</label>
-              <select
-                className="bl-select"
-                value={open.status}
-                onChange={(event) => {
-                  const status = event.target.value as BookStatus;
-                  const patch: Partial<Book> = { status, statusOverride: true };
-                  if (status === "reading" && !open.startedAt) {
-                    patch.startedAt = new Date().toISOString().slice(0, 10);
-                  }
-                  if (status === "finished") {
-                    patch.finishedAt = new Date().toISOString().slice(0, 10);
-                  }
-                  patchBook(open.id, patch);
-                }}
-              >
-                {STATUS_ORDER.map((status) => (
-                  <option key={status} value={status}>
-                    {STATUS_LABEL[status]}
-                  </option>
-                ))}
-              </select>
-              <label>Folder</label>
-              <select
-                className="bl-select bl-select-category"
-                value={open.category}
-                onChange={(event) =>
-                  patchBook(open.id, {
-                    category: event.target.value as BookCategory,
-                    categoryOverride: true,
-                  })
-                }
-              >
-                {folders.map((folder) => (
-                  <option key={folder.id} value={folder.id}>
-                    {folder.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="bl-row">
-              <label>Pages</label>
-              <input
-                className="bl-input bl-num"
-                type="number"
-                min={0}
-                value={open.pageNow || ""}
-                placeholder="now"
-                onChange={(event) =>
-                  patchBook(open.id, {
-                    pageNow: Math.max(0, Number(event.target.value) || 0),
-                  })
-                }
-              />
-              <span className="bl-divider-text">/</span>
-              <input
-                className="bl-input bl-num"
-                type="number"
-                min={0}
-                value={open.pageTotal || ""}
-                placeholder="total"
-                onChange={(event) =>
-                  patchBook(open.id, {
-                    pageTotal: Math.max(0, Number(event.target.value) || 0),
-                  })
-                }
-              />
-              <label>Rate</label>
-              {[1, 2, 3, 4, 5].map((number) => (
-                <button
-                  key={number}
-                  type="button"
-                  className={`bl-stars-btn${open.rating >= number ? " is-on" : ""}`}
-                  onClick={() =>
+
+            {/* Quiet meta row: text-like controls, no chrome spinners */}
+            <div className="bl-meta-quiet">
+              <div className="bl-meta-line">
+                <span className="bl-meta-k">Status</span>
+                <div className="bl-status-pills" role="group" aria-label="Reading status">
+                  {STATUS_ORDER.map((status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      className={`bl-status-pill${open.status === status ? " is-on" : ""}`}
+                      onClick={() => {
+                        const patch: Partial<Book> = {
+                          status,
+                          statusOverride: true,
+                        };
+                        if (status === "reading" && !open.startedAt) {
+                          patch.startedAt = new Date().toISOString().slice(0, 10);
+                        }
+                        if (status === "finished") {
+                          patch.finishedAt = new Date().toISOString().slice(0, 10);
+                        }
+                        patchBook(open.id, patch);
+                      }}
+                    >
+                      {STATUS_LABEL[status]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bl-meta-line">
+                <span className="bl-meta-k">Folder</span>
+                <select
+                  className="bl-select-ghost"
+                  value={open.category}
+                  aria-label="Folder"
+                  onChange={(event) =>
                     patchBook(open.id, {
-                      rating: open.rating === number ? 0 : number,
+                      category: event.target.value as BookCategory,
+                      categoryOverride: true,
                     })
                   }
-                  aria-label={`${number} stars`}
                 >
-                  ★
-                </button>
-              ))}
+                  {folders.map((folder) => (
+                    <option key={folder.id} value={folder.id}>
+                      {folder.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="bl-meta-line">
+                <span className="bl-meta-k">Pages</span>
+                <div className="bl-pages-quiet">
+                  <input
+                    className="bl-input-ghost bl-num-ghost"
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    value={open.pageNow || ""}
+                    placeholder="0"
+                    aria-label="Pages read"
+                    onChange={(event) =>
+                      patchBook(open.id, {
+                        pageNow: Math.max(0, Number(event.target.value) || 0),
+                      })
+                    }
+                  />
+                  <span className="bl-divider-text">/</span>
+                  <input
+                    className="bl-input-ghost bl-num-ghost"
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    value={open.pageTotal || ""}
+                    placeholder="—"
+                    aria-label="Total pages"
+                    onChange={(event) =>
+                      patchBook(open.id, {
+                        pageTotal: Math.max(0, Number(event.target.value) || 0),
+                      })
+                    }
+                  />
+                </div>
+                <span className="bl-meta-k bl-meta-rate">Rate</span>
+                <div className="bl-stars-row" role="group" aria-label="Rating">
+                  {[1, 2, 3, 4, 5].map((number) => (
+                    <button
+                      key={number}
+                      type="button"
+                      className={`bl-stars-btn${open.rating >= number ? " is-on" : ""}`}
+                      onClick={() =>
+                        patchBook(open.id, {
+                          rating: open.rating === number ? 0 : number,
+                        })
+                      }
+                      aria-label={`${number} stars`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
