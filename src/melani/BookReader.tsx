@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   ArrowLeft,
+  CaretLeft,
   CaretRight,
   Minus,
   Plus,
@@ -146,6 +147,9 @@ export function BookReader({ book, startCfi, onClose, onProgress, onBookmark, on
   const [chapters, setChapters] = useState<Array<NavItem & { depth: number }>>([]);
   const [chapterHref, setChapterHref] = useState("");
   const [showContents, setShowContents] = useState(() => !resumableCfi);
+  // Keep TOC open/closed fresh for keyboard handlers (window listeners)
+  const showContentsRef = useRef(showContents);
+  showContentsRef.current = showContents;
   const [fontSize, setFontSize] = useState(100);
   const [progress, setProgress] = useState(book.readerProgress || 0);
   const [message, setMessage] = useState("Opening book...");
@@ -359,13 +363,23 @@ export function BookReader({ book, startCfi, onClose, onProgress, onBookmark, on
     flipBusy.current = false;
   }
 
-  /** Turn page with free motion (keyboard, wheel, buttons all use this) */
+  /** Turn page — keyboard, on-screen Next/Prev, wheel all use this */
   function turnPage(direction: FlipDir, throttle = false) {
-    if (readingModeRef.current !== "pages") return;
+    // If the table of contents is open, first close it so the page is visible
+    if (showContentsRef.current) {
+      setShowContents(false);
+    }
     const now = Date.now();
     if (throttle && now - wheelState.current.lastTurnAt < 420) return;
     wheelState.current.lastTurnAt = now;
-    void animatePresetTurn(direction);
+    // Paginated mode gets the free page animation; scroll mode just steps
+    if (readingModeRef.current === "pages") {
+      void animatePresetTurn(direction);
+      return;
+    }
+    if (!renditionRef.current || flipBusy.current) return;
+    if (direction === "next") void renditionRef.current.next();
+    else void renditionRef.current.prev();
   }
 
   /**
@@ -516,19 +530,39 @@ export function BookReader({ book, startCfi, onClose, onProgress, onBookmark, on
   }
 
   function isEditableTarget(target: EventTarget | null): boolean {
+    // Only block real typing — select/buttons must NOT steal Next/Prev keys
     const element = target instanceof Element ? target : null;
-    return Boolean(element?.closest("input, textarea, select, button, [contenteditable='true']"));
+    if (!element) return false;
+    if (element.closest("[contenteditable='true']")) return true;
+    const tag = element.tagName;
+    if (tag === "TEXTAREA") return true;
+    if (tag === "INPUT") {
+      const type = (element as HTMLInputElement).type || "text";
+      return !["button", "submit", "checkbox", "radio", "range"].includes(type);
+    }
+    return false;
   }
 
   function handleReaderKey(event: KeyboardEvent) {
-    if (readingModeRef.current !== "pages" || event.metaKey || event.ctrlKey || event.altKey || isEditableTarget(event.target)) return;
-    if (event.key === "ArrowRight" || event.key === "PageDown" || (event.key === " " && !event.shiftKey)) {
-      event.preventDefault();
-      turnPage("next");
-    } else if (event.key === "ArrowLeft" || event.key === "PageUp" || (event.key === " " && event.shiftKey)) {
-      event.preventDefault();
-      turnPage("prev");
-    }
+    // Simple page turns: ← →, PageUp/PageDown, Space, j/k (works in pages + scroll)
+    if (event.metaKey || event.ctrlKey || event.altKey || isEditableTarget(event.target)) return;
+    const key = event.key;
+    const next =
+      key === "ArrowRight" ||
+      key === "PageDown" ||
+      key === "j" ||
+      key === "J" ||
+      (key === " " && !event.shiftKey);
+    const prev =
+      key === "ArrowLeft" ||
+      key === "PageUp" ||
+      key === "k" ||
+      key === "K" ||
+      (key === " " && event.shiftKey);
+    if (!next && !prev) return;
+    event.preventDefault();
+    event.stopPropagation();
+    turnPage(next ? "next" : "prev");
   }
 
   function handleReaderWheel(event: WheelEvent) {
@@ -959,6 +993,27 @@ export function BookReader({ book, startCfi, onClose, onProgress, onBookmark, on
             </option>
           ))}
         </select>
+        {/* Simple Prev / Next — also Arrow keys work */}
+        <div className="bl-page-nav" aria-label="Turn page">
+          <button
+            type="button"
+            onClick={() => turnPage("prev")}
+            title="Previous page (←)"
+            aria-label="Previous page"
+          >
+            <CaretLeft size={14} aria-hidden />
+            Prev
+          </button>
+          <button
+            type="button"
+            onClick={() => turnPage("next")}
+            title="Next page (→)"
+            aria-label="Next page"
+          >
+            Next
+            <CaretRight size={14} aria-hidden />
+          </button>
+        </div>
         <div className="bl-reader-size" aria-label="Text size">
           <button
             type="button"
@@ -997,40 +1052,46 @@ export function BookReader({ book, startCfi, onClose, onProgress, onBookmark, on
       >
         {showContents ? (
           <section className="bl-reader-toc" aria-label="Table of Contents">
-            <header>
-              <div>
-                <span>Book navigation</span>
-                <h2>Table of Contents</h2>
-              </div>
-              {resumableCfi ? (
-                <button
-                  type="button"
-                  className="bl-icon-btn"
-                  onClick={() => setShowContents(false)}
-                  title="Return to saved place"
-                  aria-label="Return to saved place"
-                >
-                  <X size={15} aria-hidden />
-                </button>
-              ) : null}
-            </header>
-            {chapters.length ? (
-              <nav>
-                {chapters.map((chapter) => (
+            {/* Wide centered column — list expands, chevrons stay with each row */}
+            <div className="bl-reader-toc-inner">
+              <header>
+                <div>
+                  <span>Book navigation</span>
+                  <h2>Table of Contents</h2>
+                </div>
+                {resumableCfi ? (
                   <button
-                    key={`${chapter.id}-${chapter.href}`}
                     type="button"
-                    style={{ paddingLeft: `${12 + chapter.depth * 18}px` }}
-                    onClick={() => openChapter(chapter.href)}
+                    className="bl-icon-btn"
+                    onClick={() => setShowContents(false)}
+                    title="Return to saved place"
+                    aria-label="Return to saved place"
                   >
-                    <span>{chapter.label.trim()}</span>
-                    <CaretRight size={14} aria-hidden />
+                    <X size={15} aria-hidden />
                   </button>
-                ))}
-              </nav>
-            ) : (
-              <p>This EPUB does not include a chapter list.</p>
-            )}
+                ) : null}
+              </header>
+              {chapters.length ? (
+                <nav>
+                  {chapters.map((chapter) => (
+                    <button
+                      key={`${chapter.id}-${chapter.href}`}
+                      type="button"
+                      style={{ paddingLeft: `${14 + chapter.depth * 20}px` }}
+                      onClick={() => openChapter(chapter.href)}
+                    >
+                      <span>{chapter.label.trim()}</span>
+                      <CaretRight size={16} aria-hidden />
+                    </button>
+                  ))}
+                </nav>
+              ) : (
+                <p>This EPUB does not include a chapter list.</p>
+              )}
+              <p className="bl-reader-toc-hint">
+                Tip: press → or click Next to turn pages · ← for previous
+              </p>
+            </div>
           </section>
         ) : null}
         {message ? <p className="bl-reader-message">{message}</p> : null}
