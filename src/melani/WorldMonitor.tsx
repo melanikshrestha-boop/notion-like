@@ -3,7 +3,14 @@
  * Price charts, SEC quarterly graphs, how-to playbooks.
  * Free public sources (SEC EDGAR + Yahoo chart + news). Not investment advice.
  */
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import "./world-monitor.css";
 
 export const WORLD_MONITOR_PAGE_ID = "pg-world-monitor";
@@ -12,7 +19,82 @@ export function isWorldMonitorPage(pageId: string): boolean {
   return pageId === WORLD_MONITOR_PAGE_ID;
 }
 
-type TabId = "desk" | "charts" | "reports" | "howto" | "tech";
+type TabId = "desk" | "charts" | "reports" | "howto" | "tech" | "agents" | "models";
+
+type ModelScores = Record<string, number>;
+
+type ModelCard = {
+  id: string;
+  name: string;
+  company: string;
+  color: string;
+  scores: ModelScores;
+  /** Per-skill coding scores for the dedicated code graph */
+  codingScores?: ModelScores | null;
+  codingOverall?: number;
+  codingStrength?: string;
+  codingBestAt?: string[];
+  codingWeakAt?: string[];
+  overall: number;
+  heatScore: number;
+  warScore: number;
+  whenToUse?: string;
+  watchouts?: string;
+  heat?: { hnPoints?: number; hnStories24ish?: number };
+};
+
+type ModelFeedItem = {
+  id: string;
+  modelId?: string;
+  title: string;
+  text?: string;
+  url: string;
+  xUrl?: string;
+  source?: string;
+  kind?: string;
+  publishedAt?: string | null;
+  score?: number;
+  author?: string;
+};
+
+type ModelBrief = {
+  id: string;
+  tier: string;
+  title: string;
+  body: string;
+  models: string[];
+  sources: string[];
+};
+
+type ModelWarPack = {
+  models: ModelCard[];
+  dimensions: Array<{ key: string; label: string }>;
+  /** Axes for the Grok / Claude / GPT coding strengths graph */
+  codingDimensions?: Array<{ key: string; label: string }>;
+  codingNote?: string;
+  feed: ModelFeedItem[];
+  briefs: ModelBrief[];
+  rankingNote?: string;
+  sources?: string[];
+  updatedAt?: string;
+  notifyHint?: string;
+};
+
+type AgentTweet = {
+  id: string;
+  title: string;
+  text?: string;
+  url: string;
+  xUrl?: string;
+  username?: string;
+  author?: string;
+  why?: string;
+  source?: string;
+  tags?: string[];
+  agentRelevant?: boolean;
+  publishedAt?: string | null;
+  score?: number;
+};
 
 type NewsItem = {
   id: string;
@@ -114,7 +196,15 @@ const EXTERNAL = {
 function loadTab(): TabId {
   try {
     const t = localStorage.getItem(TAB_KEY) as TabId | null;
-    if (t === "desk" || t === "charts" || t === "reports" || t === "howto" || t === "tech") {
+    if (
+      t === "desk" ||
+      t === "charts" ||
+      t === "reports" ||
+      t === "howto" ||
+      t === "tech" ||
+      t === "agents" ||
+      t === "models"
+    ) {
       return t;
     }
   } catch {
@@ -510,6 +600,285 @@ function PriceLineChart({
   );
 }
 
+/** Grouped capability bars: each dimension, one bar per model */
+function ModelCompareChart({
+  models,
+  dimensions,
+  scoreKey = "scores",
+  yLabel = "Score (0–100)",
+  xLabel = "Capability dimension",
+  ariaLabel = "Model capability comparison",
+  tall = false,
+}: {
+  models: ModelCard[];
+  dimensions: Array<{ key: string; label: string }>;
+  /** Which score map to plot: overall capabilities or coding skills */
+  scoreKey?: "scores" | "codingScores";
+  yLabel?: string;
+  xLabel?: string;
+  ariaLabel?: string;
+  /** Taller chart for more coding dimensions */
+  tall?: boolean;
+}) {
+  if (!models.length || !dimensions.length) {
+    return <div className="wm-chart-empty">Loading model scores…</div>;
+  }
+  const w = tall ? 720 : 640;
+  const h = tall ? 320 : 260;
+  const padL = 52;
+  const padR = 12;
+  const padT = 16;
+  const padB = tall ? 72 : 56;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+  const groupW = plotW / dimensions.length;
+  const barW = Math.max(6, (groupW - 10) / models.length);
+
+  return (
+    <div className="wm-chart-frame">
+      <svg
+        className="wm-svg-chart wm-svg-axes"
+        viewBox={`0 0 ${w} ${h}`}
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label={ariaLabel}
+      >
+        <rect
+          x={padL}
+          y={padT}
+          width={plotW}
+          height={plotH}
+          fill="rgba(255,255,255,0.02)"
+          rx="4"
+        />
+        {[0, 25, 50, 75, 100].map((v) => {
+          const y = padT + (1 - v / 100) * plotH;
+          return (
+            <g key={v}>
+              <line
+                x1={padL}
+                y1={y}
+                x2={padL + plotW}
+                y2={y}
+                stroke="rgba(255,255,255,0.07)"
+              />
+              <text
+                x={padL - 8}
+                y={y + 3}
+                textAnchor="end"
+                fill="rgba(255,255,255,0.5)"
+                fontSize="9"
+                fontFamily="Source Serif 4, Georgia, serif"
+              >
+                {v}
+              </text>
+            </g>
+          );
+        })}
+        <line
+          x1={padL}
+          y1={padT}
+          x2={padL}
+          y2={padT + plotH}
+          stroke="rgba(255,255,255,0.35)"
+        />
+        <line
+          x1={padL}
+          y1={padT + plotH}
+          x2={padL + plotW}
+          y2={padT + plotH}
+          stroke="rgba(255,255,255,0.35)"
+        />
+        {dimensions.map((dim, di) => (
+          <g key={dim.key}>
+            {models.map((m, mi) => {
+              // Pick overall scores or coding-skill scores for this bar
+              const map =
+                scoreKey === "codingScores" ? m.codingScores : m.scores;
+              const val = map?.[dim.key] ?? 0;
+              const bh = (val / 100) * (plotH - 2);
+              const x = padL + di * groupW + 6 + mi * barW;
+              const y = padT + plotH - bh;
+              return (
+                <rect
+                  key={`${dim.key}-${m.id}`}
+                  x={x}
+                  y={y}
+                  width={Math.max(barW - 2, 4)}
+                  height={Math.max(bh, 1)}
+                  rx="2"
+                  fill={m.color}
+                  opacity={0.9}
+                />
+              );
+            })}
+            <text
+              x={padL + di * groupW + groupW / 2}
+              y={h - (tall ? 40 : 28)}
+              textAnchor="middle"
+              fill="rgba(255,255,255,0.55)"
+              fontSize={tall ? "7.5" : "8"}
+              fontFamily="Source Serif 4, Georgia, serif"
+            >
+              {dim.label}
+            </text>
+          </g>
+        ))}
+        <text
+          x={14}
+          y={padT + plotH / 2}
+          textAnchor="middle"
+          fill="rgba(255,255,255,0.7)"
+          fontSize="10"
+          fontFamily="Source Serif 4, Georgia, serif"
+          fontWeight="600"
+          transform={`rotate(-90 14 ${padT + plotH / 2})`}
+        >
+          {yLabel}
+        </text>
+        <text
+          x={padL + plotW / 2}
+          y={h - 8}
+          textAnchor="middle"
+          fill="rgba(255,255,255,0.7)"
+          fontSize="10"
+          fontFamily="Source Serif 4, Georgia, serif"
+          fontWeight="600"
+        >
+          {xLabel}
+        </text>
+      </svg>
+      <div className="wm-model-legend">
+        {models.map((m) => (
+          <span key={m.id}>
+            <i style={{ background: m.color }} />
+            {m.name}
+            {typeof m.codingOverall === "number" && scoreKey === "codingScores"
+              ? ` · ${m.codingOverall}`
+              : ""}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ModelHeatBars({ models }: { models: ModelCard[] }) {
+  if (!models.length) {
+    return <div className="wm-chart-empty">Loading heat…</div>;
+  }
+  const maxPts = Math.max(
+    1,
+    ...models.map((m) => m.heat?.hnPoints || m.heatScore || 0)
+  );
+  const w = 640;
+  const h = 220;
+  const padL = 52;
+  const padR = 16;
+  const padT = 16;
+  const padB = 40;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+  const barW = plotW / models.length - 16;
+
+  return (
+    <div className="wm-chart-frame">
+      <svg
+        className="wm-svg-chart wm-svg-axes"
+        viewBox={`0 0 ${w} ${h}`}
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="HN attention heat by model"
+      >
+        <rect
+          x={padL}
+          y={padT}
+          width={plotW}
+          height={plotH}
+          fill="rgba(255,255,255,0.02)"
+          rx="4"
+        />
+        <line
+          x1={padL}
+          y1={padT + plotH}
+          x2={padL + plotW}
+          y2={padT + plotH}
+          stroke="rgba(255,255,255,0.35)"
+        />
+        <line
+          x1={padL}
+          y1={padT}
+          x2={padL}
+          y2={padT + plotH}
+          stroke="rgba(255,255,255,0.35)"
+        />
+        {models.map((m, i) => {
+          const pts = m.heat?.hnPoints || m.heatScore || 0;
+          const bh = (pts / maxPts) * (plotH - 4);
+          const x = padL + i * (plotW / models.length) + 10;
+          const y = padT + plotH - bh;
+          return (
+            <g key={m.id}>
+              <rect
+                x={x}
+                y={y}
+                width={barW}
+                height={Math.max(bh, 1)}
+                rx="3"
+                fill={m.color}
+                opacity={0.88}
+              />
+              <text
+                x={x + barW / 2}
+                y={padT + plotH + 16}
+                textAnchor="middle"
+                fill="rgba(255,255,255,0.65)"
+                fontSize="11"
+                fontFamily="Source Serif 4, Georgia, serif"
+              >
+                {m.name}
+              </text>
+              <text
+                x={x + barW / 2}
+                y={y - 6}
+                textAnchor="middle"
+                fill="rgba(255,255,255,0.55)"
+                fontSize="10"
+                fontFamily="Source Serif 4, Georgia, serif"
+              >
+                {pts}
+              </text>
+            </g>
+          );
+        })}
+        <text
+          x={14}
+          y={padT + plotH / 2}
+          textAnchor="middle"
+          fill="rgba(255,255,255,0.7)"
+          fontSize="10"
+          fontFamily="Source Serif 4, Georgia, serif"
+          fontWeight="600"
+          transform={`rotate(-90 14 ${padT + plotH / 2})`}
+        >
+          HN points (recent)
+        </text>
+        <text
+          x={padL + plotW / 2}
+          y={h - 6}
+          textAnchor="middle"
+          fill="rgba(255,255,255,0.7)"
+          fontSize="10"
+          fontFamily="Source Serif 4, Georgia, serif"
+          fontWeight="600"
+        >
+          Model family
+        </text>
+      </svg>
+    </div>
+  );
+}
+
 /**
  * Bar chart with labeled axes: Y = value ($), X = period (quarter end).
  */
@@ -735,6 +1104,15 @@ export function WorldMonitor() {
   const [busy, setBusy] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [focusSymbol, setFocusSymbol] = useState<string>(WATCHLIST[0]);
+  const [agentTweets, setAgentTweets] = useState<AgentTweet[]>([]);
+  const [agentAccounts, setAgentAccounts] = useState<
+    Array<{ user: string; name: string; why: string }>
+  >([]);
+  const [agentNote, setAgentNote] = useState("");
+  const [agentBusy, setAgentBusy] = useState(false);
+  const [agentFilter, setAgentFilter] = useState<"howto" | "tweets" | "all">(
+    "howto"
+  );
 
   useEffect(() => {
     try {
@@ -743,6 +1121,96 @@ export function WorldMonitor() {
       /* ignore */
     }
   }, [tab]);
+
+  const loadAgentTweets = useCallback(async () => {
+    setAgentBusy(true);
+    setAgentNote("Loading agent feed from X…");
+    try {
+      const res = await fetch("/api/intel/agent-tweets");
+      if (!res.ok) throw new Error(`agent-tweets ${res.status}`);
+      const data = (await res.json()) as {
+        tweets?: AgentTweet[];
+        accounts?: Array<{ user: string; name: string; why: string }>;
+        note?: string;
+      };
+      const list = Array.isArray(data.tweets) ? data.tweets : [];
+      setAgentTweets(list);
+      setAgentAccounts(Array.isArray(data.accounts) ? data.accounts : []);
+      const liveN = list.filter((t) => t.tags?.includes("live") || /\/status\//.test(t.url)).length;
+      setAgentNote(
+        data.note ||
+          (liveN
+            ? `${list.length} cards · ${liveN} open the exact tweet or live search on X`
+            : `${list.length} cards · each opens on X`)
+      );
+    } catch (e) {
+      setAgentNote(
+        e instanceof Error
+          ? `${e.message} — try Refresh. Search cards still open X.`
+          : "Could not load agent tweets"
+      );
+    } finally {
+      setAgentBusy(false);
+    }
+  }, []);
+
+  const [modelWar, setModelWar] = useState<ModelWarPack | null>(null);
+  const [modelBusy, setModelBusy] = useState(false);
+  const [modelFocus, setModelFocus] = useState<string>("all");
+  const [notifyOn, setNotifyOn] = useState(false);
+  const seenFeedRef = useRef<Set<string>>(new Set());
+
+  const loadModelWar = useCallback(async () => {
+    setModelBusy(true);
+    try {
+      const res = await fetch("/api/intel/model-war");
+      if (!res.ok) throw new Error(`model-war ${res.status}`);
+      const pack = (await res.json()) as ModelWarPack;
+      setModelWar(pack);
+
+      // Browser notifications on new feed items (your leverage alerts)
+      try {
+        const key = "wonder-model-war-seen-v1";
+        const prev = new Set<string>(
+          JSON.parse(localStorage.getItem(key) || "[]") as string[]
+        );
+        const fresh = (pack.feed || []).filter((f) => f.id && !prev.has(f.id));
+        if (notifyOn && fresh.length && "Notification" in window) {
+          if (Notification.permission === "granted") {
+            const top = fresh[0];
+            new Notification(`Model War · ${fresh.length} new`, {
+              body: top.title.slice(0, 120),
+              tag: "wonder-model-war",
+            });
+          }
+        }
+        for (const f of pack.feed || []) {
+          if (f.id) prev.add(f.id);
+        }
+        const trimmed = [...prev].slice(-200);
+        localStorage.setItem(key, JSON.stringify(trimmed));
+        seenFeedRef.current = new Set(trimmed);
+      } catch {
+        /* ignore */
+      }
+    } catch {
+      /* keep last pack */
+    } finally {
+      setModelBusy(false);
+    }
+  }, [notifyOn]);
+
+  // Always warm the agent feed when World Monitor opens (not only on tab click)
+  useEffect(() => {
+    void loadAgentTweets();
+  }, [loadAgentTweets]);
+
+  // Warm model war room + poll every 4 min for heat
+  useEffect(() => {
+    void loadModelWar();
+    const id = window.setInterval(() => void loadModelWar(), 4 * 60_000);
+    return () => window.clearInterval(id);
+  }, [loadModelWar]);
 
   const refresh = useCallback(async () => {
     setBusy(true);
@@ -922,6 +1390,8 @@ export function WorldMonitor() {
               ["desk", "Command desk"],
               ["charts", "Price graphs"],
               ["reports", "Quarterly + bars"],
+              ["models", "Model War"],
+              ["agents", "Agents on X"],
               ["howto", "How-to playbooks"],
               ["tech", "Tech signal"],
             ] as const
@@ -1430,6 +1900,427 @@ export function WorldMonitor() {
                 Mel is loaded with advanced equities + options frameworks and can
                 pull the same SEC packs. Always: thesis → catalyst → invalidation → size.
               </p>
+            </div>
+          </section>
+        ) : null}
+
+        {/* ── MODEL WAR ROOM ── */}
+        {tab === "models" ? (
+          <section className="wm-block">
+            <div className="wm-block-label">
+              <h2>Model War Room · Claude · GPT · Grok · Kimi</h2>
+              <span>Heat + capability graphs + leverage briefs · your sources</span>
+            </div>
+
+            <div className="wm-agents-toolbar">
+              <p className="wm-agents-note" style={{ margin: 0, flex: 1 }}>
+                {modelWar?.rankingNote ||
+                  "War score blends capability composite with live HN heat. Not a vendor leaderboard — your private eval still wins."}
+              </p>
+              <button
+                type="button"
+                className="wm-btn"
+                disabled={modelBusy}
+                onClick={() => void loadModelWar()}
+              >
+                {modelBusy ? "Updating…" : "Refresh intel"}
+              </button>
+              <button
+                type="button"
+                className={`wm-btn${notifyOn ? " wm-btn-primary" : ""}`}
+                onClick={async () => {
+                  if (!("Notification" in window)) {
+                    setAgentNote("Notifications not supported in this browser.");
+                    return;
+                  }
+                  const perm = await Notification.requestPermission();
+                  setNotifyOn(perm === "granted");
+                  if (perm === "granted") {
+                    new Notification("Wonder Model War", {
+                      body: "Alerts on for new Claude / GPT / Grok / Kimi heat.",
+                      tag: "wonder-model-war-on",
+                    });
+                  }
+                }}
+              >
+                {notifyOn ? "Alerts on" : "Enable alerts"}
+              </button>
+            </div>
+
+            {/* Ranking strip */}
+            <div className="wm-model-rank">
+              {(modelWar?.models || []).map((m, i) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  className={`wm-model-rank-card${modelFocus === m.id ? " is-on" : ""}`}
+                  style={{ borderColor: modelFocus === m.id ? m.color : undefined }}
+                  onClick={() =>
+                    setModelFocus((c) => (c === m.id ? "all" : m.id))
+                  }
+                >
+                  <span className="wm-model-rank-n">#{i + 1}</span>
+                  <strong style={{ color: m.color }}>{m.name}</strong>
+                  <span className="wm-model-co">{m.company}</span>
+                  <div className="wm-model-scores-row">
+                    <span>
+                      War <b>{m.warScore}</b>
+                    </span>
+                    <span>
+                      Cap <b>{m.overall}</b>
+                    </span>
+                    <span>
+                      Heat <b>{m.heatScore}</b>
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Comparison graphs */}
+            <div className="wm-model-graphs">
+              <div className="wm-focus-card">
+                <div className="wm-block-label tight">
+                  <h2>Capability composite</h2>
+                  <span>Y = score 0–100 · X = dimension</span>
+                </div>
+                <ModelCompareChart
+                  models={modelWar?.models || []}
+                  dimensions={modelWar?.dimensions || []}
+                />
+              </div>
+              <div className="wm-focus-card">
+                <div className="wm-block-label tight">
+                  <h2>Attention heat (HN)</h2>
+                  <span>Y = points · X = model · live Algolia</span>
+                </div>
+                <ModelHeatBars models={modelWar?.models || []} />
+              </div>
+            </div>
+
+            {/* Coding strengths: Grok · Claude · GPT differences */}
+            <div className="wm-focus-card wm-coding-graph-card">
+              <div className="wm-block-label tight">
+                <h2>Coding strengths · Grok · Claude · GPT</h2>
+                <span>
+                  Y = score 0–100 · X = coding skill · how each model codes
+                  differently
+                </span>
+              </div>
+              {modelWar?.codingNote ? (
+                <p className="wm-coding-note">{modelWar.codingNote}</p>
+              ) : null}
+              <ModelCompareChart
+                models={(modelWar?.models || []).filter((m) =>
+                  ["claude", "gpt", "grok"].includes(m.id)
+                )}
+                dimensions={modelWar?.codingDimensions || []}
+                scoreKey="codingScores"
+                yLabel="Coding score (0–100)"
+                xLabel="Coding skill (what they are good at)"
+                ariaLabel="Grok Claude GPT coding strengths comparison"
+                tall
+              />
+              <div className="wm-coding-strength-grid">
+                {(modelWar?.models || [])
+                  .filter((m) => ["claude", "gpt", "grok"].includes(m.id))
+                  .map((m) => (
+                    <article key={`code-${m.id}`} className="wm-coding-card">
+                      <header>
+                        <strong style={{ color: m.color }}>{m.name}</strong>
+                        <span className="wm-coding-avg">
+                          avg{" "}
+                          <b>
+                            {typeof m.codingOverall === "number"
+                              ? m.codingOverall
+                              : "—"}
+                          </b>
+                        </span>
+                      </header>
+                      {m.codingStrength ? (
+                        <p className="wm-coding-lead">{m.codingStrength}</p>
+                      ) : null}
+                      {(m.codingBestAt || []).length > 0 ? (
+                        <div className="wm-coding-list">
+                          <b>Strong at</b>
+                          <ul>
+                            {(m.codingBestAt || []).map((item) => (
+                              <li key={item}>{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                      {(m.codingWeakAt || []).length > 0 ? (
+                        <div className="wm-coding-list is-weak">
+                          <b>Weaker at</b>
+                          <ul>
+                            {(m.codingWeakAt || []).map((item) => (
+                              <li key={item}>{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </article>
+                  ))}
+              </div>
+            </div>
+
+            {/* When to use / watchouts */}
+            <div className="wm-model-use-grid">
+              {(modelWar?.models || []).map((m) => (
+                <article key={m.id} className="wm-model-use-card">
+                  <header>
+                    <strong style={{ color: m.color }}>{m.name}</strong>
+                    <span>{m.company}</span>
+                  </header>
+                  <p>
+                    <b>Use when:</b> {m.whenToUse}
+                  </p>
+                  <p>
+                    <b>Watch out:</b> {m.watchouts}
+                  </p>
+                </article>
+              ))}
+            </div>
+
+            {/* Leverage briefs — knowledge regular tech misses */}
+            <div className="wm-block-label" style={{ marginTop: 20 }}>
+              <h2>Leverage briefs</h2>
+              <span>Advanced framing · sources listed · yours to own</span>
+            </div>
+            <div className="wm-howto-grid">
+              {(modelWar?.briefs || [])
+                .filter(
+                  (b) =>
+                    modelFocus === "all" || b.models?.includes(modelFocus)
+                )
+                .map((b) => (
+                  <article key={b.id} className="wm-howto-card">
+                    <h3>{b.title}</h3>
+                    <p className="wm-brief-tier">{b.tier}</p>
+                    <p>{b.body}</p>
+                    <footer className="wm-brief-src">
+                      <span>
+                        Models:{" "}
+                        {(b.models || [])
+                          .map((id) =>
+                            modelWar?.models?.find((m) => m.id === id)?.name || id
+                          )
+                          .join(", ")}
+                      </span>
+                      <span>Sources: {(b.sources || []).join(" · ")}</span>
+                    </footer>
+                  </article>
+                ))}
+            </div>
+
+            {/* Live feed */}
+            <div className="wm-block-label" style={{ marginTop: 22 }}>
+              <h2>Live intel feed</h2>
+              <span>
+                HN + X searches + lab orbits · tap opens source
+                {modelFocus !== "all"
+                  ? ` · filtered: ${modelFocus}`
+                  : ""}
+              </span>
+            </div>
+            <div className="wm-agents-list">
+              {(modelWar?.feed || [])
+                .filter((f) => modelFocus === "all" || f.modelId === modelFocus)
+                .slice(0, 36)
+                .map((item) => {
+                  const href = item.xUrl || item.url;
+                  const m = modelWar?.models?.find((x) => x.id === item.modelId);
+                  return (
+                    <a
+                      key={item.id}
+                      className="wm-agent-card"
+                      href={href}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <header>
+                        <div>
+                          <strong>{item.title}</strong>
+                          <span>
+                            {item.source}
+                            {m ? ` · ${m.name}` : ""}
+                            {item.kind ? ` · ${item.kind}` : ""}
+                          </span>
+                        </div>
+                        <span className="wm-agent-open">
+                          {/x\.com\/.*status/.test(href)
+                            ? "Open tweet →"
+                            : /x\.com\/search/.test(href)
+                              ? "Open X search →"
+                              : "Open source →"}
+                        </span>
+                      </header>
+                      {item.text ? (
+                        <p className="wm-agent-text">{item.text}</p>
+                      ) : null}
+                      <footer>
+                        <span style={{ color: m?.color || undefined }}>
+                          {m?.name || "multi"}
+                        </span>
+                        <span>
+                          {item.publishedAt
+                            ? timeAgo(item.publishedAt)
+                            : "live"}
+                        </span>
+                      </footer>
+                    </a>
+                  );
+                })}
+            </div>
+
+            <p className="wm-chart-note" style={{ marginTop: 16 }}>
+              <strong>Your sourcing:</strong>{" "}
+              {(modelWar?.sources || []).join(" · ")}. Wonder frames leverage;
+              always re-run on your private harness before you bet product or clinic
+              decisions.
+            </p>
+          </section>
+        ) : null}
+
+        {/* ── AGENTS ON X ── */}
+        {tab === "agents" ? (
+          <section className="wm-block">
+            <div className="wm-block-label">
+              <h2>Agents on X</h2>
+              <span>
+                Top engineers · how to use agents · tap → opens on X
+              </span>
+            </div>
+            <div className="wm-agents-toolbar">
+              <div className="wm-agents-filters">
+                <button
+                  type="button"
+                  className={agentFilter === "howto" ? "is-on" : ""}
+                  onClick={() => setAgentFilter("howto")}
+                >
+                  How-tos
+                </button>
+                <button
+                  type="button"
+                  className={agentFilter === "tweets" ? "is-on" : ""}
+                  onClick={() => setAgentFilter("tweets")}
+                >
+                  Exact tweets
+                </button>
+                <button
+                  type="button"
+                  className={agentFilter === "all" ? "is-on" : ""}
+                  onClick={() => setAgentFilter("all")}
+                >
+                  Everything
+                </button>
+              </div>
+              <button
+                type="button"
+                className="wm-btn wm-btn-primary"
+                disabled={agentBusy}
+                onClick={() => void loadAgentTweets()}
+              >
+                {agentBusy ? "Loading…" : "Refresh feed"}
+              </button>
+            </div>
+            {agentNote ? <p className="wm-agents-note">{agentNote}</p> : null}
+            {agentBusy && agentTweets.length === 0 ? (
+              <p className="wm-empty">Pulling agent posts…</p>
+            ) : null}
+
+            <div className="wm-agents-accounts" aria-label="Engineers we follow">
+              {(agentAccounts.length
+                ? agentAccounts
+                : [
+                    { user: "karpathy", name: "Karpathy", why: "LLM systems" },
+                    { user: "swyx", name: "swyx", why: "AI eng" },
+                    { user: "simonw", name: "Simon Willison", why: "LLM ops" },
+                    { user: "hwchase17", name: "Harrison Chase", why: "LangChain" },
+                    { user: "yoheinakajima", name: "Yohei", why: "agents" },
+                  ]
+              ).map((a) => (
+                <a
+                  key={a.user}
+                  className="wm-agent-chip"
+                  href={`https://x.com/${a.user}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  title={a.why}
+                >
+                  @{a.user}
+                </a>
+              ))}
+            </div>
+
+            <div className="wm-agents-list">
+              {(() => {
+                const shown =
+                  agentFilter === "howto"
+                    ? agentTweets.filter(
+                        (t) =>
+                          t.tags?.includes("search") ||
+                          t.tags?.includes("how-to") ||
+                          t.tags?.includes("profile") ||
+                          !/\/status\//.test(t.url)
+                      )
+                    : agentFilter === "tweets"
+                      ? agentTweets.filter((t) => /\/status\/\d+/.test(t.url))
+                      : agentTweets;
+                if (!shown.length && !agentBusy) {
+                  return (
+                    <p className="wm-empty">
+                      Feed empty — hit <strong>Refresh feed</strong>. How-tos always
+                      open live X searches for top engineers.
+                    </p>
+                  );
+                }
+                return shown.map((tweet) => {
+                  const href = tweet.xUrl || tweet.url;
+                  const isStatus = /\/status\/\d+/.test(href);
+                  return (
+                    <a
+                      key={tweet.id}
+                      className="wm-agent-card"
+                      href={href}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <header>
+                        <div>
+                          <strong>{tweet.author || tweet.username || "X"}</strong>
+                          <span>
+                            {tweet.username && tweet.username !== "search"
+                              ? `@${tweet.username}`
+                              : tweet.source || "X"}
+                            {tweet.why ? ` · ${tweet.why}` : ""}
+                          </span>
+                        </div>
+                        <span className="wm-agent-open">
+                          {isStatus ? "Open exact tweet →" : "Open on X →"}
+                        </span>
+                      </header>
+                      <p className="wm-agent-title">{tweet.title}</p>
+                      <p className="wm-agent-text">{tweet.text || tweet.title}</p>
+                      <footer>
+                        <span>
+                          {isStatus
+                            ? "Exact tweet"
+                            : tweet.tags?.includes("profile")
+                              ? "Profile"
+                              : "Live search"}
+                        </span>
+                        <span>
+                          {tweet.publishedAt
+                            ? timeAgo(tweet.publishedAt)
+                            : "now"}
+                        </span>
+                      </footer>
+                    </a>
+                  );
+                });
+              })()}
             </div>
           </section>
         ) : null}

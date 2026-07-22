@@ -1132,6 +1132,899 @@ async function fetchChartsBatch(symbolsCsv, range = "1y", interval = "1d", quote
   return out;
 }
 
+/**
+ * Agents-on-X feed (always works, no X API key).
+ *
+ * Strategy:
+ * 1) Curated deep-links that always open on x.com (search + profiles + how-to lanes)
+ * 2) Live RSS when a mirror answers (bonus exact status URLs)
+ * 3) Cache hard so the desk never sits empty
+ */
+const AGENT_X_ACCOUNTS = [
+  { user: "karpathy", name: "Andrej Karpathy", why: "LLM systems, taste, training" },
+  { user: "swyx", name: "swyx", why: "AI Eng, agents in production" },
+  { user: "simonw", name: "Simon Willison", why: "tools, agents, LLM ops" },
+  { user: "AndrewYNg", name: "Andrew Ng", why: "AI product + agent patterns" },
+  { user: "hwchase17", name: "Harrison Chase", why: "LangChain / agent stacks" },
+  { user: "LangChainAI", name: "LangChain", why: "framework patterns" },
+  { user: "yoheinakajima", name: "Yohei Nakajima", why: "BabyAGI / agent ideas" },
+  { user: "jeremyphoward", name: "Jeremy Howard", why: "practical deep learning" },
+  { user: "rasbt", name: "Sebastian Raschka", why: "LLM engineering" },
+  { user: "DrJimFan", name: "Jim Fan", why: "embodied / agent research" },
+  { user: "clementdelangue", name: "Clément Delangue", why: "HF ecosystem" },
+  { user: "_akhaliq", name: "AK", why: "papers + demos" },
+  { user: "amasad", name: "Amjad Masad", why: "Replit agents" },
+  { user: "levelsio", name: "levelsio", why: "indie ship + AI tools" },
+  { user: "steipete", name: "Peter Steinberger", why: "dev tooling / agents" },
+  { user: "mattshumer_", name: "Matt Shumer", why: "agent products" },
+  { user: "biilmann", name: "Mathias Biilmann", why: "AI eng at scale" },
+  { user: "GergelyOrosz", name: "Gergely Orosz", why: "eng leadership + AI teams" },
+];
+
+const AGENT_KEYWORDS =
+  /\b(agent|agents|multi-?agent|tool[-\s]?use|tool calling|function calling|orchestration|langchain|crewai|autogen|react loop|planner|executor|rag|mcp|copilot|coding agent|ai eng|llm app|prompt|eval|evals|harness|sandbox|browser agent|computer use)\b/i;
+
+const agentTweetCache = { at: 0, items: /** @type {any[]} */ ([]) };
+
+/** Always-on cards: open exact X search / profile streams (never empty desk) */
+function curatedAgentFeed() {
+  const now = new Date().toISOString();
+  const searches = [
+    {
+      id: "cur-prod",
+      title: "Agents in production",
+      text: "Live X posts on shipping agents for real users: reliability, evals, tool failures, latency.",
+      q: "AI agents production OR eval OR reliability",
+      author: "X · live search",
+      why: "Production craft",
+    },
+    {
+      id: "cur-tools",
+      title: "Tool calling / function calling",
+      text: "How top builders structure tool use, schemas, retries, and sandboxes.",
+      q: "tool calling OR function calling LLM agent",
+      author: "X · live search",
+      why: "Tool use",
+    },
+    {
+      id: "cur-multi",
+      title: "Multi-agent orchestration",
+      text: "Planner/executor patterns, handoffs, and when multi-agent is overkill.",
+      q: "multi-agent OR orchestration LLM",
+      author: "X · live search",
+      why: "Orchestration",
+    },
+    {
+      id: "cur-mcp",
+      title: "MCP + agent harnesses",
+      text: "Model Context Protocol, harness design, and computer-use agents.",
+      q: "MCP agent OR \"computer use\" OR agent harness",
+      author: "X · live search",
+      why: "Harnesses",
+    },
+    {
+      id: "cur-coding",
+      title: "Coding agents",
+      text: "Cursor/Claude/Codex-style agent workflows from working engineers.",
+      q: "coding agent OR \"AI engineer\" OR \"AI eng\"",
+      author: "X · live search",
+      why: "Coding agents",
+    },
+  ];
+
+  const fromUsers = AGENT_X_ACCOUNTS.map((acc) => {
+    const q = `from:${acc.user} (agent OR agents OR LLM OR tools OR eval OR MCP)`;
+    return {
+      id: `cur-from-${acc.user}`,
+      title: `${acc.name} on agents / LLMs`,
+      text: `${acc.why}. Opens live posts from @${acc.user} about agents and LLM systems.`,
+      q,
+      author: acc.name,
+      username: acc.user,
+      why: acc.why,
+    };
+  });
+
+  const profileLatest = AGENT_X_ACCOUNTS.map((acc) => ({
+    id: `cur-profile-${acc.user}`,
+    title: `@${acc.user} profile`,
+    text: `Open @${acc.user}'s timeline (${acc.why}). Jump from there into the exact tweet you want.`,
+    url: `https://x.com/${acc.user}`,
+    xUrl: `https://x.com/${acc.user}`,
+    username: acc.user,
+    author: acc.name,
+    why: acc.why,
+    source: `X · @${acc.user}`,
+    tags: ["agents", "x", "profile"],
+    agentRelevant: true,
+    publishedAt: now,
+    score: 40,
+    kind: "profile",
+  }));
+
+  const searchCards = [...searches, ...fromUsers].map((row, i) => {
+    const url = `https://x.com/search?q=${encodeURIComponent(row.q)}&src=typed_query&f=live`;
+    return {
+      id: row.id,
+      title: row.title,
+      text: row.text,
+      url,
+      xUrl: url,
+      username: row.username || "search",
+      author: row.author,
+      why: row.why || "Agent craft",
+      source: row.username ? `X · @${row.username}` : "X · live search",
+      tags: ["agents", "x", "how-to", "search"],
+      agentRelevant: true,
+      publishedAt: now,
+      score: 90 - i,
+      kind: "search",
+      query: row.q,
+    };
+  });
+
+  return [...searchCards, ...profileLatest];
+}
+
+function toXStatusUrl(link, username) {
+  const raw = String(link || "").trim();
+  if (!raw) return `https://x.com/${username}`;
+  const status = raw.match(
+    /(?:twitter\.com|x\.com|nitter\.[^/]+)\/([^/]+)\/status\/(\d+)/i
+  );
+  if (status) return `https://x.com/${status[1]}/status/${status[2]}`;
+  const nitter = raw.match(/\/([A-Za-z0-9_]+)\/status\/(\d+)/i);
+  if (nitter) return `https://x.com/${nitter[1]}/status/${nitter[2]}`;
+  const idOnly = raw.match(/[?&]id=(\d+)/i) || raw.match(/\/(\d{15,})$/);
+  if (idOnly) return `https://x.com/${username}/status/${idOnly[1]}`;
+  if (raw.startsWith("http")) return raw;
+  return `https://x.com/${username}`;
+}
+
+function parseAtomOrRss(xml, username, name) {
+  const items = [];
+  const rssBlocks = xml.split(/<item[\s>]/i).slice(1);
+  for (const block of rssBlocks) {
+    if (items.length >= 10) break;
+    const title = stripHtml(
+      (block.match(/<title[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i) ||
+        [])[1]
+    );
+    const link = stripHtml(
+      (block.match(/<link[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/i) ||
+        [])[1] ||
+        (block.match(/<link[^>]+href=["']([^"']+)["']/i) || [])[1] ||
+        (block.match(/<guid[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/guid>/i) ||
+          [])[1]
+    );
+    const pub =
+      stripHtml(
+        (block.match(/<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i) || [])[1]
+      ) ||
+      stripHtml((block.match(/<published[^>]*>([\s\S]*?)<\/published>/i) || [])[1]) ||
+      "";
+    const desc = stripHtml(
+      (block.match(
+        /<description[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/i
+      ) ||
+        block.match(
+          /<content[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/content>/i
+        ) ||
+        [])[1]
+    ).slice(0, 400);
+    if (!title && !desc) continue;
+    items.push({
+      title: title || desc.slice(0, 120),
+      text: desc || title,
+      link,
+      pub,
+      username,
+      name,
+    });
+  }
+  if (!items.length) {
+    const entries = xml.split(/<entry[\s>]/i).slice(1);
+    for (const block of entries) {
+      if (items.length >= 10) break;
+      const title = stripHtml(
+        (block.match(/<title[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/i) ||
+          [])[1]
+      );
+      const link =
+        (block.match(/<link[^>]+href=["']([^"']+)["']/i) || [])[1] ||
+        stripHtml((block.match(/<id[^>]*>([\s\S]*?)<\/id>/i) || [])[1]);
+      const pub = stripHtml(
+        (block.match(/<updated[^>]*>([\s\S]*?)<\/updated>/i) ||
+          block.match(/<published[^>]*>([\s\S]*?)<\/published>/i) ||
+          [])[1]
+      );
+      const desc = stripHtml(
+        (block.match(
+          /<content[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/content>/i
+        ) ||
+          block.match(
+            /<summary[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/summary>/i
+          ) ||
+          [])[1]
+      ).slice(0, 400);
+      if (!title && !desc) continue;
+      items.push({
+        title: title || desc.slice(0, 120),
+        text: desc || title,
+        link,
+        pub,
+        username,
+        name,
+      });
+    }
+  }
+  return items;
+}
+
+async function fetchUserTweetRss(username) {
+  const mirrors = [
+    `https://rsshub.rssforever.com/twitter/user/${encodeURIComponent(username)}`,
+    `https://rsshub.app/twitter/user/${encodeURIComponent(username)}`,
+    `https://nitter.poast.org/${encodeURIComponent(username)}/rss`,
+    `https://nitter.privacydev.net/${encodeURIComponent(username)}/rss`,
+  ];
+  for (const url of mirrors) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          "User-Agent": "WonderAgentFeed/2.0 (personal research)",
+          Accept:
+            "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
+        },
+        signal: AbortSignal.timeout(4500),
+      });
+      if (!res.ok) continue;
+      const xml = await res.text();
+      if (!xml || xml.length < 80) continue;
+      if (/captcha|just a moment|cf-browser-verification|Welcome to RSSHub/i.test(xml)) {
+        continue;
+      }
+      if (!/<item[\s>]|<entry[\s>]/i.test(xml)) continue;
+      return xml;
+    } catch {
+      /* try next mirror */
+    }
+  }
+  return null;
+}
+
+async function fetchAgentTweets() {
+  // Serve cache fast
+  if (
+    agentTweetCache.items.length &&
+    Date.now() - agentTweetCache.at < 6 * 60_000
+  ) {
+    return agentTweetCache.items;
+  }
+
+  // Always start from curated (guarantees working links)
+  const curated = curatedAgentFeed();
+  const live = [];
+
+  // Live RSS: try a smaller high-signal set first (faster + more reliable)
+  const priority = AGENT_X_ACCOUNTS.slice(0, 8);
+  const settled = await Promise.all(
+    priority.map(async (acc) => {
+      try {
+        const xml = await fetchUserTweetRss(acc.user);
+        if (!xml) return [];
+        return parseAtomOrRss(xml, acc.user, acc.name).map((row) => ({
+          ...row,
+          why: acc.why,
+        }));
+      } catch {
+        return [];
+      }
+    })
+  );
+  for (const list of settled) live.push(...list);
+
+  const liveCards = live.map((row, idx) => {
+    const blob = `${row.title} ${row.text}`;
+    const agentHit = AGENT_KEYWORDS.test(blob);
+    const url = toXStatusUrl(row.link, row.username);
+    const hasStatus = /\/status\/\d+/.test(url);
+    let score = agentHit ? 120 : 35;
+    if (hasStatus) score += 30;
+    if (/\b(how to|tip|pattern|eval|production|playbook|framework|don't|do this)\b/i.test(blob)) {
+      score += 20;
+    }
+    const publishedAt = row.pub ? new Date(row.pub).toISOString() : null;
+    return {
+      id: `live-${row.username}-${hasStatus ? url.match(/status\/(\d+)/)?.[1] : idx}`,
+      title: String(row.title || "").slice(0, 200),
+      text: String(row.text || row.title || "").slice(0, 420),
+      url,
+      xUrl: url,
+      username: row.username,
+      author: row.name || row.username,
+      why: row.why || "",
+      source: `X · @${row.username}`,
+      tags: agentHit
+        ? ["agents", "x", "how-to", "live"]
+        : ["agents", "x", "live"],
+      agentRelevant: agentHit || hasStatus,
+      publishedAt,
+      score,
+      kind: hasStatus ? "tweet" : "live",
+    };
+  });
+
+  // Merge: exact tweets first, then curated searches/profiles
+  const seen = new Set();
+  const merged = [];
+  for (const item of [...liveCards.sort((a, b) => b.score - a.score), ...curated]) {
+    const key = item.url || item.id;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(item);
+  }
+
+  const out = merged.slice(0, 48);
+  agentTweetCache.at = Date.now();
+  agentTweetCache.items = out;
+  return out;
+}
+
+/**
+ * MODEL WAR ROOM — Claude / Kimi / Grok / GPT
+ * Live heat from HN + X deep-links + Wonder composite scores + leverage briefs.
+ * Sources labeled so Melani owns the intel trail.
+ */
+/**
+ * Coding-skill axes for the dedicated Grok / Claude / GPT code graph.
+ * Scores are Wonder desk synthesis (0–100) — relative strengths for builders,
+ * not a single public leaderboard. Re-check on YOUR harness.
+ */
+const CODING_DIMENSIONS = [
+  { key: "multiFile", label: "Multi-file edits" },
+  { key: "greenfield", label: "Greenfield apps" },
+  { key: "bugFix", label: "Bug hunting" },
+  { key: "agentsCli", label: "Agent / CLI loops" },
+  { key: "frontendUi", label: "Frontend / UI" },
+  { key: "systemsBackend", label: "Systems / backend" },
+  { key: "instructionFollow", label: "Follows your rules" },
+  { key: "explainTeach", label: "Explains clearly" },
+  { key: "speedIterate", label: "Ship speed" },
+  { key: "creativeHack", label: "Creative hacks" },
+];
+
+const MODEL_WAR_MODELS = [
+  {
+    id: "claude",
+    name: "Claude",
+    company: "Anthropic",
+    color: "#c4a484",
+    aliases: ["claude", "anthropic", "sonnet", "opus", "haiku"],
+    xQuery: '(Claude OR Anthropic OR "Claude Opus" OR "Claude Sonnet" OR "Claude 4")',
+    accounts: ["AnthropicAI", "alexalbert__", "jackclarkSF", "DarioAmodei"],
+    // Wonder composite 0-100 (desk synthesis of public arenas + product reality — not one leaderboard)
+    scores: {
+      coding: 92,
+      reasoning: 94,
+      longContext: 96,
+      toolsAgents: 90,
+      speed: 72,
+      priceValue: 70,
+      business: 88,
+      safetyEnterprise: 95,
+    },
+    // How Claude codes differently vs Grok / GPT
+    codingScores: {
+      multiFile: 95,
+      greenfield: 88,
+      bugFix: 93,
+      agentsCli: 90,
+      frontendUi: 86,
+      systemsBackend: 91,
+      instructionFollow: 96,
+      explainTeach: 94,
+      speedIterate: 78,
+      creativeHack: 80,
+    },
+    codingStrength:
+      "Careful multi-file work. Best when the whole repo must stay consistent and instructions are strict.",
+    codingBestAt: [
+      "Big refactors across many files",
+      "Following your rules line-by-line",
+      "Teaching code in plain English",
+      "Long context over a real codebase",
+    ],
+    codingWeakAt: [
+      "Slowest to rough-draft and ship",
+      "May refuse edgy or gray-area tooling",
+    ],
+  },
+  {
+    id: "gpt",
+    name: "GPT",
+    company: "OpenAI",
+    color: "#6fcf97",
+    aliases: ["gpt", "openai", "chatgpt", "o1", "o3", "gpt-4", "gpt-5"],
+    xQuery: '(GPT OR ChatGPT OR OpenAI OR "GPT-4" OR "GPT-5" OR "o3" OR "o1")',
+    accounts: ["OpenAI", "sama", "gdb", "miramurati"],
+    scores: {
+      coding: 90,
+      reasoning: 91,
+      longContext: 82,
+      toolsAgents: 93,
+      speed: 80,
+      priceValue: 75,
+      business: 96,
+      safetyEnterprise: 84,
+    },
+    codingScores: {
+      multiFile: 88,
+      greenfield: 92,
+      bugFix: 88,
+      agentsCli: 95,
+      frontendUi: 90,
+      systemsBackend: 89,
+      instructionFollow: 87,
+      explainTeach: 86,
+      speedIterate: 88,
+      creativeHack: 84,
+    },
+    codingStrength:
+      "Tool and agent king. Strong greenfield apps, Codex-style loops, and product ecosystem glue.",
+    codingBestAt: [
+      "Agent / CLI coding loops (tools)",
+      "Scaffolding new apps fast",
+      "Frontend + full-stack product glue",
+      "Broad language and library coverage",
+    ],
+    codingWeakAt: [
+      "Can drift from strict house style",
+      "Long multi-file consistency slightly behind Claude",
+    ],
+  },
+  {
+    id: "grok",
+    name: "Grok",
+    company: "xAI",
+    color: "#8eb6ff",
+    aliases: ["grok", "xai", "x.ai"],
+    xQuery: '(Grok OR xAI OR "grok-4" OR "grok 4" OR @xai)',
+    accounts: ["xai", "elonmusk", "tobyord"],
+    scores: {
+      coding: 84,
+      reasoning: 86,
+      longContext: 80,
+      toolsAgents: 82,
+      speed: 88,
+      priceValue: 85,
+      business: 78,
+      safetyEnterprise: 65,
+      realtimeX: 98,
+    },
+    codingScores: {
+      multiFile: 82,
+      greenfield: 90,
+      bugFix: 84,
+      agentsCli: 86,
+      frontendUi: 85,
+      systemsBackend: 83,
+      instructionFollow: 80,
+      explainTeach: 88,
+      speedIterate: 94,
+      creativeHack: 93,
+    },
+    codingStrength:
+      "Fastest creative shipper. Great for prototypes, spicy ideas, and hacking when you want momentum over formality.",
+    codingBestAt: [
+      "Ship-speed prototypes and MVPs",
+      "Creative / unconventional solutions",
+      "Realtime + X-flavored product ideas",
+      "Explaining while building (learning mode)",
+    ],
+    codingWeakAt: [
+      "Weaker on huge careful multi-file refactors",
+      "Less “enterprise careful” than Claude",
+    ],
+  },
+  {
+    id: "kimi",
+    name: "Kimi",
+    company: "Moonshot AI",
+    color: "#e8a0bf",
+    aliases: ["kimi", "moonshot", "k1.5", "k2"],
+    xQuery: '(Kimi OR Moonshot OR "Kimi k1" OR "Kimi K2" OR "moonshot ai")',
+    accounts: ["Kimi_Moonshot", "yangdilin"],
+    scores: {
+      coding: 86,
+      reasoning: 85,
+      longContext: 97,
+      toolsAgents: 80,
+      speed: 83,
+      priceValue: 92,
+      business: 74,
+      safetyEnterprise: 70,
+      chinaStack: 95,
+    },
+    codingScores: {
+      multiFile: 84,
+      greenfield: 85,
+      bugFix: 82,
+      agentsCli: 78,
+      frontendUi: 80,
+      systemsBackend: 84,
+      instructionFollow: 83,
+      explainTeach: 82,
+      speedIterate: 86,
+      creativeHack: 81,
+    },
+    codingStrength:
+      "Long-doc + cost lane for code. Use for bulk reading large code dumps before you pay frontier rates.",
+    codingBestAt: [
+      "Huge context over long files",
+      "Price-sensitive bulk coding passes",
+    ],
+    codingWeakAt: [
+      "Agent ecosystem still thinner than GPT/Claude",
+    ],
+  },
+];
+
+const modelWarCache = { at: 0, pack: null };
+
+const LEVERAGE_BRIEFS = [
+  {
+    id: "ctx-window-trap",
+    tier: "leverage",
+    title: "Long context ≠ long memory quality",
+    body: "Kimi and Claude market huge windows. Elite use: put constraints + schema at BOTH ends (lost-in-the-middle is real). For agents, retrieval + short working memory often beats dumping 200k tokens. Ask: is the task needle-in-haystack or multi-hop reasoning over noise?",
+    models: ["kimi", "claude"],
+    sources: ["Wonder desk research synthesis", "Public long-context eval literature"],
+  },
+  {
+    id: "tool-tax",
+    tier: "leverage",
+    title: "Tool-calling tax kills agent margins",
+    body: "GPT and Claude lead tool ecosystems, but every tool round-trip adds latency + $ + failure modes. Advanced stacks: batch tools, typed schemas, circuit breakers, and a cheap model for routing. Business edge: price the agent by successful task, not tokens.",
+    models: ["gpt", "claude"],
+    sources: ["Production agent postmortems (public eng blogs)", "Wonder agent-craft feed"],
+  },
+  {
+    id: "grok-realtime",
+    tier: "leverage",
+    title: "Grok’s real edge is distribution + X heat, not pure MMLU",
+    body: "If your edge is breaking news / markets / culture velocity, Grok’s X coupling is a product moat others fake with search tools. If your edge is regulated enterprise or careful medical prose, Claude’s refusal + consistency profile still wins procurement conversations.",
+    models: ["grok", "claude"],
+    sources: ["xAI product positioning", "Enterprise buyer behavior (public RFPs/discussions)"],
+  },
+  {
+    id: "kimi-arbitrage",
+    tier: "leverage",
+    title: "Kimi = cost/context arbitrage for non-US stacks",
+    body: "Moonshot’s Kimi often punches above on long docs and price. Leverage: bilingual pipelines, long PDF legal/research, and China-market product builds. Risk: data residency, brand trust in US healthcare, and API stability narrative. Dual-run sensitive tasks vs Claude before you bet the clinic on it.",
+    models: ["kimi"],
+    sources: ["Moonshot public claims", "Open multilingual long-context discussions"],
+  },
+  {
+    id: "eval-theater",
+    tier: "leverage",
+    title: "Leaderboard theater vs your harness",
+    body: "Arena ELO and vendor slides rarely match your tool harness, latency SLO, or domain (med, markets, code). Advanced move: keep a private 30-case eval (your Wonder tasks) and re-run on every model bump. That’s how you get leverage regular tech Twitter never has.",
+    models: ["claude", "gpt", "grok", "kimi"],
+    sources: ["Wonder policy: private eval harness", "LMSYS/Arena as weak prior only"],
+  },
+  {
+    id: "business-stack",
+    tier: "business",
+    title: "Business stack pick (2026 desk view)",
+    body: "Default product brain: Claude for careful multi-step + writing. Default consumer/distribution: GPT ecosystem. Default realtime social/markets color: Grok. Default long-doc / cost-sensitive: Kimi trial lane. Never one-model religion — route by task class.",
+    models: ["claude", "gpt", "grok", "kimi"],
+    sources: ["Wonder Model War composite", "Public product surfaces"],
+  },
+  {
+    id: "agent-router",
+    tier: "ops",
+    title: "How elites actually route models",
+    body: "Pattern: tiny classifier/router → cheap model for extract/classify → strong model for plan → tools → strong model for final. Latency budget per stage. Log every failure with model id. Your Wonder Mel already thinks in paths; extend that to multi-model.",
+    models: ["claude", "gpt", "grok", "kimi"],
+    sources: ["AI eng public playbooks", "Wonder Mel runtime design"],
+  },
+  {
+    id: "coding-triad",
+    tier: "coding",
+    title: "Code triad: Claude careful · GPT tools · Grok speed",
+    body: "Route coding like a desk, not a religion. Claude: multi-file refactors, strict house rules, medical-adjacent correctness. GPT: agent/CLI loops, greenfield product glue, ecosystem tools. Grok: ship-speed prototypes, creative hacks, when momentum beats formality. Elite pattern: Grok draft → Claude harden → GPT agentize if tools matter. Your Wonder harness (not Twitter ELO) decides who wins each task class.",
+    models: ["claude", "gpt", "grok"],
+    sources: [
+      "Wonder coding-strength graph (desk synthesis)",
+      "Public agent/CLI product surfaces (Claude Code, Codex, Grok)",
+      "Builder postmortems on multi-file vs greenfield tradeoffs",
+    ],
+  },
+  {
+    id: "pricing-power",
+    tier: "business",
+    title: "Token wars are a feature, not the strategy",
+    body: "Vendors cut prices to lock workflows. Your leverage: own prompts, evals, tools, and data graph (Wonder). Switch cost is high if your life OS is model-agnostic. Build adapters; never hardcode one vendor into the twin.",
+    models: ["claude", "gpt", "grok", "kimi"],
+    sources: ["Platform strategy 101", "Wonder offline-first architecture"],
+  },
+];
+
+async function fetchHnModelHeat(query, limit = 8) {
+  const url = `https://hn.algolia.com/api/v1/search_by_date?query=${encodeURIComponent(
+    query
+  )}&tags=story&hitsPerPage=${limit}`;
+  const res = await fetch(url, {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(6000),
+  });
+  if (!res.ok) throw new Error(`HN ${res.status}`);
+  const data = await res.json();
+  return (data.hits || []).map((h) => ({
+    id: `hn-${h.objectID}`,
+    title: h.title || h.story_title || "(no title)",
+    url: h.url || `https://news.ycombinator.com/item?id=${h.objectID}`,
+    source: "Hacker News",
+    points: h.points ?? 0,
+    comments: h.num_comments ?? 0,
+    publishedAt: h.created_at || null,
+    author: h.author || null,
+  }));
+}
+
+function modelXSearchCards(model) {
+  const now = new Date().toISOString();
+  const lanes = [
+    { suffix: "launch OR release OR announce", label: "Launches & drops" },
+    { suffix: "benchmark OR arena OR eval OR leaderboard", label: "Benchmarks & evals" },
+    { suffix: "pricing OR API OR enterprise OR revenue", label: "Business & API" },
+    { suffix: "agent OR tools OR coding", label: "Agents & coding" },
+  ];
+  return lanes.map((lane, i) => {
+    const q = `${model.xQuery} (${lane.suffix})`;
+    const url = `https://x.com/search?q=${encodeURIComponent(q)}&src=typed_query&f=live`;
+    return {
+      id: `x-${model.id}-${i}`,
+      modelId: model.id,
+      title: `${model.name} · ${lane.label}`,
+      text: `Live X firehose for ${model.company}'s ${model.name}. Opens exact search — sort Live for hottest takes.`,
+      url,
+      xUrl: url,
+      source: "X · live search",
+      kind: "x-search",
+      lane: lane.label,
+      publishedAt: now,
+      score: 80 - i,
+    };
+  });
+}
+
+function scoreOverall(scores) {
+  if (!scores) return 0;
+  // Weight what Melani actually needs: coding, reasoning, tools, business, long ctx
+  const w = {
+    coding: 1.2,
+    reasoning: 1.2,
+    toolsAgents: 1.15,
+    longContext: 1.0,
+    business: 1.1,
+    speed: 0.75,
+    priceValue: 0.85,
+    safetyEnterprise: 0.9,
+    realtimeX: 0.5,
+    chinaStack: 0.4,
+  };
+  let sum = 0;
+  let tw = 0;
+  for (const [k, v] of Object.entries(scores)) {
+    const weight = w[k] ?? 0.5;
+    sum += v * weight;
+    tw += weight;
+  }
+  return tw ? Math.round(sum / tw) : 0;
+}
+
+async function buildModelWarRoom() {
+  if (modelWarCache.pack && Date.now() - modelWarCache.at < 5 * 60_000) {
+    return modelWarCache.pack;
+  }
+
+  const heat = {};
+  const feed = [];
+
+  // Parallel HN heat per model
+  await Promise.all(
+    MODEL_WAR_MODELS.map(async (m) => {
+      try {
+        const hits = await fetchHnModelHeat(
+          `${m.name} OR ${m.company}`,
+          10
+        );
+        heat[m.id] = {
+          hnStories24ish: hits.length,
+          hnPoints: hits.reduce((a, h) => a + (h.points || 0), 0),
+          top: hits.slice(0, 5),
+        };
+        for (const h of hits.slice(0, 4)) {
+          feed.push({
+            id: h.id,
+            modelId: m.id,
+            title: h.title,
+            text: `${h.points} pts · ${h.comments} comments · HN`,
+            url: h.url,
+            source: h.source,
+            kind: "hn",
+            publishedAt: h.publishedAt,
+            score: 50 + (h.points || 0) / 10,
+            points: h.points,
+          });
+        }
+      } catch {
+        heat[m.id] = { hnStories24ish: 0, hnPoints: 0, top: [] };
+      }
+    })
+  );
+
+  // X deep-links (always work)
+  for (const m of MODEL_WAR_MODELS) {
+    for (const card of modelXSearchCards(m)) {
+      feed.push({ ...card, modelId: m.id });
+    }
+    // Profile shortcuts
+    for (const user of m.accounts.slice(0, 2)) {
+      feed.push({
+        id: `prof-${m.id}-${user}`,
+        modelId: m.id,
+        title: `@${user} (official / close orbit)`,
+        text: `Open timeline for ${m.name} orbit. Scan pinned + last 24h for drops.`,
+        url: `https://x.com/${user}`,
+        xUrl: `https://x.com/${user}`,
+        source: `X · @${user}`,
+        kind: "profile",
+        publishedAt: new Date().toISOString(),
+        score: 40,
+      });
+    }
+  }
+
+  // Try light RSS for model lab accounts (bonus exact tweets)
+  const labUsers = [
+    { user: "AnthropicAI", modelId: "claude" },
+    { user: "OpenAI", modelId: "gpt" },
+    { user: "xai", modelId: "grok" },
+    { user: "Kimi_Moonshot", modelId: "kimi" },
+  ];
+  for (const lab of labUsers) {
+    try {
+      const xml = await fetchUserTweetRss(lab.user);
+      if (!xml) continue;
+      const rows = parseAtomOrRss(xml, lab.user, lab.user).slice(0, 5);
+      for (const row of rows) {
+        const url = toXStatusUrl(row.link, lab.user);
+        feed.push({
+          id: `lab-${lab.user}-${url}`,
+          modelId: lab.modelId,
+          title: row.title,
+          text: row.text,
+          url,
+          xUrl: url,
+          source: `X · @${lab.user}`,
+          kind: /\/status\//.test(url) ? "tweet" : "live",
+          publishedAt: row.pub ? new Date(row.pub).toISOString() : null,
+          score: 95,
+          author: lab.user,
+        });
+      }
+    } catch {
+      /* optional */
+    }
+  }
+
+  feed.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+  const models = MODEL_WAR_MODELS.map((m) => {
+    const h = heat[m.id] || { hnPoints: 0, hnStories24ish: 0 };
+    const heatScore = Math.min(
+      100,
+      Math.round((h.hnPoints || 0) / 15 + (h.hnStories24ish || 0) * 4)
+    );
+    const overall = scoreOverall(m.scores);
+    // Average of coding axes — used on the coding strengths graph strip
+    const codingVals = Object.values(m.codingScores || {});
+    const codingOverall = codingVals.length
+      ? Math.round(codingVals.reduce((a, b) => a + b, 0) / codingVals.length)
+      : m.scores?.coding ?? 0;
+    return {
+      id: m.id,
+      name: m.name,
+      company: m.company,
+      color: m.color,
+      scores: m.scores,
+      codingScores: m.codingScores || null,
+      codingOverall,
+      codingStrength: m.codingStrength || "",
+      codingBestAt: m.codingBestAt || [],
+      codingWeakAt: m.codingWeakAt || [],
+      overall,
+      heatScore,
+      heat: h,
+      // Simple ranking signal: 60% capability composite, 40% attention heat
+      warScore: Math.round(overall * 0.6 + heatScore * 0.4),
+      whenToUse: whenToUseModel(m.id),
+      watchouts: watchoutsForModel(m.id),
+    };
+  }).sort((a, b) => b.warScore - a.warScore);
+
+  const dimensions = [
+    { key: "coding", label: "Coding" },
+    { key: "reasoning", label: "Reasoning" },
+    { key: "longContext", label: "Long context" },
+    { key: "toolsAgents", label: "Tools / agents" },
+    { key: "speed", label: "Speed" },
+    { key: "priceValue", label: "Price / value" },
+    { key: "business", label: "Business / ecosystem" },
+    { key: "safetyEnterprise", label: "Enterprise / care" },
+  ];
+
+  const pack = {
+    models,
+    dimensions,
+    // Dedicated coding graph (Grok · Claude · GPT focus; Kimi still has scores)
+    codingDimensions: CODING_DIMENSIONS,
+    codingNote:
+      "Coding graph = how each model differs when writing code. Y = score 0–100 · X = coding skill. Claude = careful multi-file. GPT = agents/tools + greenfield. Grok = ship speed + creative hacks. Desk synthesis — re-run on your private eval.",
+    feed: feed.slice(0, 60),
+    briefs: LEVERAGE_BRIEFS,
+    rankingNote:
+      "War score = 60% Wonder capability composite + 40% attention heat (HN). Capability scores are desk synthesis for leverage — not a vendor leaderboard. Always re-check on YOUR harness.",
+    sources: [
+      "Hacker News Algolia (story heat)",
+      "X live search deep-links (Claude / GPT / Grok / Kimi)",
+      "Lab account RSS when mirrors allow (exact tweets)",
+      "Wonder coding-strength axes (multi-file, agents, ship speed…)",
+      "Wonder leverage briefs (proprietary framing, cited priors)",
+    ],
+    updatedAt: new Date().toISOString(),
+    notifyHint:
+      "Enable browser notifications in the Model War tab to get pinged on new HN heat + lab tweets.",
+  };
+
+  modelWarCache.at = Date.now();
+  modelWarCache.pack = pack;
+  return pack;
+}
+
+function whenToUseModel(id) {
+  switch (id) {
+    case "claude":
+      return "Careful multi-step plans, long docs, medical-adjacent prose, agent plans that must not hallucinate tools.";
+    case "gpt":
+      return "Broad app ecosystem, consumer UX, strong tool graphs, when distribution + plugins matter more than tone.";
+    case "grok":
+      return "Realtime X/markets/culture, spicy ideation, when freshness beats formal enterprise tone.";
+    case "kimi":
+      return "Long-document cost arbitrage, bilingual work, experiments before paying US frontier rates.";
+    default:
+      return "";
+  }
+}
+
+function watchoutsForModel(id) {
+  switch (id) {
+    case "claude":
+      return "Can be slower/pricier; refusals may block edge workflows — design prompts with clear allowed scope.";
+    case "gpt":
+      return "Policy + product churn is high; pin model IDs in prod; don't assume yesterday's eval still holds.";
+    case "grok":
+      return "Enterprise/compliance story weaker; verify factual claims; great for color, verify for clinic.";
+    case "kimi":
+      return "US brand/trust + residency questions; dual-run critical tasks against Claude/GPT before lock-in.";
+    default:
+      return "";
+  }
+}
+
 export function intelFeedsApi() {
   return {
     name: "wonder-intel-feeds-api",
@@ -1143,6 +2036,27 @@ export function intelFeedsApi() {
           if (u.pathname === "/api/intel/news") {
             const items = await fetchAllNews();
             return json(res, 200, { items, updatedAt: new Date().toISOString() });
+          }
+          // Top engineers on X talking agents — links open the exact tweet
+          if (
+            u.pathname === "/api/intel/agent-tweets" ||
+            u.pathname === "/api/intel/agents-x"
+          ) {
+            const tweets = await fetchAgentTweets();
+            return json(res, 200, {
+              tweets,
+              accounts: AGENT_X_ACCOUNTS,
+              updatedAt: new Date().toISOString(),
+              note: "Public RSS mirrors of X timelines, filtered for agent craft. Each card opens the exact tweet on x.com.",
+            });
+          }
+          // Model War Room: Claude / Kimi / Grok / GPT — heat, graphs, deep briefs, sources
+          if (
+            u.pathname === "/api/intel/model-war" ||
+            u.pathname === "/api/intel/models"
+          ) {
+            const pack = await buildModelWarRoom();
+            return json(res, 200, pack);
           }
           if (u.pathname === "/api/intel/crypto") {
             const crypto = await fetchCrypto();
