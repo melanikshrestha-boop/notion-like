@@ -25,6 +25,7 @@ Open **http://127.0.0.1:5173/**
 ### Agents
 - **Wardrobe** — local garment perception, duplicate-proof imports, operational closet memory, explainable outfit/packing decisions, and the original gallery/editor
 - **Weather** — device location, live conditions, seven-day forecast, exact Wardrobe look selection, and weather-aware scent and grooming guidance
+- **Care Concierge** — voice-first dental and medical appointment administration with drafts, explicit approval, office records, confirmations, calendar export, and consent receipts
 
 ### Life pages
 - Books, Real Life, Document Hub, Meetings, Goals, To Do, Journal
@@ -41,6 +42,29 @@ Open **http://127.0.0.1:5173/**
 npm run ai      # Mel Grok bridge :8791 (needs XAI_API_KEY)
 npm run gmail   # Gmail IMAP bridge :8790
 ```
+
+### Care Concierge voice handoff
+
+Care Concierge works locally without credentials: it understands spoken or typed
+appointment requests, prepares an exact office brief, speaks responses, stores
+providers, tracks confirmations, and exports confirmed visits to Calendar. It
+does not claim to call or book anything unless an outbound provider accepts the
+request.
+
+To connect a private outbound voice service, copy `.env.example` to `.env.local`,
+set `CARE_VOICE_WEBHOOK_URL` to its HTTPS endpoint, optionally set
+`CARE_VOICE_WEBHOOK_SECRET`, and restart Vite. Wonder sends a versioned
+`wonder-care-v1` JSON payload only after the user presses **Approve exact
+request** and then **Send to voice agent**. The endpoint should return JSON with
+an `id` or `callId` and a `status`. If it already has a verified booking, it may
+also return `appointment.startsAt`, `endsAt`, `providerName`, `address`,
+`visitMode`, `confirmationCode`, and `preparationInstructions`; Wonder will then
+create the confirmed timeline entry automatically. Never put provider keys in
+browser code.
+
+This agent is administrative only. It does not diagnose, choose treatment,
+authorize payment, invent clinical facts, or accept a slot outside the approved
+window. Urgent language is redirected to emergency or prompt clinical help.
 
 ## Restore
 Sidebar → **Restore full workspace** reloads the full page tree.

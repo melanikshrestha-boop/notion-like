@@ -7,6 +7,11 @@ export const MEL_NAVIGATE_EVENT = "wonder-mel-navigate";
  */
 export const MEL_WORKSPACE_ACTION_EVENT = "wonder-mel-workspace-action";
 export const MEL_SIDEBAR_ACTION_EVENT = "wonder-mel-sidebar-action";
+export const MEL_PROMPT_EVENT = "wonder-mel-prompt";
+
+export type MelPromptRequest = {
+  text: string;
+};
 
 export type MelPageReference = {
   id?: string;
@@ -113,5 +118,15 @@ export function requestMelSidebarAction(
       ok: false,
       summary: "The sidebar action handler is not ready yet.",
     }
+  );
+}
+
+/** Open Mel and ask a contextual question from anywhere in Wonder. */
+export function requestMelPrompt(text: string): void {
+  if (typeof window === "undefined" || !text.trim()) return;
+  window.dispatchEvent(
+    new CustomEvent<MelPromptRequest>(MEL_PROMPT_EVENT, {
+      detail: { text: text.trim() },
+    })
   );
 }

@@ -41,6 +41,9 @@ export const MEL_CAPABILITIES: ToolCapability[] = [
   { name: "lock_meat", sideEffect: "write", latency: "sync", needsConfirm: false },
   { name: "log_usual_meal", sideEffect: "write", latency: "sync", needsConfirm: false },
   { name: "write_body_brief", sideEffect: "write", latency: "sync", needsConfirm: false },
+  { name: "care_stage_request", sideEffect: "write", latency: "sync", needsConfirm: false },
+  { name: "care_approve", sideEffect: "write", latency: "sync", needsConfirm: true },
+  { name: "care_send", sideEffect: "write", latency: "async", needsConfirm: true },
   { name: "trash_workspace_page", sideEffect: "write", latency: "sync", needsConfirm: true },
 ];
 

@@ -90,7 +90,6 @@ assert.match(coldBrief.scentTitle, /amber|woods|vanilla/i);
 assert.equal(weatherCondition(95), "Thunderstorms");
 
 const weatherPage = defaultWorkspace().pages.find((page) => page.id === "pg-agent-weather");
-assert.equal(weatherPage?.title, "Weather");
-assert.equal(weatherPage?.parentId, "pg-agents");
+assert.equal(weatherPage, undefined, "weather should stay available through Mel without adding a duplicate sidebar page");
 
 console.log("WEATHER_AGENT_TEST_OK");

@@ -55,7 +55,14 @@ export default function App() {
   });
   const [searchOpen, setSearchOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [compactLayout, setCompactLayout] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(max-width: 768px)").matches
+      : false
+  );
+  const [compactSidebarOpen, setCompactSidebarOpen] = useState(false);
   const workspaceRef = useRef(ws);
+  const mainScrollRef = useRef<HTMLDivElement>(null);
   /** Snapshots of the workspace before your last moves / Mel actions (for Undo) */
   const melUndoRef = useRef<Workspace[]>([]);
 
@@ -63,6 +70,19 @@ export default function App() {
     workspaceRef.current = ws;
     saveWorkspace(ws);
   }, [ws]);
+
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 768px)");
+    const syncLayout = (matches: boolean) => {
+      setCompactLayout(matches);
+      if (matches) setCompactSidebarOpen(false);
+    };
+
+    syncLayout(query.matches);
+    const onChange = (event: MediaQueryListEvent) => syncLayout(event.matches);
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
 
   /** Save a restore point, then apply a change (drag, delete, Mel, etc.) */
   function commitWorkspace(mutator: (current: Workspace) => Workspace) {
@@ -143,6 +163,12 @@ export default function App() {
     }
   }, [activePage]);
 
+  // Page navigation starts at the page header. Changes inside the same page
+  // keep the exact scroll position, so logging or toggling never jumps.
+  useEffect(() => {
+    mainScrollRef.current?.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [activePage?.id]);
+
   const childPages = useMemo(
     () =>
       activePage
@@ -158,13 +184,19 @@ export default function App() {
 
   function openPage(id: string) {
     setWs((prev) => setActivePage(prev, id));
+    if (compactLayout) setCompactSidebarOpen(false);
     setMoreOpen(false);
   }
 
   useEffect(() => {
     const navigate = (event: Event) => {
       const pageId = (event as CustomEvent<{ pageId: string }>).detail?.pageId;
-      if (pageId) setWs((prev) => setActivePage(prev, pageId));
+      if (pageId) {
+        setWs((prev) => setActivePage(prev, pageId));
+        if (window.matchMedia("(max-width: 768px)").matches) {
+          setCompactSidebarOpen(false);
+        }
+      }
     };
     window.addEventListener(MEL_NAVIGATE_EVENT, navigate);
     return () => window.removeEventListener(MEL_NAVIGATE_EVENT, navigate);
@@ -227,16 +259,25 @@ export default function App() {
 
   // Melani UI is content inside this Notion page (not a separate app mode)
   const melaniMode = isMelaniRichPage(activePage.id);
+  const sidebarIsOpen = compactLayout ? compactSidebarOpen : ws.sidebarOpen;
 
   return (
     <div className="app">
+      {compactLayout && compactSidebarOpen ? (
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          aria-label="Close sidebar"
+          onClick={() => setCompactSidebarOpen(false)}
+        />
+      ) : null}
       <Sidebar
         workspaceName={ws.name}
         pages={live}
         allPages={ws.pages}
         recents={ws.recents || []}
         activePageId={activePage.id}
-        open={ws.sidebarOpen}
+        open={sidebarIsOpen}
         onSelect={openPage}
         onNewPage={() => commitWorkspace((p) => addChildPage(p, p.activePageId))}
         onNewTopPage={() => commitWorkspace((p) => addChildPage(p, null))}
@@ -257,7 +298,10 @@ export default function App() {
           })
         }
         onOpenSearch={() => setSearchOpen(true)}
-        onClose={() => setWs((p) => ({ ...p, sidebarOpen: false }))}
+        onClose={() => {
+          if (compactLayout) setCompactSidebarOpen(false);
+          else setWs((p) => ({ ...p, sidebarOpen: false }));
+        }}
         onRestorePage={(id) => commitWorkspace((p) => restorePage(p, id))}
         onEmptyTrash={() => commitWorkspace((p) => emptyTrash(p))}
         onReimport={() => {
@@ -279,9 +323,10 @@ export default function App() {
           <button
             type="button"
             className="topbar-btn"
-            onClick={() =>
-              setWs((p) => ({ ...p, sidebarOpen: !p.sidebarOpen }))
-            }
+            onClick={() => {
+              if (compactLayout) setCompactSidebarOpen((open) => !open);
+              else setWs((p) => ({ ...p, sidebarOpen: !p.sidebarOpen }));
+            }}
             title="Toggle sidebar"
           >
             ☰
@@ -392,10 +437,11 @@ export default function App() {
               </div>
             )}
           </div>
+          <MelaniAI pageId={activePage.id} pageTitle={activePage.title} />
         </header>
 
         {/* Page body scrolls here — Notion pages OR Melani content inside page */}
-        <div className="main-scroll">
+        <div ref={mainScrollRef} className="main-scroll">
           {melaniMode ? (
             /* Sleep / Meals / Gym live in the SIDEBAR only */
             <div className="notion-melani-page">
@@ -437,8 +483,6 @@ export default function App() {
         />
       )}
 
-      {/* Mel — floating chat on every page */}
-      <MelaniAI pageId={activePage.id} pageTitle={activePage.title} />
       <FocusOverlay />
     </div>
   );

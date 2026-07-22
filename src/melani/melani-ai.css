@@ -1,28 +1,28 @@
 /* Mel — quiet black panel, serif everywhere, soft motion */
 
 .mai-root {
-  position: fixed;
-  right: 18px;
-  bottom: 18px;
-  z-index: 80;
+  position: relative;
+  z-index: 20;
+  display: inline-flex;
+  flex: 0 0 auto;
   font-family: "Source Serif 4", Georgia, "Times New Roman", ui-serif, serif !important;
 }
 
 .mai-bubble {
-  width: 40px;
-  height: 40px;
+  width: 28px;
+  height: 28px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 50%;
   background: #0a0a0a;
   color: rgba(255, 255, 255, 0.92);
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  box-shadow: none;
   font-family: inherit !important;
   transition:
     border-color 0.2s cubic-bezier(0.22, 1, 0.36, 1),
@@ -34,8 +34,8 @@
 .mai-bubble:hover {
   border-color: rgba(255, 255, 255, 0.35);
   color: #fff;
-  transform: translateY(-1px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  transform: none;
+  box-shadow: none;
 }
 
 .mai-bubble.is-open {
@@ -44,13 +44,23 @@
   transform: none;
 }
 
+.mai-bubble:focus {
+  outline: none;
+}
+
+.mai-bubble:focus-visible {
+  outline: 1px solid rgba(168, 196, 240, 0.55);
+  outline-offset: 2px;
+}
+
 .mai-panel {
-  position: absolute;
-  right: 0;
-  bottom: 52px;
-  /* Wider/taller so bigger chat text has room to breathe */
-  width: min(380px, calc(100vw - 28px));
-  height: min(540px, calc(100vh - 80px));
+  position: fixed;
+  z-index: 120;
+  right: 12px;
+  top: 53px;
+  bottom: 12px;
+  width: min(400px, calc(100vw - 24px));
+  height: auto;
   display: flex;
   flex-direction: column;
   background: #080808;
@@ -60,7 +70,7 @@
   overflow: hidden;
   font-family: inherit !important;
   animation: mai-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);
-  /* Default chat size vars (overridden by .mai-size-* below) */
+  /* Chat text size (A− / A+) */
   --mai-msg: 17px;
   --mai-input: 16px;
   --mai-line: 1.55;
@@ -68,15 +78,12 @@
   --mai-quick: 13px;
 }
 
-/* Text sizes you can pick with A− / A+ (saved in browser) */
 .mai-panel.mai-size-s {
   --mai-msg: 15px;
   --mai-input: 14px;
   --mai-line: 1.5;
   --mai-title: 13px;
   --mai-quick: 12px;
-  width: min(360px, calc(100vw - 28px));
-  height: min(500px, calc(100vh - 80px));
 }
 
 .mai-panel.mai-size-m {
@@ -93,8 +100,7 @@
   --mai-line: 1.58;
   --mai-title: 15px;
   --mai-quick: 14px;
-  width: min(400px, calc(100vw - 28px));
-  height: min(560px, calc(100vh - 80px));
+  width: min(420px, calc(100vw - 24px));
 }
 
 .mai-panel.mai-size-xl {
@@ -103,8 +109,18 @@
   --mai-line: 1.6;
   --mai-title: 16px;
   --mai-quick: 15px;
-  width: min(440px, calc(100vw - 28px));
-  height: min(620px, calc(100vh - 80px));
+  width: min(460px, calc(100vw - 24px));
+}
+
+.mai-size-btn {
+  min-width: 32px;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em;
+}
+
+.mai-size-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
 }
 
 @keyframes mai-in {
@@ -119,8 +135,8 @@
 }
 
 .mai-panel.is-overview {
-  width: min(440px, calc(100vw - 28px));
-  height: min(680px, calc(100vh - 80px));
+  width: min(460px, calc(100vw - 24px));
+  height: auto;
 }
 
 .mai-head {
@@ -140,18 +156,6 @@
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.92);
   font-family: inherit;
-}
-
-/* A− / A+ text size buttons in Mel header */
-.mai-size-btn {
-  min-width: 32px;
-  font-weight: 600 !important;
-  letter-spacing: 0.02em;
-}
-
-.mai-size-btn:disabled {
-  opacity: 0.25;
-  cursor: default;
 }
 
 .mai-title span {
@@ -184,7 +188,7 @@
 
 .mai-quick {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   padding: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
@@ -196,7 +200,7 @@
   background: transparent;
   color: rgba(255, 255, 255, 0.52);
   font-family: inherit !important;
-  font-size: var(--mai-quick, 13px);
+  font-size: 11px;
   font-weight: 500;
   cursor: pointer;
   transition: color 0.18s ease, background 0.18s ease;
@@ -276,7 +280,6 @@
   max-width: 94%;
   padding: 10px 12px;
   border-radius: 12px;
-  /* Main chat text — controlled by A− / A+ */
   font-size: var(--mai-msg, 17px);
   line-height: var(--mai-line, 1.55);
   white-space: pre-wrap;
@@ -284,7 +287,6 @@
   font-family: inherit;
 }
 
-/* Paragraphs inside long Mel answers */
 .mai-chunk {
   display: flex;
   flex-direction: column;
@@ -395,4 +397,18 @@
 .mai-send:disabled {
   opacity: 0.3;
   cursor: default;
+}
+
+@media (max-width: 600px) {
+  .mai-panel,
+  .mai-panel.is-overview {
+    inset: 51px 8px 8px;
+    width: auto;
+    height: auto;
+  }
+
+  .mai-quick button {
+    font-size: 10px;
+    padding: 0 3px;
+  }
 }

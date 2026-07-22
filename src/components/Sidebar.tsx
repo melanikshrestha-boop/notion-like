@@ -39,12 +39,6 @@ const TRASH_KEY = "dr-melani-show-trash";
 /** How long (ms) between two taps counts as a double-tap to open/close a toggle */
 const DOUBLE_TAP_MS = 420;
 
-// Pages that live in other sidebar sections (not in Health / Learn / Work trees)
-const SIDEBAR_UTILITY_IDS = new Set([
-  "pg-agents",
-  "pg-help",
-]);
-
 /** Health section roots */
 const HEALTH_ROOT_IDS = ["pg-fitness", "pg-hygiene", "pg-data"] as const;
 /** Learn section roots — Bookshelf + World Monitor (stocks). No Work section. */

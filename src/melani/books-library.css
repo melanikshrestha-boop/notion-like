@@ -1426,6 +1426,16 @@
   min-height: 0;
   overflow: hidden; /* normal reading stays tidy */
   background: #080808;
+  /* Keep the reading page column centered in the frame */
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.bl-reader-stage-wrap > .bl-reader-stage,
+.bl-reader-stage-wrap > .bl-flip-scene {
+  width: min(820px, 100%);
+  margin-inline: auto;
 }
 
 /*
@@ -1634,8 +1644,21 @@
   z-index: 4;
   inset: 0;
   overflow-y: auto;
+  /* Center the whole TOC column in the screen (like a clean book UI) */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: 34px clamp(20px, 6vw, 72px) 54px;
   background: #080808;
+}
+
+/* One centered column for title + chapter list */
+.bl-reader-toc > header,
+.bl-reader-toc nav,
+.bl-reader-toc > p {
+  width: min(760px, 100%);
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .bl-reader-toc > header {

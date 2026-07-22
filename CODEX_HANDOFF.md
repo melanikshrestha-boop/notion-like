@@ -65,7 +65,7 @@ npm run build
 |--------|----------------|--------------|
 | Nightly body brief | `src/melani/bodyBrief.ts`, `NightlyBodyBrief.tsx` | Sleep/meals/water/cycle/gym/mood → one report + “one move tomorrow” |
 | Mel Digital Twin | `src/melani/twin/*` | Offline live-state fusion, transparent scores, early radar, one lever, seven-day forecast, 14-day doctor pack |
-| Mel life OS agent | `src/melani/melAgent.ts`, `melTools.ts`, `MelaniAI.tsx` | Parses natural language, executes real app actions, and returns receipts |
+| Mel life OS agent | `src/melani/melAgent.ts`, `melControl.ts`, `melTools.ts`, `MelaniAI.tsx` | Plans compound natural-language requests, executes real app actions in order, and returns receipts |
 | Food OS | `src/melani/foodOs.ts` | Daily beef/salmon rotation, lock, eaten state, and remaining macro context |
 | Sleep store + graph | `src/melani/sleepStore.ts`, `FitnessExact.tsx` | Bed/wake, overnight math, weekly hours |
 | Meals / macros | `FitnessExact.tsx`, `data.ts` | Usual meals, protein/cal goals |
@@ -129,6 +129,8 @@ Core tools:
 - Existing My Tasks/focus and Shopping actions remain reachable through Mel
 - Create, open, list, rename, duplicate, move, favorite, clear, trash, and restore workspace pages
 - Append or replace page text, with the last 20 Mel workspace changes available through `undo that`
+- Chain up to 10 bounded actions in one request while carrying page context between steps
+- Ask `what did you do`, `last action`, or `action history` for stored, truthful receipts
 - Use the private Ollama `llama3:latest` model for natural conversation and fuzzy workspace intent when it is installed
 
 Quick checks in the Mel panel:
@@ -140,6 +142,7 @@ beef
 brief
 log breakfast
 drank 1L and ate breakfast
+drank 1L and slept 7h and brain fog no and took all supplements
 status
 goal protein 130
 open wardrobe
@@ -148,10 +151,11 @@ wear outfit 1
 I liked outfit 1
 plan my outfits for 7 days
 should I buy an olive dress for $120
-create a page called Neurotech Ideas under Work
+create a page called Neurotech Ideas under Planning
 rename this page to Research
 add prototype notes to this page
-move Research under Work
+create a page called Launch Plan under Planning, then add milestone one to this page, and favorite it
+what did you do
 undo that
 ```
 
@@ -242,8 +246,21 @@ If Codex is looking for a dedicated “fridge safety” feature, it is **not in 
 | none | for core UI | Vite app only needs `npm run dev` |
 | `XAI_API_KEY` | optional | `server/melani_ai.py` / `npm run ai` (or file `~/.melani_assistant/xai_api_key`) |
 | Gmail email + App Password | optional | entered in UI → stored under bridge data dir, **not** in repo |
+| `CARE_VOICE_WEBHOOK_URL` | optional | server-side Care Concierge outbound voice handoff |
+| `CARE_VOICE_WEBHOOK_SECRET` | optional | bearer secret sent only from the Vite server middleware |
 
 **Never commit API keys.** None ship in this repository.
+
+### Care Concierge
+
+The Care Concierge agent lives in `src/melani/care/*` with its page in
+`src/melani/CareConcierge.tsx`. It parses book, reschedule, cancel, and check
+requests locally; keeps drafts distinct from approved/sent/confirmed states; and
+records consent receipts. Browser speech recognition and the best installed
+system voice provide the local conversation. `scripts/care-concierge-api.mjs`
+is the guarded server-side adapter for an optional outbound voice provider.
+Without that webhook, the UI truthfully remains in local mode and offers a
+tap-to-call brief instead of pretending a call occurred.
 
 ---
 

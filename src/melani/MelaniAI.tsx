@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { isBriefHour, loadBodyBrief } from "./bodyBrief";
 import { todayKey } from "./data";
 import { checkMelCloud, checkMelLocalModel, runMelAgent } from "./melAgent";
+import { MEL_PROMPT_EVENT, type MelPromptRequest } from "./melActions";
 import { MelOverview } from "./MelOverview";
 import { ensureDefaultWeatherLocation } from "./weather/weatherCore";
 import "./melani-ai.css";
@@ -21,9 +23,8 @@ type Props = {
 
 const CHAT_KEY = "dr-melani-ai-chat-v1";
 const OPEN_KEY = "dr-melani-ai-open";
-// How big Mel's chat text is (you pick; we remember it)
+// How big Mel chat text is — you pick with A− / A+, we remember it
 const TEXT_SIZE_KEY = "dr-melani-ai-text-size-v1";
-// S = a bit bigger than old default · M/L/XL step up for easy reading
 type TextSize = "s" | "m" | "l" | "xl";
 const TEXT_SIZES: TextSize[] = ["s", "m", "l", "xl"];
 
@@ -34,8 +35,7 @@ function loadTextSize(): TextSize {
   } catch {
     /* ignore */
   }
-  // Default larger so chat is easy to read without a click
-  return "l";
+  return "l"; // bigger default so messages are easy to read
 }
 
 function saveTextSize(size: TextSize) {
@@ -136,15 +136,16 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
   const [msgs, setMsgs] = useState<Msg[]>(() => loadMsgs());
   const [input, setInput] = useState("");
   const [view, setView] = useState<"chat" | "overview">("chat");
-  // Chat text size: S M L XL — saved so it stays “to your liking”
+  // Chat text size: S M L XL — saved so it stays to your liking
   const [textSize, setTextSize] = useState<TextSize>(() => loadTextSize());
   const [busy, setBusy] = useState(false);
   const [cloudConnected, setCloudConnected] = useState(false);
   const [localModelConnected, setLocalModelConnected] = useState(false);
+  const msgsRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Shrink / grow Mel text one step; remember choice
+  // Shrink / grow Mel text one step
   function changeTextSize(dir: -1 | 1) {
     const i = TEXT_SIZES.indexOf(textSize);
     const next = TEXT_SIZES[Math.min(TEXT_SIZES.length - 1, Math.max(0, i + dir))];
@@ -191,7 +192,24 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
 
   useEffect(() => {
     saveMsgs(msgs);
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const last = msgs.at(-1);
+    window.requestAnimationFrame(() => {
+      const container = msgsRef.current;
+      if (!container) return;
+      if (last?.role === "assistant" && last.content.length > 600) {
+        const replies = container.querySelectorAll<HTMLElement>(".mai-msg.is-ai");
+        const target = replies.item(replies.length - 1);
+        if (target) {
+          const top =
+            target.getBoundingClientRect().top -
+            container.getBoundingClientRect().top +
+            container.scrollTop;
+          container.scrollTo({ top: Math.max(0, top - 4), behavior: "smooth" });
+          return;
+        }
+      }
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    });
   }, [msgs]);
 
   const send = useCallback(
@@ -226,6 +244,18 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
     },
     [busy, cloudConnected, localModelConnected, msgs, pageId, pageTitle]
   );
+
+  useEffect(() => {
+    const onPrompt = (event: Event) => {
+      const request = (event as CustomEvent<MelPromptRequest>).detail;
+      if (!request?.text) return;
+      setOpen(true);
+      setView("chat");
+      window.setTimeout(() => void send(request.text), 0);
+    };
+    window.addEventListener(MEL_PROMPT_EVENT, onPrompt);
+    return () => window.removeEventListener(MEL_PROMPT_EVENT, onPrompt);
+  }, [send]);
 
   function clearChat() {
     setMsgs([]);
@@ -262,9 +292,7 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
     }
   }
 
-  return (
-    <div className="mai-root">
-      {open && (
+  const panel = open ? (
         <div
           className={`mai-panel${view === "overview" ? " is-overview" : ""} mai-size-${textSize}`}
           role="dialog"
@@ -274,7 +302,7 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
             <p className="mai-title">
               Mel
             </p>
-            {/* Text size: A− smaller · A+ bigger (saved for next time) */}
+            {/* A− smaller · A+ bigger (saved) */}
             <button
               type="button"
               className="mai-head-btn mai-size-btn"
@@ -317,6 +345,7 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
               ["Brief", "brief"],
               ["Food", "food"],
               ["Status", "status"],
+              ["Explain", "Explain this page from first principles. Show me what matters, how the parts connect, and a concrete example."],
               // One tap undoes last page move / Mel action / trash
               ["Undo", "undo that"],
             ].map(([label, command]) => (
@@ -331,7 +360,7 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
               </button>
             ))}
           </nav>
-          <div className="mai-msgs">
+          <div ref={msgsRef} className="mai-msgs">
             {msgs.length === 0 && (
               <p className="mai-welcome">
                 Tell me what you need done.
@@ -378,8 +407,14 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
             </button>
           </form></>}
         </div>
-      )}
+      ) : null;
 
+  return (
+    <>
+      {panel && typeof document !== "undefined"
+        ? createPortal(panel, document.body)
+        : panel}
+      <div className="mai-root">
       <button
         type="button"
         className={`mai-bubble${open ? " is-open" : ""}`}
@@ -388,6 +423,7 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
       >
         {open ? "×" : "M"}
       </button>
-    </div>
+      </div>
+    </>
   );
 }

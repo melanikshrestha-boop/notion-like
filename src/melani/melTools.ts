@@ -32,6 +32,8 @@ import {
 import { applyShoppingCommand } from "./shoppingStore";
 import { loadFogMap, loadSleepDay, saveFogMap, saveSleepDay } from "./sleepStore";
 import { applyTaskCommand } from "./taskStore";
+import { runCareCommandLocal } from "./care/agent";
+import { careSnapshot } from "./care/store";
 import {
   formatQuarterlyForMel,
   MEL_TRADING_KNOWLEDGE,
@@ -69,30 +71,31 @@ const EMPTY_MACROS: MacroBag = {
 };
 
 const PAGE_ALIASES: Array<{ pattern: RegExp; pageId: string; title: string }> = [
-  { pattern: /\bbookshelf|library|books?\b/i, pageId: "pg-library", title: "Bookshelf" },
+  { pattern: /^(?:my\s+)?(?:bookshelf|library|books?)$/i, pageId: "pg-library", title: "Bookshelf" },
   // Weather is Mel-only (no page) — do not navigate to a Weather page
-  { pattern: /\bwardrobe|closet|clothes\b/i, pageId: "pg-fashion-os", title: "Wardrobe" },
-  { pattern: /\bshopping|grocer(?:y|ies)|inventory|restock\b/i, pageId: "pg-agent-shopping", title: "Shopping" },
-  { pattern: /\bgmail|email|inbox\b/i, pageId: "pg-agent-gmail", title: "Gmail" },
-  { pattern: /\bmeals?|food|macros?|nutrition\b/i, pageId: "pg-meals", title: "Meals" },
-  { pattern: /\bsleep|brain fog\b/i, pageId: "pg-sleep", title: "Sleep" },
-  { pattern: /\bgym|workout|training|fitness\b/i, pageId: "pg-gym", title: "Gym" },
-  { pattern: /\bmy data|labs?|period|cycle|health data\b/i, pageId: "pg-data", title: "My Data" },
-  { pattern: /\bdaily shower\b/i, pageId: "pg-shower-daily", title: "Daily shower" },
-  { pattern: /\beverything shower\b/i, pageId: "pg-shower-everything", title: "Everything shower" },
-  { pattern: /\bhair(?: care)?\b/i, pageId: "pg-hair", title: "Hair care" },
-  { pattern: /\bam skincare|morning skincare\b/i, pageId: "pg-am-skin", title: "AM skincare" },
-  { pattern: /\bpm skincare|night skincare\b/i, pageId: "pg-pm-skin", title: "PM skincare" },
-  { pattern: /\bhygiene|shower|skincare\b/i, pageId: "pg-hygiene", title: "Hygiene" },
+  { pattern: /^(?:my\s+)?(?:wardrobe|closet|clothes)$/i, pageId: "pg-fashion-os", title: "Wardrobe" },
+  { pattern: /^(?:my\s+)?(?:shopping|grocer(?:y|ies)|inventory|restock)$/i, pageId: "pg-agent-shopping", title: "Shopping" },
+  { pattern: /^(?:my\s+)?(?:gmail|email|inbox)$/i, pageId: "pg-agent-gmail", title: "Gmail" },
+  { pattern: /^(?:my\s+)?(?:care|care concierge|appointments?|dentist|doctor appointments?)$/i, pageId: "pg-agent-care", title: "Care Concierge" },
+  { pattern: /^(?:my\s+)?(?:meals?|food|macros?|nutrition)$/i, pageId: "pg-meals", title: "Meals" },
+  { pattern: /^(?:my\s+)?(?:sleep|brain fog)$/i, pageId: "pg-sleep", title: "Sleep" },
+  { pattern: /^(?:my\s+)?(?:gym|workout|training|fitness)$/i, pageId: "pg-gym", title: "Gym" },
+  { pattern: /^(?:my\s+)?(?:data|labs?|period|cycle|health data)$/i, pageId: "pg-data", title: "My Data" },
+  { pattern: /^(?:my\s+)?daily shower$/i, pageId: "pg-shower-daily", title: "Daily shower" },
+  { pattern: /^(?:my\s+)?everything shower$/i, pageId: "pg-shower-everything", title: "Everything shower" },
+  { pattern: /^(?:my\s+)?hair(?: care)?$/i, pageId: "pg-hair", title: "Hair care" },
+  { pattern: /^(?:my\s+)?(?:am skincare|morning skincare)$/i, pageId: "pg-am-skin", title: "AM skincare" },
+  { pattern: /^(?:my\s+)?(?:pm skincare|night skincare)$/i, pageId: "pg-pm-skin", title: "PM skincare" },
+  { pattern: /^(?:my\s+)?(?:hygiene|shower|skincare)$/i, pageId: "pg-hygiene", title: "Hygiene" },
   // Work section is gone — "work" / stocks / markets open World Monitor under Learn
   {
     pattern:
-      /\bworld\s*monitor|tech\s*news|markets?|stocks?|options?|trades?|trading|startups?|silicon\s*valley|finance\s*radar|\bwork\b/i,
+      /^(?:my\s+)?(?:world\s*monitor|tech\s*news|markets?|stocks?|options?|trades?|trading|startups?|silicon\s*valley|finance\s*radar|work)$/i,
     pageId: "pg-world-monitor",
     title: "World Monitor",
   },
-  { pattern: /\blearn\b/i, pageId: "pg-library", title: "Bookshelf" },
-  { pattern: /\bhealth\b/i, pageId: "pg-fitness", title: "Fitness" },
+  { pattern: /^(?:my\s+)?learn$/i, pageId: "pg-library", title: "Bookshelf" },
+  { pattern: /^(?:my\s+)?health$/i, pageId: "pg-fitness", title: "Fitness" },
 ];
 
 function result<T>(tool: string, summary: string, data?: T): string {
@@ -217,6 +220,7 @@ export function get_live_snapshot(pageId?: string, pageTitle?: string): string {
     brainFog: Object.hasOwn(fogMap, day) ? fogMap[day] : null,
     cycle: { phase: derived.phaseLabel, day: derived.currentDay, nextPeriodEstimate: derived.nextPeriodEst },
     food,
+    care: careSnapshot(),
     pins: loadPins(),
     recentLogs: loadLifeLog().slice(-8),
     liveContext: buildLiveContext(pageId, pageTitle) + marketsBoost,
@@ -659,6 +663,13 @@ export function run_task_command(text: string): string {
 export function run_shopping_command(text: string): string {
   const summary = applyShoppingCommand(text);
   return summary ? result("shopping", summary) : failure("shopping", "I could not apply that shopping update safely.");
+}
+
+export function run_care_command(text: string): string {
+  const outcome = runCareCommandLocal(text);
+  return outcome
+    ? JSON.stringify(outcome)
+    : failure("care_no_match", "That was not an appointment administration request.");
 }
 
 export function current_meat(): FoodOsMeat {

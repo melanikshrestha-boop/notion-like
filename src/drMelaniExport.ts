@@ -57,6 +57,7 @@ export function buildDrMelaniWorkspace(): Workspace {
   // Personal pages
   const WARDROBE = "pg-fashion-os";
   const AGENTS = "pg-agents";
+  const CARE = "pg-agent-care";
   const LIBRARY = "pg-library";
 
   const pages: Page[] = [
@@ -261,6 +262,10 @@ export function buildDrMelaniWorkspace(): Workspace {
       b("paragraph", "Your clothes, extracted and organized."),
     ]),
 
+    page(CARE, "Care Concierge", "care", AGENTS, [
+      b("paragraph", ""),
+    ]),
+
     // Agents hub (hidden from sidebar list — only children show under Agents)
     page(AGENTS, "Agents", "🤖", null, [
       b("heading1", "Agents"),
@@ -294,4 +299,4 @@ export function buildDrMelaniWorkspace(): Workspace {
   } as Workspace & { exportVersion?: number };
 }
 
-export const DR_MELANI_EXPORT_VERSION = 15;
+export const DR_MELANI_EXPORT_VERSION = 16;

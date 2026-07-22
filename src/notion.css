@@ -886,7 +886,7 @@ textarea {
   }
   /* On phones the sidebar overlays the page instead of crushing its width. */
   .sidebar {
-    position: absolute;
+    position: fixed;
     inset: 0 auto 0 0;
     z-index: 20;
     height: 100%;
@@ -894,13 +894,31 @@ textarea {
     min-width: min(84vw, 280px);
     max-width: min(84vw, 280px);
     box-shadow: var(--shadow-menu);
+    transform: translateX(0);
+    transition:
+      transform 0.24s var(--ease),
+      opacity 0.2s var(--ease),
+      box-shadow 0.2s var(--ease);
   }
 
   .sidebar.is-closed {
-    width: 0;
-    min-width: 0;
-    max-width: 0;
+    width: min(84vw, 280px);
+    min-width: min(84vw, 280px);
+    max-width: min(84vw, 280px);
+    transform: translateX(-102%);
     box-shadow: none;
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0 0 0 min(84vw, 280px);
+    z-index: 15;
+    display: block;
+    padding: 0;
+    border: 0;
+    background: rgba(0, 0, 0, 0.48);
+    backdrop-filter: blur(2px);
+    cursor: default;
   }
 
   .topbar {
@@ -913,6 +931,12 @@ textarea {
 
   .breadcrumb-title {
     max-width: 42vw;
+  }
+}
+
+@media (min-width: 769px) {
+  .sidebar-backdrop {
+    display: none;
   }
 }
 
@@ -2083,6 +2107,37 @@ html body select {
 
 .main-scroll {
   scroll-behavior: smooth;
+}
+
+/* Operational agents can stay readable without inheriting the full-bleed
+   canvas used by dashboards and embedded products. */
+.notion-melani-body > .care-concierge {
+  width: min(1040px, 100%);
+  max-width: 1040px;
+  margin-inline: auto;
+}
+
+/* Center special Melani pages that sit full-width without their own max */
+.notion-melani-body > .tasks-page,
+.notion-melani-body > .hx-page,
+.notion-melani-body > .wm-root,
+.notion-melani-body > .bl,
+.notion-melani-body > .fitness-exact,
+.notion-melani-body > .gym-exact {
+  width: 100%;
+  margin-inline: auto;
+}
+
+/* World Monitor content column stays readable + centered on wide screens */
+.wm-root {
+  max-width: min(1280px, 100%);
+  margin-inline: auto;
+}
+
+/* Books library shell centered */
+.bl:not(.bl-reader) {
+  max-width: min(1100px, 100%);
+  margin-inline: auto;
 }
 
 .topbar {

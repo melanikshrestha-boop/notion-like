@@ -27,6 +27,7 @@ import { ExpandableText } from "./ExpandableText";
 import { isWardrobePage } from "./wardrobe/route";
 import { isShoppingAgentPage, ShoppingAgent } from "./ShoppingAgent";
 import { isWorldMonitorPage, WorldMonitor } from "./WorldMonitor";
+import { CareConcierge, isCareConciergePage } from "./CareConcierge";
 import "./melani.css";
 
 const WardrobeFrame = lazy(async () => {
@@ -343,6 +344,7 @@ export function isMelaniRichPage(pageId: string): boolean {
     isBooksPage(pageId) ||
     isWardrobePage(pageId) ||
     isShoppingAgentPage(pageId) ||
+    isCareConciergePage(pageId) ||
     isWorldMonitorPage(pageId) ||
     pageId === "pg-data" ||
     pageId === "pg-my-data"
@@ -384,6 +386,10 @@ export function MelaniRichPage({
 
   if (isShoppingAgentPage(pageId)) {
     return <ShoppingAgent />;
+  }
+
+  if (isCareConciergePage(pageId)) {
+    return <CareConcierge />;
   }
 
   if (isWorldMonitorPage(pageId)) {

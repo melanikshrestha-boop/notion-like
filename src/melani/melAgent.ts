@@ -38,6 +38,7 @@ import {
   make_section_root,
   move_workspace_page,
   run_shopping_command,
+  run_care_command,
   run_task_command,
   trash_workspace_page,
   type MelToolResult,
@@ -51,7 +52,17 @@ import {
   fetch_stock_quarterly,
   trading_knowledge_brief,
 } from "./melTools";
-import { MEL_TRADING_KNOWLEDGE, offlineTradingBrief } from "./melTrading";
+import { looksLikeCareCommand } from "./care/parser";
+import { offlineTradingBrief } from "./melTrading";
+import {
+  contextFromToolResults,
+  formatMelReceipts,
+  isActionHistoryRequest,
+  recordMelReceipt,
+  splitMelInstructions,
+  toolActionDomain,
+  type MelExecutionContext,
+} from "./melControl";
 
 export type MelAgentMode = "offline-local" | "local-model" | "action" | "grok-connected" | "research";
 
@@ -106,11 +117,12 @@ function lastActionDomain(): string | null {
 function rememberActionDomain(toolResults: MelToolResult[]): void {
   if (!toolResults.length) return;
   try {
-    if (toolResults.some((item) => item.ok && item.tool.startsWith("wardrobe_"))) {
-      localStorage.setItem(LAST_ACTION_DOMAIN_KEY, "wardrobe");
-    } else if (toolResults.some((item) => item.ok)) {
-      localStorage.removeItem(LAST_ACTION_DOMAIN_KEY);
-    }
+    const domain = [...toolResults]
+      .reverse()
+      .filter((item) => item.ok)
+      .map((item) => toolActionDomain(item.tool))
+      .find(Boolean);
+    if (domain) localStorage.setItem(LAST_ACTION_DOMAIN_KEY, domain);
   } catch {
     /* action routing still works from the current page without storage */
   }
@@ -281,11 +293,134 @@ function parseWritePageCommand(text: string): {
   return null;
 }
 
+function explainWorldMonitor(topic: string): string {
+  const low = topic.toLowerCase();
+
+  if (/\bvix\b|volatility|fear index/.test(low) && !/this world monitor|this page|this desk/.test(low)) {
+    return [
+      "VIX, from first principles",
+      "The VIX is not a score of how scared people feel. It is a market price for uncertainty. It is calculated from S&P 500 option prices and represents the annualized movement traders are pricing for roughly the next 30 days.",
+      "Think of insurance before a storm. When many people urgently buy protection, insurance becomes expensive. In markets, options are that protection. Expensive options usually push the VIX higher.",
+      "A VIX of 20 does not mean the market will fall 20%. A rough one-month expected range is VIX divided by the square root of 12. At 20, that is about 5.8% up or down over a month. It is a range, not a direction forecast.",
+      "Use it as context: low VIX means protection is cheap and calm is priced in; high VIX means large moves are priced in. Then ask what event could make reality calmer or wilder than the price already assumes.",
+    ].join("\n\n");
+  }
+
+  if (/revenue|yoy|qoq|margin|quarter/.test(low) && !/this world monitor|this page|this desk/.test(low)) {
+    return [
+      "Company results, from first principles",
+      "Revenue is the money customers paid the company before most costs. It tells you the size and speed of the business engine, but not whether the engine makes money.",
+      "YoY compares a quarter with the same quarter one year earlier. That controls for seasonality. QoQ compares it with the immediately previous quarter. That catches recent acceleration or slowing, but can be distorted by seasonal businesses.",
+      "Operating margin is operating profit divided by revenue. It asks: after the normal cost of running this business, how much of each sales dollar remains? Profit margin goes further and includes interest, taxes, and other non-operating items.",
+      "Read them together. Revenue growth with rising margins often means scale is improving. Revenue growth with falling margins can mean the company is buying growth, facing price pressure, or investing ahead of demand. A single quarter is evidence, not a verdict.",
+    ].join("\n\n");
+  }
+
+  if (/price|chart|volume|trend|sparkline/.test(low) && !/this world monitor|this page|this desk/.test(low)) {
+    return [
+      "Charts, from first principles",
+      "A market is a continuous auction. The price is simply the most recent level where one buyer and one seller agreed. It is not the company's permanent value and it is not a moral judgment.",
+      "The horizontal axis is time. The vertical axis is price. The slope shows the speed and direction of repricing. Volume shows participation: how many shares changed hands. A move on heavy volume has broader participation than the same move on thin volume, but neither proves what happens next.",
+      "Never read shape alone. Ask what new information arrived, whether expectations changed, and whether the business evidence supports the repricing. The chart shows what the crowd did; filings help explain what the company did.",
+    ].join("\n\n");
+  }
+
+  return [
+    "World Monitor, from first principles",
+    "The core idea: a market is a continuous auction about the future. Every price is the latest agreement between a buyer who thinks the asset is worth at least that much and a seller who would rather hold the cash. Price is not the same thing as value. Price moves when expectations change.",
+    "1. The macro row is the weather, not your destination. The S&P 500, Nasdaq, and Dow are baskets of companies. They tell you whether broad groups are being repriced. The VIX is the option market's price for the size of expected S&P 500 movement over roughly 30 days. It measures priced uncertainty, not direction and not literal fear.",
+    "2. The focus chart is the auction history. Time runs left to right; price runs bottom to top. Daily change answers what happened since the previous close. The longer chart-window change answers what happened over the displayed period. Volume is participation. A chart describes behavior; it does not explain the cause by itself.",
+    "3. Quarterly bars are the business engine. Revenue is customer spending before most costs. YoY compares the same quarter across years, which reduces seasonal distortion. QoQ compares adjacent quarters, which reveals recent acceleration. Operating margin shows how much of each revenue dollar survives normal operations. Profit margin shows what survives after nearly everything.",
+    "4. The connection is expectations. A great company can fall if results are merely good but investors expected perfection. A weak company can rise if reality is less bad than feared. The useful question is never only, 'Is this number good?' It is, 'Good compared with what the price already assumed?'",
+    "Concrete example: imagine a company grows revenue 20%, but last year it grew 40% and its operating margin falls from 30% to 22%. The business is still growing, yet growth is slowing and each sales dollar creates less operating profit. If the stock price assumed flawless acceleration, the stock can fall after an objectively large revenue number.",
+    "Your three-question routine",
+    "1. What changed in price, volume, and the broad market?",
+    "2. What new fact changed expectations: revenue, margins, guidance, product, regulation, or rates?",
+    "3. Does the business evidence strengthen or weaken the story already embedded in the price?",
+    "That is the whole desk: auction behavior on one side, business reality on the other, and expectations connecting them.",
+  ].join("\n\n");
+}
+
+function explainPageFromFirstPrinciples(pageTitle: string | undefined, topic: string): string {
+  const page = (pageTitle || "this page").toLowerCase();
+  if (/world monitor|market/.test(page) || /world monitor|market desk|\bvix\b/.test(topic.toLowerCase())) {
+    return explainWorldMonitor(topic);
+  }
+  if (/bookshelf|library|book/.test(page)) {
+    return [
+      "Bookshelf, from first principles",
+      "This page is a memory system, not a list of files. A book enters a folder, your bookmark preserves location, highlights capture exact evidence, and your interpretation turns someone else's sentence into your own model.",
+      "The useful loop is: read, mark only what changes your thinking, explain why it matters in your own words, then return later. Progress measures location, not understanding. Quotes preserve the source; interpretations preserve what your mind did with it.",
+      "Concrete example: highlight a claim in Moonwalk, add what it reveals about performance or identity, and save it. The next open resumes at that evidence instead of making you rebuild context.",
+    ].join("\n\n");
+  }
+  if (/care concierge|appointment/.test(page)) {
+    return [
+      "Care Concierge, from first principles",
+      "The system separates intent, consent, execution, and proof. Saying you want an appointment creates a draft. Approval authorizes only the exact office, visit, date window, and information shown. A sent request means an office was contacted. A confirmed appointment exists only after a date and time are recorded.",
+      "The voice layer is administrative. It can ask for openings, repeat your availability, collect preparation instructions, and record the office response. It cannot diagnose symptoms, invent clinical details, accept an out-of-window slot, share extra private information, or authorize payment without you.",
+      "Every transition leaves a receipt. If a provider is not connected, Mel says that plainly and keeps the request local. For urgent symptoms, this desk stops scheduling and directs you to immediate clinical help instead of delaying care.",
+    ].join("\n\n");
+  }
+  if (/fitness|sleep|meal|gym|data|hygiene|health/.test(page)) {
+    return [
+      `${pageTitle || "Health"}, from first principles`,
+      "This page turns a feeling into a feedback loop: measure one behavior, compare it with your own baseline, watch the trend, then make one decision. A single day is noisy. Repeated measurements reveal direction.",
+      "Targets are reference lines, not grades. The important questions are: what changed, was it measurement noise or a real pattern, and what action is small enough to repeat tomorrow? Mel should explain every score by naming its inputs and never pretend an estimate is a diagnosis.",
+    ].join("\n\n");
+  }
+  if (/wardrobe|fashion/.test(page)) {
+    return [
+      "Wardrobe, from first principles",
+      "The system reduces clothing decisions by connecting four things: what you own, the real context, your constraints, and the look you want. Weather and occasion filter the inventory; fit, color, wear history, and care state rank what remains.",
+      "A useful recommendation should always explain why it won: comfortable for the temperature, appropriate for the event, visually coherent, clean, and not over-worn. That makes the suggestion inspectable instead of magical theater.",
+    ].join("\n\n");
+  }
+  if (/shopping/.test(page)) {
+    return [
+      "Shopping, from first principles",
+      "The flow is inventory, need, candidate, approval, purchase. Mel can infer a missing item from your saved household state, compare options, and prepare a cart. You remain the approval point before money moves.",
+      "Every recommendation should expose quantity, unit price, substitution, delivery constraint, and why it was selected. Convenience is useful only when the decision remains visible.",
+    ].join("\n\n");
+  }
+  return [
+    `${pageTitle || "This page"}, from first principles`,
+    "Start with the job this page performs, identify the inputs it can actually observe, then follow how those inputs become a decision or action. A trustworthy system separates measured facts, calculated estimates, and recommendations.",
+    "Ask me about any number or label on the page. I will explain what it measures, where it comes from, what can move it, what it cannot prove, and one concrete example.",
+  ].join("\n\n");
+}
+
+function isPageExplanationRequest(q: string, pageTitle?: string): boolean {
+  if (!/\b(explain|teach|understand|first principles|what am i looking at|how does this work)\b/i.test(q)) {
+    return false;
+  }
+  return (
+    /\b(this|current)\s+(page|screen|view|desk)\b/i.test(q) ||
+    /world monitor|market desk|\bvix\b|revenue|yoy|qoq|margin|price chart|volume/i.test(q) ||
+    /world monitor|market/i.test(pageTitle || "")
+  );
+}
+
 function planAndExecute(text: string, pageId?: string, pageTitle?: string): MelToolResult[] {
   // Strip "hey / can you / please" first so action lines still match
   const q = stripCommandFiller(text);
   const low = q.toLowerCase();
   const results: MelToolResult[] = [];
+
+  if (isActionHistoryRequest(q)) {
+    const history = formatMelReceipts(/history|receipts|actions/i.test(q) ? 8 : 1);
+    return [envelope("action_history", history.summary, history.receipts)];
+  }
+
+  if (isPageExplanationRequest(q, pageTitle)) {
+    return [
+      envelope(
+        "explain_page",
+        explainPageFromFirstPrinciples(pageTitle, q),
+        { pageId, pageTitle }
+      ),
+    ];
+  }
 
   const learned = applyLearnCommand(q);
   if (learned) return [envelope("learn", learned)];
@@ -293,6 +428,15 @@ function planAndExecute(text: string, pageId?: string, pageTitle?: string): MelT
   const wantsHelp = /^(help|commands|what can you do|how do i use mel)\??$/i.test(q);
   if (wantsHelp) {
     return [envelope("help", "Help requested.")];
+  }
+
+  if (
+    looksLikeCareCommand(q)
+    || /^(?:open|show|go to)\s+(?:my\s+)?(?:care|care concierge)$/i.test(q)
+    || /^(?:my\s+)?(?:dentist|doctor|provider|clinic|office)\s+(?:is|:)/i.test(q)
+  ) {
+    addTool(results, run_care_command(q));
+    return results;
   }
 
   if (/^undo(?:\s+(?:that|the\s+last\s+(?:workspace\s+)?(?:change|action)))?[.!]?$/i.test(q)) {
@@ -539,7 +683,9 @@ function planAndExecute(text: string, pageId?: string, pageTitle?: string): MelT
   const unpin = q.match(/^unpin\s+(.+)$/i);
   if (unpin?.[1]) addTool(results, unpin_fact(unpin[1].trim()));
 
-  const goal = q.match(/^goal\s+([a-z_]+)\s+(.+)$/i);
+  const goal = q.match(/^goal\s+([a-z_]+)\s+(.+)$/i)
+    || q.match(/^(?:set|change|make)\s+(?:my\s+)?(protein|calories?|cals?|carbs?|fat|fiber|water|sleep)\s+(?:goal\s+)?(?:to\s+)?(.+)$/i)
+    || q.match(/^(protein|calories?|cals?|carbs?|fat|fiber|water|sleep)\s+goal\s+(?:is\s+|to\s+)?(.+)$/i);
   if (goal?.[1] && goal[2]) addTool(results, set_goal(goal[1], goal[2].trim()));
 
   const search = q.match(/^(?:find|search)\s+(?:my\s+)?logs?\s+(?:for\s+)?(.+)$/i)
@@ -556,8 +702,9 @@ function planAndExecute(text: string, pageId?: string, pageTitle?: string): MelT
     addTool(results, log_usual_meal("breakfast_usual"));
   }
 
-  const fog = low.match(/(?:log\s+)?brain fog\s*(?:is|was|:)?\s*(yes|no|on|off|true|false)\b/i);
-  if (fog) addTool(results, log_brain_fog(/yes|on|true/.test(fog[1])));
+  const fog = low.match(/(?:log\s+)?brain fog\s*(?:is|was|:)?\s*(yes|no|on|off|true|false)\b/i)
+    || low.match(/\b(no|without|have|had|with)\s+brain fog\b/i);
+  if (fog) addTool(results, log_brain_fog(!/no|without|off|false/.test(fog[1])));
 
   const slept = low.match(/(?:i\s+)?(?:slept|log sleep)\s+(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)\b/i);
   if (slept) addTool(results, log_sleep_hours(Number(slept[1])));
@@ -621,6 +768,10 @@ function planAndExecute(text: string, pageId?: string, pageTitle?: string): MelT
   if (results.length === 0 && (
     /^(?:hey\s+)?(?:i(?:'m| am) going to|i gotta|task:?|remind me to|focus on)\s+.+/i.test(q)
     || /^(?:add|create|make)\s+(?:me\s+)?(?:a\s+)?(?:new\s+)?task\b/i.test(q)
+    || /^(?:list|show)(?:\s+me)?\s+(?:my\s+)?(?:open\s+)?tasks$/i.test(q)
+    || /^(?:finish|complete|reopen|uncomplete|mark)\s+.+/i.test(q)
+    || /^(?:delete|remove|drop)\s+(?:the\s+)?task\s+.+/i.test(q)
+    || /^(?:start|give me|run)\s+(?:a\s+)?(?:\d+\s*(?:minute|min)\s+)?(?:focus|pomodoro)\b/i.test(q)
   )) {
     addTool(results, run_task_command(q));
   }
@@ -631,6 +782,60 @@ function planAndExecute(text: string, pageId?: string, pageTitle?: string): MelT
   }
 
   return results;
+}
+
+type DeterministicExecution = {
+  toolResults: MelToolResult[];
+  unresolved: string[];
+  context: MelExecutionContext;
+};
+
+async function resolveQuarterly(results: MelToolResult[]): Promise<MelToolResult[]> {
+  const pending = results.find((item) => item.tool === "stock_quarterly_pending");
+  if (!pending) return results;
+  const symbols = pending.summary || "AAPL,MSFT,NVDA,GOOGL,META,AMZN,TSLA,AMD";
+  const packed = parseToolResult(await fetch_stock_quarterly(symbols));
+  return results.filter((item) => item.tool !== "stock_quarterly_pending").concat(packed);
+}
+
+/**
+ * Run a human request as an ordered set of bounded commands. Context is updated
+ * after every step, so "create X, add this to it, favorite it" targets X all
+ * the way through. Async domains are tried only when local tools do not match.
+ */
+async function executeDeterministicInstructions(
+  request: Pick<MelAgentRequest, "text" | "pageId" | "pageTitle">
+): Promise<DeterministicExecution> {
+  const instructions = splitMelInstructions(request.text);
+  const queue = instructions.length ? instructions : [request.text];
+  let context: MelExecutionContext = {
+    pageId: request.pageId,
+    pageTitle: request.pageTitle,
+  };
+  const toolResults: MelToolResult[] = [];
+  const unresolved: string[] = [];
+
+  for (const instruction of queue) {
+    let stepResults = await resolveQuarterly(
+      planAndExecute(instruction, context.pageId, context.pageTitle)
+    );
+    if (!stepResults.length) {
+      const weatherResult = await runWeatherCommand(instruction, context.pageId);
+      if (weatherResult) stepResults = [weatherResult];
+    }
+    if (!stepResults.length) {
+      const wardrobeResult = await runWardrobeCommand(instruction, context.pageId);
+      if (wardrobeResult) stepResults = [wardrobeResult];
+    }
+    if (!stepResults.length) {
+      unresolved.push(instruction);
+      continue;
+    }
+    toolResults.push(...stepResults);
+    context = contextFromToolResults(context, stepResults);
+  }
+
+  return { toolResults, unresolved, context };
 }
 
 function asSnapshot(toolResults: MelToolResult[], pageId?: string, pageTitle?: string): Snapshot {
@@ -739,6 +944,7 @@ function composeFromTools(toolResults: MelToolResult[], pageId?: string, pageTit
       '"NVDA quarterly" or "quarterly reports"',
       '"options 101" or "trading desk"',
       '"create a page called Neurotech Ideas under Learn"',
+      '"book a dental cleaning next week in the morning"',
       '"move Bookshelf under Learn"',
       '"undo that"',
     ].join("\n");
@@ -756,7 +962,14 @@ function composeFromTools(toolResults: MelToolResult[], pageId?: string, pageTit
   const trading = toolResults.find((item) => item.tool === "trading_knowledge");
   if (trading?.summary) return trading.summary;
 
-  if (toolResults.length) return toolResults.map((item) => item.summary).join("\n");
+  if (toolResults.length > 1) {
+    const completed = toolResults.filter((item) => item.ok).length;
+    return [
+      `${completed} of ${toolResults.length} actions completed`,
+      ...toolResults.map((item, index) => `${index + 1}. ${item.ok ? "Done" : "Failed"}: ${item.summary}`),
+    ].join("\n");
+  }
+  if (toolResults.length) return toolResults[0].summary;
   return statusReply(asSnapshot(toolResults, pageId, pageTitle));
 }
 
@@ -951,7 +1164,7 @@ function localChat(text: string, pageId?: string, pageTitle?: string): string {
   // Page-aware nudge
   if (pageTitle) {
     if (/world monitor|market/i.test(pageTitle)) {
-      return `You're on ${pageTitle}. I can pull quarterly packs (\"NVDA quarterly\"), explain a chart, or brainstorm a trade process. What do you want?`;
+      return `You're on ${pageTitle}. I can pull quarterly packs ("NVDA quarterly"), explain a chart, or brainstorm a trade process. What do you want?`;
     }
     if (/bookshelf|library|book/i.test(pageTitle)) {
       return `You're on ${pageTitle}. Want list find, open a book, or Imprint a chapter. What title or task?`;
@@ -1240,8 +1453,16 @@ async function cloudReply(request: MelAgentRequest, toolResults: MelToolResult[]
 }
 
 export function runLocalMelAgent(text: string, pageId?: string, pageTitle?: string): MelAgentResponse {
-  const toolResults = planAndExecute(text, pageId, pageTitle);
-  const reply = cleanReply(localComposer(text, toolResults, pageId, pageTitle));
+  let context: MelExecutionContext = { pageId, pageTitle };
+  const toolResults: MelToolResult[] = [];
+  for (const instruction of splitMelInstructions(text)) {
+    const stepResults = planAndExecute(instruction, context.pageId, context.pageTitle);
+    toolResults.push(...stepResults);
+    context = contextFromToolResults(context, stepResults);
+  }
+  const reply = cleanReply(localComposer(text, toolResults, context.pageId, context.pageTitle));
+  rememberActionDomain(toolResults);
+  recordMelReceipt(text, toolResults, context);
   pushSessionMemory(text, reply);
   return { reply, mode: toolResults.length ? "action" : "offline-local", toolResults };
 }
@@ -1268,33 +1489,33 @@ export async function runMelAgent(request: MelAgentRequest): Promise<MelAgentRes
   }
 
   let toolResults: MelToolResult[] = [];
+  let unresolved: string[] = [];
+  let executionContext: MelExecutionContext = {
+    pageId: request.pageId,
+    pageTitle: request.pageTitle,
+  };
   const plan = makePlan("mel-turn", [], preferOfflinePath() ? 0 : 3500);
 
-  const wardrobeUndoFirst = /^(?:undo|undo that)[.!]?$/i.test(trimmed)
+  const genericUndo = /^(?:undo|undo that)[.!]?$/i.test(trimmed);
+  const previousDomain = lastActionDomain();
+  const wardrobeUndoFirst = genericUndo
     && (request.pageId === "pg-fashion-os" || lastActionDomain() === "wardrobe");
   if (wardrobeUndoFirst || /^undo (?:the last )?wardrobe(?: action)?[.!]?$/i.test(trimmed)) {
     const wardrobeResult = await runWardrobeCommand(request.text, wardrobeUndoFirst ? "pg-fashion-os" : request.pageId);
     if (wardrobeResult) toolResults = [wardrobeResult];
   }
-  if (toolResults.length === 0) toolResults = planAndExecute(request.text, request.pageId, request.pageTitle);
-
-  // Resolve pending quarterly stock packs (async free Yahoo data)
-  const pendingQ = toolResults.find((item) => item.tool === "stock_quarterly_pending");
-  if (pendingQ) {
-    const symbols = pendingQ.summary || "AAPL,MSFT,NVDA,GOOGL,META,AMZN,TSLA,AMD";
-    const packed = parseToolResult(await fetch_stock_quarterly(symbols));
-    toolResults = toolResults
-      .filter((item) => item.tool !== "stock_quarterly_pending")
-      .concat(packed);
-  }
-
-  if (toolResults.length === 0) {
-    const weatherResult = await runWeatherCommand(request.text, request.pageId);
-    if (weatherResult) toolResults = [weatherResult];
+  if (toolResults.length === 0 && genericUndo && previousDomain === "water") {
+    toolResults = [parseToolResult(undo_water())];
+  } else if (toolResults.length === 0 && genericUndo && previousDomain === "breakfast") {
+    toolResults = [parseToolResult(undo_usual_meal("breakfast_usual"))];
+  } else if (toolResults.length === 0 && genericUndo && previousDomain === "meat") {
+    toolResults = [parseToolResult(undo_meat_eaten())];
   }
   if (toolResults.length === 0) {
-    const wardrobeResult = await runWardrobeCommand(request.text, request.pageId);
-    if (wardrobeResult) toolResults = [wardrobeResult];
+    const execution = await executeDeterministicInstructions(request);
+    toolResults = execution.toolResults;
+    unresolved = execution.unresolved;
+    executionContext = execution.context;
   }
   const deterministicAction = toolResults.some(
     (item) =>
@@ -1304,9 +1525,10 @@ export async function runMelAgent(request: MelAgentRequest): Promise<MelAgentRes
       item.tool === "trading_knowledge"
   );
   // Tools already answered (log water, meat, brief, weather, stocks, etc.) — return now
-  if (toolResults.length > 0) {
-    const reply = cleanReply(localComposer(request.text, toolResults, request.pageId, request.pageTitle));
+  if (toolResults.length > 0 && unresolved.length === 0) {
+    const reply = cleanReply(localComposer(request.text, toolResults, executionContext.pageId, executionContext.pageTitle));
     rememberActionDomain(toolResults);
+    recordMelReceipt(request.text, toolResults, executionContext);
     pushSessionMemory(request.text, reply);
     wonderEmit("mel.plan", "melAgent", {
       intent: deterministicAction ? "async-tool" : "sync-tool",
@@ -1321,15 +1543,23 @@ export async function runMelAgent(request: MelAgentRequest): Promise<MelAgentRes
   if (
     toolResults.length === 0
     && request.localModelAvailable
-    && mayNeedWorkspacePlanner(request.text)
+    && mayNeedWorkspacePlanner(unresolved[0] || request.text)
   ) {
     try {
-      const budgeted = await withBudget(4_500, () => planWorkspaceWithLocalModel(request));
+      const plannerRequest = {
+        ...request,
+        text: unresolved[0] || request.text,
+        pageId: executionContext.pageId,
+        pageTitle: executionContext.pageTitle,
+      };
+      const budgeted = await withBudget(4_500, () => planWorkspaceWithLocalModel(plannerRequest));
       if (budgeted.ok) {
-        toolResults = executeLocalWorkspacePlan(budgeted.value, request.pageId);
+        toolResults = executeLocalWorkspacePlan(budgeted.value, executionContext.pageId);
         if (toolResults.length) {
-          const reply = cleanReply(localComposer(request.text, toolResults, request.pageId, request.pageTitle));
+          executionContext = contextFromToolResults(executionContext, toolResults);
+          const reply = cleanReply(localComposer(request.text, toolResults, executionContext.pageId, executionContext.pageTitle));
           rememberActionDomain(toolResults);
+          recordMelReceipt(request.text, toolResults, executionContext);
           pushSessionMemory(request.text, reply);
           return { reply, mode: "action", toolResults };
         }
@@ -1347,7 +1577,12 @@ export async function runMelAgent(request: MelAgentRequest): Promise<MelAgentRes
     }
   }
 
-  let reply = localComposer(request.text, toolResults, request.pageId, request.pageTitle);
+  let reply = localComposer(
+    request.text,
+    toolResults,
+    executionContext.pageId,
+    executionContext.pageTitle
+  );
   let mode: MelAgentMode = toolResults.length ? "action" : "offline-local";
 
   const researchRequested = /^(research|look up|find out|compare|investigate)\b/i.test(trimmed);
@@ -1378,6 +1613,25 @@ export async function runMelAgent(request: MelAgentRequest): Promise<MelAgentRes
       mode = "offline-local";
     }
   } else if (
+    unresolved.length > 0
+    && request.localModelAvailable
+    && !request.forceLocal
+  ) {
+    const unresolvedRequest: MelAgentRequest = {
+      ...request,
+      text: unresolved.join("\n"),
+      pageId: executionContext.pageId,
+      pageTitle: executionContext.pageTitle,
+    };
+    const budgeted = await withBudget(8_000, () => localModelReply(unresolvedRequest));
+    if (budgeted.ok) {
+      const completed = toolResults.length
+        ? localComposer(request.text, toolResults, executionContext.pageId, executionContext.pageTitle)
+        : "";
+      reply = [completed, budgeted.value].filter(Boolean).join("\n\n");
+      mode = "local-model";
+    }
+  } else if (
     toolResults.length === 0
     && request.localModelAvailable
     && !request.forceLocal
@@ -1390,8 +1644,19 @@ export async function runMelAgent(request: MelAgentRequest): Promise<MelAgentRes
     }
   }
 
+  if (unresolved.length > 0 && mode !== "grok-connected" && mode !== "research" && mode !== "local-model") {
+    const completed = toolResults.length
+      ? localComposer(request.text, toolResults, executionContext.pageId, executionContext.pageTitle)
+      : reply;
+    reply = [
+      completed,
+      `Not completed: ${unresolved.join("; ")}. I did not pretend that part ran.`,
+    ].filter(Boolean).join("\n\n");
+  }
+
   reply = cleanReply(reply);
   rememberActionDomain(toolResults);
+  recordMelReceipt(request.text, toolResults, executionContext);
   pushSessionMemory(request.text, reply);
   wonderEmit("mel.plan", "melAgent", {
     intent: mode,

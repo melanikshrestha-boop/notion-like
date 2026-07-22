@@ -237,6 +237,17 @@ export function MinimalIcon({ name, size = 16, className = "" }: Props) {
           <circle {...stroke} cx="12" cy="17" r="3" />
         </svg>
       );
+    case "care":
+      return (
+        <svg {...common}>
+          <path {...stroke} d="M5 4.5h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2Z" />
+          <path {...stroke} d="M8 4.5v-2" />
+          <path {...stroke} d="M16 4.5v-2" />
+          <path {...stroke} d="M3 8.5h18" />
+          <path {...stroke} d="M12 11v5" />
+          <path {...stroke} d="M9.5 13.5h5" />
+        </svg>
+      );
     case "shop":
       return (
         <svg {...common}>
@@ -399,6 +410,8 @@ export function iconForPage(page: Pick<Page, "id" | "title" | "kind" | "icon">):
   if (id.includes("neuro") || t.includes("neuro") || t.includes("openneuro"))
     return "brain";
   if (id.includes("doctor") || t.includes("doctor")) return "doctor";
+  if (id === "pg-agent-care" || t.includes("care concierge") || t.includes("appointment"))
+    return "care";
   if (id.includes("grocery") || t.includes("shop") || t.includes("grocery")) return "shop";
   if (id.includes("meeting") || t.includes("meeting")) return "meetings";
   if (id.includes("doc") || t.includes("document") || t.includes("class") || t.includes("content"))

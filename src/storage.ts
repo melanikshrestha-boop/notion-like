@@ -78,6 +78,12 @@ const SIDEBAR_EXTRA_PAGES: {
     icon: "🛒",
     parentId: "pg-agents",
   },
+  {
+    id: "pg-agent-care",
+    title: "Care Concierge",
+    icon: "care",
+    parentId: "pg-agents",
+  },
 ];
 
 /** Pages user asked removed from sidebar permanently */
@@ -302,6 +308,9 @@ function ensureLifePages(ws: Workspace): Workspace {
   // Wardrobe stays under Agents
   ensurePage("pg-fashion-os", "Wardrobe", "fashion", "pg-agents", [
     newBlock("paragraph", "Your clothes, extracted and organized."),
+  ]);
+  ensurePage("pg-agent-care", "Care Concierge", "care", "pg-agents", [
+    newBlock("paragraph", ""),
   ]);
 
   // Lift anything that was nested under the old Work hub (so stocks kids aren’t lost)
