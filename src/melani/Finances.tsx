@@ -1881,6 +1881,15 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                 tabIndex={0}
               >
                 <table className="wd-table wd-edit wd-ledger-table">
+                  <colgroup>
+                    <col className="wd-col-date" />
+                    <col className="wd-col-payee" />
+                    <col className="wd-col-cat" />
+                    <col className="wd-col-kind" />
+                    <col className="wd-col-amt" />
+                    <col className="wd-col-bal" />
+                    <col className="wd-col-x" />
+                  </colgroup>
                   <thead>
                     <tr>
                       <th>

@@ -54,7 +54,8 @@
   max-width: none;
   margin: 0;
   padding: 10px clamp(18px, 3.2vw, 48px) 56px;
-  overflow-x: hidden;
+  /* allow ledger to scroll inside wrap — don’t clip the Amount column */
+  overflow-x: visible;
   background: transparent;
   box-sizing: border-box;
 }
@@ -1040,7 +1041,7 @@
   letter-spacing: -0.02em;
 }
 
-/* Tables — scroll sideways when narrow; never …-truncate payees */
+/* Tables — compact left-aligned ledger (not stretched edge-to-edge) */
 .wd-table-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -1048,13 +1049,15 @@
   border: 0;
   background: #000;
   max-width: 100%;
+  width: 100%;
 }
 
 .wd-table {
-  width: max(100%, 920px);
-  min-width: 920px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   border-collapse: collapse;
-  table-layout: auto;
+  table-layout: fixed;
   font-size: 14px;
   background: #000;
   letter-spacing: -0.01em;
@@ -1067,7 +1070,7 @@
   letter-spacing: 0.02em;
   text-transform: none;
   color: var(--wd-tertiary);
-  padding: 4px 8px 6px 0;
+  padding: 4px 10px 6px 0;
   background: transparent;
   border-bottom: 0;
   line-height: 1.25;
@@ -1088,7 +1091,7 @@
 }
 
 .wd-table td {
-  padding: 6px 8px 6px 0;
+  padding: 4px 10px 4px 0;
   border-bottom: 0;
   color: var(--wd-text);
   vertical-align: middle;
@@ -1097,34 +1100,35 @@
   line-height: 1.3;
   background: transparent;
   font-family: var(--wd-font);
-  overflow: visible;
-  text-overflow: clip;
-  white-space: nowrap;
+  overflow: hidden;
 }
 
-/* Payee column needs room so names don’t collapse to “Whole…” */
-.wd-table.wd-ledger-table th:nth-child(2),
-.wd-table.wd-ledger-table td:nth-child(2) {
-  min-width: 11rem;
-  width: 22%;
-}
+/*
+  Ledger columns — fixed widths so Amount/Balance sit next to the row,
+  not flung to the far right of a full-bleed table.
+  1 Date · 2 Payee · 3 Category · 4 Dr/Cr · 5 Amount · 6 Balance · 7 ×
+*/
+.wd-table.wd-ledger-table col.wd-col-date { width: 7.25rem; }
+.wd-table.wd-ledger-table col.wd-col-payee { width: auto; }
+.wd-table.wd-ledger-table col.wd-col-cat { width: 9.5rem; }
+.wd-table.wd-ledger-table col.wd-col-kind { width: 5.25rem; }
+.wd-table.wd-ledger-table col.wd-col-amt { width: 5.75rem; }
+.wd-table.wd-ledger-table col.wd-col-bal { width: 6.25rem; }
+.wd-table.wd-ledger-table col.wd-col-x { width: 2rem; }
 
-.wd-table.wd-ledger-table th:nth-child(3),
-.wd-table.wd-ledger-table td:nth-child(3) {
-  min-width: 8.5rem;
-}
-
+/* Fallback if <colgroup> missing */
 .wd-table.wd-ledger-table th:nth-child(1),
-.wd-table.wd-ledger-table td:nth-child(1) {
-  min-width: 7.5rem;
-}
-
+.wd-table.wd-ledger-table td:nth-child(1) { width: 7.25rem; }
+.wd-table.wd-ledger-table th:nth-child(3),
+.wd-table.wd-ledger-table td:nth-child(3) { width: 9.5rem; }
+.wd-table.wd-ledger-table th:nth-child(4),
+.wd-table.wd-ledger-table td:nth-child(4) { width: 5.25rem; }
 .wd-table.wd-ledger-table th:nth-child(5),
-.wd-table.wd-ledger-table td:nth-child(5),
+.wd-table.wd-ledger-table td:nth-child(5) { width: 5.75rem; }
 .wd-table.wd-ledger-table th:nth-child(6),
-.wd-table.wd-ledger-table td:nth-child(6) {
-  min-width: 5.5rem;
-}
+.wd-table.wd-ledger-table td:nth-child(6) { width: 6.25rem; }
+.wd-table.wd-ledger-table th:nth-child(7),
+.wd-table.wd-ledger-table td:nth-child(7) { width: 2rem; }
 
 .wd-table tr:last-child td {
   border-bottom: 0;
@@ -1139,33 +1143,51 @@
   font-variant-numeric: tabular-nums;
   font-weight: 550;
   letter-spacing: -0.02em;
+  padding-right: 4px;
 }
 
 .wd-table.wd-edit input,
 .wd-table.wd-edit select {
+  box-sizing: border-box;
   width: 100%;
+  max-width: 100%;
   min-width: 0;
-  min-height: 36px;
+  min-height: 32px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 6px;
   background: transparent;
   color: #fff;
   font: inherit;
-  font-size: 14px;
-  padding: 0 8px;
+  font-size: 13px;
+  padding: 0 4px;
   outline: none;
-  /* Never hide text behind … — scroll the table instead */
-  text-overflow: clip;
-  overflow: visible;
+  text-overflow: ellipsis;
+  overflow: hidden;
   white-space: nowrap;
 }
 
 .wd-table.wd-edit input[type="date"] {
-  min-width: 7.25rem;
+  min-width: 0;
+  font-size: 12px;
+  padding: 0 2px;
 }
 
 .wd-table.wd-edit select {
-  min-width: 5.5rem;
+  min-width: 0;
+  padding-right: 2px;
+}
+
+.wd-table.wd-edit .num input {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  padding-right: 2px;
+}
+
+.wd-table.wd-edit td.wd-balance {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .wd-table.wd-edit input:focus,
