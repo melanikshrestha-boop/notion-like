@@ -107,12 +107,14 @@ const NAV: { id: TabId; label: string; icon: string }[] = [
   { id: "accounts", label: "Accounts", icon: "▭" },
 ];
 
-/** Rockefeller-style rules — short, quiet, always on the desk */
+/** Ruthless reinvest bookkeeper — capital first, lifestyle residual */
 const BOOKKEEPER_RULES = [
   "Record every dollar the day it moves.",
+  "Reinvest first — lifestyle gets the leftover, never the priority.",
   "Name every line — no blank payees, no vague categories.",
-  "Balance the books before you spend again.",
-  "Keep what you can. Waste nothing you track.",
+  "Cut leaks hard. Compounding needs surplus, not stories.",
+  "High-interest debt before toys. Then deploy to Invest.",
+  "If it is not on the ledger, it does not exist.",
 ];
 
 const QUICK_ADDS: {
@@ -1095,23 +1097,36 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
           ) : null}
         </header>
 
-        {/* Discipline strip — always visible, like a bookkeeper’s daily checklist */}
-        <section className="wd-discipline" aria-label="Bookkeeper discipline">
+        {/* Discipline + reinvest doctrine — always on the desk */}
+        <section className="wd-discipline" aria-label="Ruthless bookkeeper">
           <div className="wd-discipline-score">
-            <span>Discipline</span>
+            <span>Ruthless</span>
             <strong
               className={
-                gaps.disciplineScore >= 80
+                brief.reinvest.ruthlessness >= 80
                   ? "is-good"
-                  : gaps.disciplineScore >= 50
+                  : brief.reinvest.ruthlessness >= 50
                     ? "is-mid"
                     : "is-low"
               }
             >
-              {gaps.disciplineScore}
+              {brief.reinvest.ruthlessness}
             </strong>
           </div>
           <ul className="wd-discipline-list">
+            <li
+              className={
+                brief.reinvest.deployNow > 0 ? "is-open" : "is-done"
+              }
+            >
+              {brief.reinvest.deployNow > 0
+                ? `Deploy ${moneyCents(brief.reinvest.deployNow)} to Invest (target ${Math.round(brief.reinvest.targetRate * 100)}%)`
+                : `Reinvest target met · keep rate ${
+                    brief.reinvest.actualRate == null
+                      ? "—"
+                      : `${Math.round(brief.reinvest.actualRate * 100)}%`
+                  }`}
+            </li>
             <li className={gaps.noTxThisMonth ? "is-open" : "is-done"}>
               {gaps.noTxThisMonth
                 ? "No entries this month — open the ledger"
@@ -1127,13 +1142,20 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                 ? `${gaps.blankMerchant} blank payees — write who got the money`
                 : "Every payee named"}
             </li>
-            <li className={gaps.noAccounts ? "is-open" : "is-done"}>
-              {gaps.noAccounts
-                ? "No accounts — set cash, bank, and credit"
-                : `${state.accounts.length} accounts on the books`}
+            <li
+              className={
+                !state.accounts.some((a) => a.kind === "invest")
+                  ? "is-open"
+                  : "is-done"
+              }
+            >
+              {state.accounts.some((a) => a.kind === "invest")
+                ? `Invest book ${moneyCents(brief.reinvest.investedBalance)}`
+                : "Add an Invest account — checking is not compounding"}
             </li>
           </ul>
-          <p className="wd-discipline-rule">
+          <p className="wd-discipline-rule">{brief.reinvest.order}</p>
+          <p className="wd-discipline-rule is-soft">
             {BOOKKEEPER_RULES[new Date().getDate() % BOOKKEEPER_RULES.length]}
           </p>
         </section>
@@ -1177,10 +1199,39 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                   <h2 className="wd-brain-h">{brief.headline}</h2>
                   <p className="wd-muted">{brief.sub}</p>
                 </div>
-                <div className="wd-brain-q" title="Bookkeeper discipline this period">
-                  <span>Discipline</span>
-                  <strong>{gaps.disciplineScore}</strong>
+                <div
+                  className="wd-brain-q"
+                  title="Ruthless reinvest score this period"
+                >
+                  <span>Ruthless</span>
+                  <strong>{brief.reinvest.ruthlessness}</strong>
                 </div>
+              </div>
+              <div className="wd-reinvest-strip">
+                <span>
+                  Keep target{" "}
+                  <strong>
+                    {Math.round(brief.reinvest.targetRate * 100)}%
+                  </strong>
+                </span>
+                <span>
+                  Actual{" "}
+                  <strong>
+                    {brief.reinvest.actualRate == null
+                      ? "—"
+                      : `${Math.round(brief.reinvest.actualRate * 100)}%`}
+                  </strong>
+                </span>
+                <span>
+                  Deploy now{" "}
+                  <strong className={brief.reinvest.deployNow > 0 ? "is-neg" : "is-pos"}>
+                    {moneyCents(brief.reinvest.deployNow)}
+                  </strong>
+                </span>
+                <span>
+                  Invest book{" "}
+                  <strong>{moneyCents(brief.reinvest.investedBalance)}</strong>
+                </span>
               </div>
               <div className="wd-book-rules">
                 {BOOKKEEPER_RULES.map((rule) => (
@@ -1245,8 +1296,10 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                   </em>
                 </div>
                 <div className="wd-metric">
-                  <span>Safe to spend</span>
-                  <strong>{money(safeToSpend)}</strong>
+                  <span>Fun after reinvest</span>
+                  <strong title="After essentials, debt floor, and reinvest target">
+                    {money(safeToSpend)}
+                  </strong>
                   <em>cash − essentials left − debt floor − burn buffer</em>
                 </div>
                 <div className="wd-metric">
@@ -1413,16 +1466,17 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                 </div>
               </section>
 
-              {/* Safe to spend + learn */}
+              {/* Fun money only after reinvest + buffers */}
               <div className="wd-stack">
                 <section className="wd-panel wd-safe">
                   <div className="wd-panel-head">
-                    <h2>Safe to spend</h2>
+                    <h2>Fun after reinvest</h2>
                   </div>
                   <p className="wd-safe-num">{money(safeToSpend)}</p>
                   <p className="wd-muted">
-                    Starting balance {money(cash)} · plan still open{" "}
-                    {money(Math.max(0, planPlanned - planSpent))}
+                    After essentials, debt floor, and {Math.round(brief.reinvest.targetRate * 100)}%
+                    reinvest. Still to deploy{" "}
+                    {money(brief.reinvest.deployNow)} · cash {money(cash)}
                   </p>
                 </section>
                 <section className="wd-panel">

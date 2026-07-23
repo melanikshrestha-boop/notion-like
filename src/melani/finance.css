@@ -237,6 +237,34 @@
   line-height: 1.4;
 }
 
+.wd-discipline-rule.is-soft {
+  opacity: 0.75;
+  font-style: normal;
+}
+
+.wd-reinvest-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 10px 0 4px;
+  font-size: 12px;
+  color: var(--wd-secondary);
+}
+
+.wd-reinvest-strip strong {
+  margin-left: 4px;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+
+.wd-reinvest-strip .is-pos {
+  color: var(--wd-green);
+}
+
+.wd-reinvest-strip .is-neg {
+  color: var(--wd-red);
+}
+
 .wd-book-rules {
   margin-top: 12px;
   display: grid;

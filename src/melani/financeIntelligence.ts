@@ -1,24 +1,27 @@
 /**
- * Wonder Money — real decision engine (not decorative “insights”).
- * Ranks what to do next from balances, spend velocity, plan, credit, goals.
+ * Wonder Money — ruthless reinvest bookkeeper engine.
+ * Pay yourself first. Cut leaks. Deploy surplus into invest.
+ * Ranks next moves from balances, burn, plan, credit, goals.
  */
 
 import {
   cashOnHand,
   creditOwed,
+  invested,
   monthExpense,
   monthIncome,
   monthKey,
   money,
-  recentMonthKeys,
-  spentByCategory,
+  moneyCents,
   topMerchants,
-  type FinanceAccount,
-  type FinanceGoal,
   type FinanceState,
   type FinanceTx,
 } from "./financeStore";
 import type { CreditReport } from "./financeCredit";
+
+/** Default: reinvest at least half of income. Ruthless mode aims higher. */
+export const REINVEST_TARGET_RATE = 0.5;
+export const REINVEST_RUTHLESS_RATE = 0.7;
 
 export type SmartAction = {
   id: string;
@@ -45,15 +48,36 @@ export type MonthProjection = {
   burnPerDay: number;
 };
 
+export type ReinvestPlan = {
+  /** 0–1 target fraction of income to keep / reinvest */
+  targetRate: number;
+  /** Actual keep rate this month (income − expense) / income */
+  actualRate: number | null;
+  /** Dollars that should be reinvested this month */
+  targetDollars: number;
+  /** Already “kept” this month (max cash flow, 0 if negative) */
+  keptSoFar: number;
+  /** Still need to move to invest / savings */
+  deployNow: number;
+  /** Current invest account total */
+  investedBalance: number;
+  /** 0–100 how ruthless this month’s books look */
+  ruthlessness: number;
+  /** One-line command */
+  order: string;
+};
+
 export type SmartBrief = {
   headline: string;
   sub: string;
   actions: SmartAction[];
   projection: MonthProjection;
+  /** Fun money AFTER essentials + debt floor + reinvest target */
   safeToSpend: number;
   runwayMonths: number;
   topLeak: { merchant: string; total: number; count: number } | null;
   planHealth: "empty" | "ok" | "tight" | "blown";
+  reinvest: ReinvestPlan;
   dataQuality: {
     hasTxs: boolean;
     hasIncome: boolean;
@@ -93,12 +117,16 @@ export function projectMonth(txs: FinanceTx[], ym: string): MonthProjection {
   };
 }
 
-/** Smarter safe-to-spend: cash − credit min buffer − remaining essentials plan */
+/**
+ * Fun money only after: essentials left + debt floor + reinvest target gap.
+ * Ruthless bookkeeper: lifestyle is the residual, not the default.
+ */
 export function computeSafeToSpend(
   cash: number,
   debt: number,
   planRows: { id: string; planned: number; spent: number }[],
-  projection: MonthProjection
+  projection: MonthProjection,
+  reinvestDeployNow = 0
 ): number {
   const essentials = planRows.find((r) => r.id === "essentials");
   const essentialsLeft = essentials
@@ -106,13 +134,60 @@ export function computeSafeToSpend(
     : 0;
   // Keep a floor for debt service: ~3% of card balances or $50
   const debtFloor = debt > 0 ? Math.max(50, debt * 0.03) : 0;
-  // Days left this month
   const daysLeft = Math.max(0, projection.daysInMonth - projection.dayOfMonth);
   const projectedBurnLeft = projection.burnPerDay * daysLeft;
-  // Conservative: cash − essentials still owed − debt floor − half of projected burn left
+  // Residual after reinvest obligation + buffers
   const raw =
-    cash - essentialsLeft - debtFloor - projectedBurnLeft * 0.35;
+    cash -
+    essentialsLeft -
+    debtFloor -
+    reinvestDeployNow -
+    projectedBurnLeft * 0.25;
   return Math.max(0, Math.round(raw));
+}
+
+export function buildReinvestPlan(
+  income: number,
+  expense: number,
+  accounts: FinanceState["accounts"],
+  targetRate = REINVEST_RUTHLESS_RATE
+): ReinvestPlan {
+  const investedBalance = invested(accounts);
+  const keptSoFar = Math.max(0, income - expense);
+  const actualRate = income > 0 ? keptSoFar / income : null;
+  const targetDollars = income > 0 ? Math.round(income * targetRate) : 0;
+  const deployNow = Math.max(0, Math.round(targetDollars - keptSoFar));
+
+  // Ruthlessness: hit target rate, low lifestyle share, capital already invested
+  let ruthlessness = 40;
+  if (actualRate != null) {
+    ruthlessness = Math.round(
+      Math.min(100, (actualRate / targetRate) * 85 + (investedBalance > 0 ? 15 : 0))
+    );
+  } else if (income <= 0) {
+    ruthlessness = 20;
+  }
+  if (expense > income && income > 0) ruthlessness = Math.min(ruthlessness, 25);
+
+  let order = "Log income first — no reinvest math without inflows.";
+  if (income > 0 && deployNow > 0) {
+    order = `Move ${moneyCents(deployNow)} into Invest before any lifestyle upgrade.`;
+  } else if (income > 0 && deployNow === 0 && (actualRate || 0) >= targetRate) {
+    order = `Target hit (${Math.round((actualRate || 0) * 100)}% kept). Route surplus to Invest, not lifestyle.`;
+  } else if (income > 0 && keptSoFar === 0) {
+    order = "Cash flow is zero or red — cut leaks before you talk about compounding.";
+  }
+
+  return {
+    targetRate,
+    actualRate,
+    targetDollars,
+    keptSoFar,
+    deployNow,
+    investedBalance,
+    ruthlessness,
+    order,
+  };
 }
 
 export function buildSmartBrief(
@@ -132,7 +207,19 @@ export function buildSmartBrief(
   const projection = projectMonth(txs, ym);
   const planPlanned = planRows.reduce((s, r) => s + r.planned, 0);
   const planSpent = planRows.reduce((s, r) => s + r.spent, 0);
-  const safeToSpend = computeSafeToSpend(cash, debt, planRows, projection);
+  const reinvest = buildReinvestPlan(
+    income,
+    expense,
+    accounts,
+    REINVEST_RUTHLESS_RATE
+  );
+  const safeToSpend = computeSafeToSpend(
+    cash,
+    debt,
+    planRows,
+    projection,
+    reinvest.deployNow
+  );
   const runwayMonths =
     projection.burnPerDay > 0
       ? cash / (projection.burnPerDay * 30)
@@ -142,6 +229,7 @@ export function buildSmartBrief(
 
   const merchants = topMerchants(txs, ym, 5);
   const topLeak = merchants[0] || null;
+  const hasInvestAccount = accounts.some((a) => a.kind === "invest");
 
   const hasTxs = txs.length > 0;
   const hasIncome = income > 0 || txs.some((t) => t.kind === "income");
@@ -199,8 +287,53 @@ export function buildSmartBrief(
       severity: "high",
       title: "Build a plan from real spend",
       detail:
-        "One tap averages the last months by category. No typing. Then safe-to-spend gets real.",
+        "One tap averages the last months by category. No typing. Then the reinvest residual gets real.",
       cta: "Auto-build plan",
+      tab: "plan",
+    });
+  }
+
+  // ── RUTHLESS REINVEST (default desk doctrine) ──
+  if (hasIncome && reinvest.deployNow > 0) {
+    actions.push({
+      id: "reinvest-deploy",
+      priority: 96,
+      severity: reinvest.deployNow > income * 0.2 ? "critical" : "high",
+      title: `Reinvest ${money(reinvest.deployNow)} before lifestyle`,
+      detail: `Ruthless target ${Math.round(reinvest.targetRate * 100)}% of income (${money(reinvest.targetDollars)}). Kept so far ${money(reinvest.keptSoFar)}. ${reinvest.order}`,
+      amount: reinvest.deployNow,
+      cta: hasInvestAccount
+        ? "Accounts → move to Invest"
+        : "Accounts → add Invest account",
+      tab: "accounts",
+    });
+  }
+
+  if (hasIncome && !hasInvestAccount) {
+    actions.push({
+      id: "need-invest-acct",
+      priority: 93,
+      severity: "high",
+      title: "Open an Invest account on the books",
+      detail:
+        "Ruthless bookkeeping needs a named Invest bucket. Checking is not compounding.",
+      cta: "Add Invest account",
+      tab: "accounts",
+    });
+  }
+
+  if (
+    hasIncome &&
+    reinvest.actualRate != null &&
+    reinvest.actualRate < REINVEST_TARGET_RATE
+  ) {
+    actions.push({
+      id: "reinvest-rate-low",
+      priority: 84,
+      severity: "high",
+      title: `Keep rate ${Math.round(reinvest.actualRate * 100)}% — below floor`,
+      detail: `Floor is ${Math.round(REINVEST_TARGET_RATE * 100)}%. Ruthless aim is ${Math.round(REINVEST_RUTHLESS_RATE * 100)}%. Cut non-essentials until the ledger shows capital formation.`,
+      cta: "Tighten plan 10%",
       tab: "plan",
     });
   }
@@ -213,7 +346,7 @@ export function buildSmartBrief(
       priority: 88,
       severity: hole > income * 0.2 ? "critical" : "high",
       title: "On track to overspend this month",
-      detail: `At today’s pace you’ll end ~${money(hole)} negative. Burn ${money(projection.burnPerDay)}/day.`,
+      detail: `At today’s pace you’ll end ~${money(hole)} negative. Burn ${money(projection.burnPerDay)}/day. That kills reinvestment.`,
       amount: hole,
       cta: "Cut top merchant or tighten plan",
       tab: "transactions",
@@ -226,7 +359,7 @@ export function buildSmartBrief(
       priority: 85,
       severity: "high",
       title: "Cash flow is negative so far",
-      detail: `Out ${money(expense)} · In ${money(income)}. Gap ${money(Math.abs(cashFlow))}.`,
+      detail: `Out ${money(expense)} · In ${money(income)}. Gap ${money(Math.abs(cashFlow))}. No surplus to reinvest until this flips.`,
       amount: Math.abs(cashFlow),
       cta: "See transactions",
       tab: "transactions",
@@ -328,27 +461,54 @@ export function buildSmartBrief(
     }
   }
 
+  // Lifestyle creep when fun money still high while reinvest lagging
+  if (
+    hasIncome &&
+    reinvest.deployNow > 0 &&
+    safeToSpend > reinvest.deployNow * 0.5 &&
+    topLeak
+  ) {
+    actions.push({
+      id: "lifestyle-creep",
+      priority: 75,
+      severity: "medium",
+      title: `Lifestyle before capital: ${topLeak.merchant}`,
+      detail: `${money(topLeak.total)} there this month while ${money(reinvest.deployNow)} still needs to hit Invest. Ruthless rule: capital first.`,
+      amount: topLeak.total,
+      cta: "Kill or cap that merchant",
+      tab: "transactions",
+    });
+  }
+
   // ── Good state ──
   if (!actions.length && hasTxs) {
     actions.push({
       id: "good",
       priority: 1,
       severity: "good",
-      title: "System stable this period",
-      detail: `Flow ${money(cashFlow)} · Safe ${money(safeToSpend)} · Projected month-end flow ${money(projection.projectedFlow)}.`,
-      cta: "Keep logging",
+      title: "Ruthless and on-target",
+      detail: `Kept ${reinvest.actualRate != null ? `${Math.round(reinvest.actualRate * 100)}%` : "—"}. Fun money after reinvest ${money(safeToSpend)}. Invest book ${money(reinvest.investedBalance)}.`,
+      cta: "Keep logging every dollar",
       tab: "overview",
     });
   }
 
   actions.sort((a, b) => b.priority - a.priority);
 
-  // Headline — honest
+  // Headline — reinvest doctrine
   let headline = "Money desk is cold";
-  let sub = "Import bank data so the engine can think.";
-  if (quality >= 70 && planHealth === "ok" && cashFlow >= 0) {
-    headline = "In control";
-    sub = `Safe to deploy ~${money(safeToSpend)}. Projected month-end flow ${money(projection.projectedFlow)}.`;
+  let sub = "Import bank data so the engine can force reinvestment.";
+  if (
+    quality >= 70 &&
+    reinvest.actualRate != null &&
+    reinvest.actualRate >= REINVEST_RUTHLESS_RATE &&
+    cashFlow >= 0
+  ) {
+    headline = "Ruthless · capital first";
+    sub = `Keeping ${Math.round(reinvest.actualRate * 100)}%. Fun money after reinvest ~${money(safeToSpend)}. ${reinvest.order}`;
+  } else if (quality >= 50 && reinvest.deployNow > 0) {
+    headline = "Deploy before you spend";
+    sub = reinvest.order;
   } else if (quality >= 40 && actions[0]?.severity === "critical") {
     headline = "Act on the top risk";
     sub = actions[0].title;
@@ -359,18 +519,19 @@ export function buildSmartBrief(
       : `Tracking ${txs.length} transactions this device.`;
   } else if (hasTxs) {
     headline = "Signals forming";
-    sub = "Add plan + card limits to unlock full decisions.";
+    sub = "Add plan + card limits + Invest account to unlock full decisions.";
   }
 
   return {
     headline,
     sub,
-    actions: actions.slice(0, 6),
+    actions: actions.slice(0, 7),
     projection,
     safeToSpend,
     runwayMonths,
     topLeak,
     planHealth,
+    reinvest,
     dataQuality: {
       hasTxs,
       hasIncome,
@@ -405,19 +566,29 @@ export function answerFromBrief(
     return "I don't have transactions yet. Import a bank CSV (Accounts) or Load demo — then I can answer with numbers, not vibes.";
   }
 
+  if (/reinvest|invest|compound|ruthless|save rate|keep rate/.test(q)) {
+    const r = brief.reinvest;
+    const rate =
+      r.actualRate == null ? "unknown" : `${Math.round(r.actualRate * 100)}%`;
+    return `Ruthless target ${Math.round(r.targetRate * 100)}% of income. Actual keep ${rate}. Still to deploy ${money(r.deployNow)}. Invest book ${money(r.investedBalance)}. Order: ${r.order} Fun money after reinvest: ${money(brief.safeToSpend)}.`;
+  }
+
   if (/(afford|trip|buy|purchase|spend \$?\d)/.test(q)) {
     const m = q.match(/\$?\s*([\d,]+)/);
     const want = m ? Number(m[1].replace(/,/g, "")) : null;
     if (want != null && !Number.isNaN(want)) {
+      if (brief.reinvest.deployNow > 0 && want > brief.safeToSpend) {
+        return `No. Reinvest gap is still ${money(brief.reinvest.deployNow)}. Fun money after capital is only ${money(brief.safeToSpend)}. Capital first — then lifestyle.`;
+      }
       if (want <= brief.safeToSpend) {
-        return `Yes, within safe-to-spend (${money(brief.safeToSpend)}). Still leaves runway ~${brief.runwayMonths > 20 ? "20+" : brief.runwayMonths.toFixed(1)} months at current burn. Don't put it on a card above 30% utilization.`;
+        return `Yes, within fun money after reinvest (${money(brief.safeToSpend)}). Runway ~${brief.runwayMonths > 20 ? "20+" : brief.runwayMonths.toFixed(1)} months. Don't put it on a card above 30% utilization.`;
       }
       if (want <= extras.cash) {
-        return `You have the cash (${money(extras.cash)}) but it exceeds safe-to-spend (${money(brief.safeToSpend)}). Doing it would stress essentials/debt buffer. Better: delay, or cut ${brief.topLeak ? brief.topLeak.merchant : "top merchant"} first.`;
+        return `Cash exists (${money(extras.cash)}) but it exceeds fun money after reinvest (${money(brief.safeToSpend)}). Doing it steals from compounding. Cut ${brief.topLeak ? brief.topLeak.merchant : "top merchant"} or delay.`;
       }
-      return `Not safely. Need ~${money(want)} vs safe ${money(brief.safeToSpend)} and cash ${money(extras.cash)}. Projected month-end flow ${money(brief.projection.projectedFlow)}.`;
+      return `Not safely. Need ~${money(want)} vs fun ${money(brief.safeToSpend)} and cash ${money(extras.cash)}. Projected month-end flow ${money(brief.projection.projectedFlow)}.`;
     }
-    return `Safe to spend now: ${money(brief.safeToSpend)}. Cash ${money(extras.cash)}. If you name a dollar amount I'll judge it hard.`;
+    return `Fun money after reinvest: ${money(brief.safeToSpend)}. Still to deploy to Invest: ${money(brief.reinvest.deployNow)}. Name a dollar amount and I'll judge it hard.`;
   }
 
   if (/credit|score|fico|utilization/.test(q)) {
