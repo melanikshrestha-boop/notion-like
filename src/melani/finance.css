@@ -16,26 +16,27 @@
   --wd-green: #30d158;
   --wd-green-soft: rgba(48, 209, 88, 0.14);
   --wd-red: #ff453a;
-  --wd-radius: 22px;
-  --wd-radius-sm: 14px;
+  --wd-radius: 14px;
+  --wd-radius-sm: 10px;
   --wd-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
   --wd-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
     "Segoe UI", system-ui, sans-serif;
   --wd-mono: "SF Mono", ui-monospace, "Cascadia Code", Menlo, monospace;
 
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-columns: 200px minmax(0, 1fr);
   min-height: calc(100vh - 72px);
   margin: -4px -2px 0;
   background: #000;
   color: var(--wd-text);
   font-family: var(--wd-font);
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 400;
   letter-spacing: -0.01em;
+  line-height: 1.25;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  border-radius: 18px;
+  border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--wd-hairline);
   box-shadow:
@@ -56,8 +57,8 @@
 .wd-nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 28px 16px 20px;
+  gap: 4px;
+  padding: 14px 10px 12px;
   background: #000;
   border-right: 1px solid var(--wd-hairline);
 }
@@ -65,74 +66,75 @@
 .wd-brand {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 4px 12px 28px;
+  gap: 10px;
+  padding: 2px 8px 12px;
 }
 
 .wd-logo {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 11px;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
   background: linear-gradient(165deg, #3dff7a 0%, #30d158 40%, #1f9d46 100%);
   color: #00330f;
   font-weight: 700;
-  font-size: 17px;
+  font-size: 14px;
   letter-spacing: -0.04em;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.25) inset,
-    0 8px 20px rgba(48, 209, 88, 0.25);
+    0 4px 12px rgba(48, 209, 88, 0.22);
 }
 
 .wd-brand strong {
   display: block;
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 600;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   color: #fff;
-  line-height: 1.15;
+  line-height: 1.1;
 }
 
 .wd-brand em {
   display: block;
-  margin-top: 2px;
+  margin-top: 0;
   font-style: normal;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
   color: var(--wd-tertiary);
+  line-height: 1.15;
 }
 
 .wd-nav-list {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 1px;
   flex: 1;
 }
 
 .wd-nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   width: 100%;
-  min-height: 46px;
-  padding: 0 14px;
+  min-height: 34px;
+  padding: 0 10px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 8px;
   background: transparent;
   color: var(--wd-secondary);
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   letter-spacing: -0.01em;
+  line-height: 1.2;
   text-align: left;
   cursor: pointer;
   transition:
-    background 0.2s var(--wd-ease),
-    color 0.2s var(--wd-ease),
-    transform 0.2s var(--wd-ease);
+    background 0.15s var(--wd-ease),
+    color 0.15s var(--wd-ease);
 }
 
 .wd-nav-item:hover {
@@ -146,37 +148,33 @@
   box-shadow: inset 0 0 0 1px rgba(48, 209, 88, 0.22);
 }
 
-.wd-nav-item:active {
-  transform: scale(0.98);
-}
-
 .wd-nav-ico {
-  width: 20px;
+  width: 16px;
   text-align: center;
-  font-size: 13px;
+  font-size: 12px;
   opacity: 0.9;
 }
 
 .wd-nav-foot {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding-top: 16px;
-  margin-top: 8px;
+  gap: 1px;
+  padding-top: 8px;
+  margin-top: 4px;
   border-top: 1px solid var(--wd-hairline);
 }
 
 .wd-nav-foot .wd-nav-item {
-  min-height: 38px;
-  font-size: 13px;
+  min-height: 30px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--wd-tertiary);
 }
 
-/* ═══════════════ MAIN ═══════════════ */
+/* ═══════════════ MAIN — tight single spacing ═══════════════ */
 .wd-main {
   min-width: 0;
-  padding: 32px 36px 56px;
+  padding: 14px 16px 28px;
   overflow-x: hidden;
   background: #000;
 }
@@ -184,19 +182,19 @@
 .wd-top {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 28px;
-  padding-bottom: 4px;
+  gap: 8px 12px;
+  margin-bottom: 10px;
+  padding-bottom: 0;
 }
 
 .wd-top h1 {
   margin: 0;
-  font-size: clamp(2rem, 3.5vw, 2.75rem);
+  font-size: 1.45rem;
   font-weight: 650;
-  letter-spacing: -0.045em;
-  line-height: 1.05;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
   color: #fff;
 }
 
@@ -204,26 +202,26 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
 
 .wd-select,
 .wd-btn {
-  min-height: 44px;
-  padding: 0 18px;
+  min-height: 32px;
+  padding: 0 12px;
   border: 1px solid var(--wd-hairline-strong);
   border-radius: 980px;
   background: #000;
   color: var(--wd-text);
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 550;
   letter-spacing: -0.01em;
+  line-height: 1.2;
   cursor: pointer;
   transition:
-    background 0.2s var(--wd-ease),
-    border-color 0.2s var(--wd-ease),
-    transform 0.15s var(--wd-ease);
+    background 0.15s var(--wd-ease),
+    border-color 0.15s var(--wd-ease);
 }
 
 .wd-select:hover,
@@ -232,19 +230,12 @@
   background: #0a0a0a;
 }
 
-.wd-btn:active,
-.wd-select:active {
-  transform: scale(0.97);
-}
-
 .wd-btn-primary {
   background: var(--wd-green);
   border-color: transparent;
   color: #002810;
   font-weight: 650;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.2) inset,
-    0 8px 24px rgba(48, 209, 88, 0.28);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.15) inset;
 }
 
 .wd-btn-primary:hover {
