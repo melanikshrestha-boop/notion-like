@@ -2,6 +2,7 @@
  * World Monitor — ambitious markets desk.
  * Price charts, SEC quarterly graphs, how-to playbooks.
  * Free public sources (SEC EDGAR + Yahoo chart + news). Not investment advice.
+ * Tap any graph for a plain-English popup.
  */
 import {
   Fragment,
@@ -10,8 +11,138 @@ import {
   useMemo,
   useRef,
   useState,
+  type ReactNode,
 } from "react";
 import "./world-monitor.css";
+
+/** What shows when you tap a graph */
+type ChartExplain = {
+  title: string;
+  what: string;
+  how: string;
+  tips?: string[];
+  /** Extra line for the point/bar you tapped */
+  detail?: string;
+};
+
+function ChartExplainPopup({
+  explain,
+  onClose,
+}: {
+  explain: ChartExplain;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="wm-explain-backdrop"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        className="wm-explain-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-label={explain.title}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="wm-explain-head">
+          <h2>{explain.title}</h2>
+          <button type="button" onClick={onClose} aria-label="Close">
+            ×
+          </button>
+        </header>
+        <p className="wm-explain-k">What this is</p>
+        <p className="wm-explain-p">{explain.what}</p>
+        <p className="wm-explain-k">How to read it</p>
+        <p className="wm-explain-p">{explain.how}</p>
+        {explain.detail ? (
+          <>
+            <p className="wm-explain-k">What you tapped</p>
+            <p className="wm-explain-p is-detail">{explain.detail}</p>
+          </>
+        ) : null}
+        {explain.tips && explain.tips.length > 0 ? (
+          <>
+            <p className="wm-explain-k">Tips</p>
+            <ul className="wm-explain-tips">
+              {explain.tips.map((t) => (
+                <li key={t}>{t}</li>
+              ))}
+            </ul>
+          </>
+        ) : null}
+        <p className="wm-explain-note">
+          Educational only — not investment advice.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** Wrapper: whole chart is tappable; optional children call openExplain with detail */
+function ExplainableChart({
+  title,
+  what,
+  how,
+  tips,
+  children,
+}: {
+  title: string;
+  what: string;
+  how: string;
+  tips?: string[];
+  children: (api: {
+    openExplain: (detail?: string) => void;
+  }) => ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const [detail, setDetail] = useState<string | undefined>();
+
+  function openExplain(d?: string) {
+    setDetail(d);
+    setOpen(true);
+  }
+
+  return (
+    <>
+      <div
+        className="wm-chart-tap"
+        role="button"
+        tabIndex={0}
+        title="Tap chart to learn what it means"
+        onClick={() => openExplain()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openExplain();
+          }
+        }}
+      >
+        <span className="wm-chart-tap-hint" aria-hidden>
+          ?
+        </span>
+        {children({ openExplain })}
+      </div>
+      {open ? (
+        <ChartExplainPopup
+          explain={{ title, what, how, tips, detail }}
+          onClose={() => {
+            setOpen(false);
+            setDetail(undefined);
+          }}
+        />
+      ) : null}
+    </>
+  );
+}
 
 export const WORLD_MONITOR_PAGE_ID = "pg-world-monitor";
 
@@ -358,6 +489,7 @@ function PriceLineChart({
   mode = "full",
   yLabel = "Price (USD)",
   xLabel = "Date",
+  symbol,
 }: {
   points: ChartPoint[];
   height?: number;
@@ -366,6 +498,7 @@ function PriceLineChart({
   mode?: "full" | "spark";
   yLabel?: string;
   xLabel?: string;
+  symbol?: string;
 }) {
   if (!points?.length || points.length < 2) {
     return <div className="wm-chart-empty">No price history yet</div>;
@@ -375,9 +508,13 @@ function PriceLineChart({
   const min = Math.min(...closes);
   const max = Math.max(...closes);
   const span = max - min || 1;
-  const up = points[points.length - 1].close >= points[0].close;
+  const first = points[0];
+  const last = points[points.length - 1];
+  const up = last.close >= first.close;
   const color = up ? upColor : downColor;
   const gradId = `g-${up ? "up" : "dn"}-${points[0].t}`;
+  const changePct = ((last.close - first.close) / first.close) * 100;
+  const label = symbol || "This stock";
 
   // Sparkline: no axes (only used in dense tables)
   if (mode === "spark") {
@@ -449,154 +586,140 @@ function PriceLineChart({
   }));
 
   return (
-    <div className="wm-chart-frame">
-      <svg
-        className="wm-svg-chart wm-svg-axes"
-        viewBox={`0 0 ${w} ${h}`}
-        preserveAspectRatio="xMidYMid meet"
-        role="img"
-        aria-label={`${yLabel} versus ${xLabel}`}
-      >
-        <defs>
-          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.32" />
-            <stop offset="100%" stopColor={color} stopOpacity="0" />
-          </linearGradient>
-        </defs>
+    <ExplainableChart
+      title={`${label} · price over time`}
+      what={`This line shows ${label}'s closing price across the chart window. Each point is one trading day (or week, depending on the window). Green-leaning lines mean the price finished higher than it started; red-leaning means it finished lower.`}
+      how={`Up and down = price. Left to right = time (older → newer). The top of the chart is the highest price in this window (${fmtAxisPrice(max)}); the bottom is the lowest (${fmtAxisPrice(min)}). A steep climb is a fast rally; a steep drop is a selloff.`}
+      tips={[
+        "Compare the start and end of the line, not just today’s blip.",
+        "A smooth climb can still reverse — past price is not a promise.",
+        "Volume and news (elsewhere on the desk) explain *why* the line moved.",
+      ]}
+    >
+      {({ openExplain }) => (
+        <div className="wm-chart-frame">
+          <svg
+            className="wm-svg-chart wm-svg-axes"
+            viewBox={`0 0 ${w} ${h}`}
+            preserveAspectRatio="xMidYMid meet"
+            role="img"
+            aria-label={`${yLabel} versus ${xLabel}. Tap for explanation.`}
+            onClick={(e) => {
+              e.stopPropagation();
+              openExplain(
+                `Window: ${fmtAxisDate(first.date)} → ${fmtAxisDate(last.date)}. Start ${fmtAxisPrice(first.close)} · End ${fmtAxisPrice(last.close)} · Change ${changePct >= 0 ? "+" : ""}${changePct.toFixed(1)}%. High ${fmtAxisPrice(max)} · Low ${fmtAxisPrice(min)}.`
+              );
+            }}
+          >
+            <defs>
+              <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={color} stopOpacity="0.32" />
+                <stop offset="100%" stopColor={color} stopOpacity="0" />
+              </linearGradient>
+            </defs>
 
-        {/* Plot background */}
-        <rect
-          x={padL}
-          y={padT}
-          width={plotW}
-          height={plotH}
-          fill="rgba(255,255,255,0.02)"
-          rx="4"
-        />
+            <rect
+              x={padL}
+              y={padT}
+              width={plotW}
+              height={plotH}
+              fill="rgba(255,255,255,0.02)"
+              rx="4"
+            />
 
-        {/* Horizontal grid + Y-axis price labels */}
-        {yTicks.map((tick) => (
-          <g key={`y-${tick.t}`}>
+            {yTicks.map((tick) => (
+              <g key={`y-${tick.t}`}>
+                <line
+                  x1={padL}
+                  y1={tick.y}
+                  x2={padL + plotW}
+                  y2={tick.y}
+                  stroke="rgba(255,255,255,0.08)"
+                  strokeWidth="1"
+                />
+                <text
+                  x={padL - 8}
+                  y={tick.y + 3.5}
+                  textAnchor="end"
+                  fill="rgba(255,255,255,0.55)"
+                  fontSize="10"
+                  fontFamily="Source Serif 4, Georgia, serif"
+                >
+                  {fmtAxisPrice(tick.price)}
+                </text>
+              </g>
+            ))}
+
+            {xTicks.map((tick) => (
+              <g key={`x-${tick.i}`}>
+                <line
+                  x1={tick.x}
+                  y1={padT}
+                  x2={tick.x}
+                  y2={padT + plotH}
+                  stroke="rgba(255,255,255,0.05)"
+                  strokeWidth="1"
+                />
+                <text
+                  x={tick.x}
+                  y={padT + plotH + 16}
+                  textAnchor="middle"
+                  fill="rgba(255,255,255,0.55)"
+                  fontSize="10"
+                  fontFamily="Source Serif 4, Georgia, serif"
+                >
+                  {tick.label}
+                </text>
+              </g>
+            ))}
+
             <line
               x1={padL}
-              y1={tick.y}
-              x2={padL + plotW}
-              y2={tick.y}
-              stroke="rgba(255,255,255,0.08)"
-              strokeWidth="1"
-            />
-            <line
-              x1={padL - 4}
-              y1={tick.y}
-              x2={padL}
-              y2={tick.y}
-              stroke="rgba(255,255,255,0.28)"
-              strokeWidth="1"
-            />
-            <text
-              x={padL - 8}
-              y={tick.y + 3.5}
-              textAnchor="end"
-              className="wm-axis-tick"
-              fill="rgba(255,255,255,0.55)"
-              fontSize="10"
-              fontFamily="Source Serif 4, Georgia, serif"
-            >
-              {fmtAxisPrice(tick.price)}
-            </text>
-          </g>
-        ))}
-
-        {/* Vertical grid at X ticks + date labels */}
-        {xTicks.map((tick) => (
-          <g key={`x-${tick.i}`}>
-            <line
-              x1={tick.x}
               y1={padT}
-              x2={tick.x}
+              x2={padL}
               y2={padT + plotH}
-              stroke="rgba(255,255,255,0.05)"
-              strokeWidth="1"
+              stroke="rgba(255,255,255,0.35)"
+              strokeWidth="1.25"
             />
             <line
-              x1={tick.x}
+              x1={padL}
               y1={padT + plotH}
-              x2={tick.x}
-              y2={padT + plotH + 4}
-              stroke="rgba(255,255,255,0.28)"
-              strokeWidth="1"
+              x2={padL + plotW}
+              y2={padT + plotH}
+              stroke="rgba(255,255,255,0.35)"
+              strokeWidth="1.25"
             />
-            <text
-              x={tick.x}
-              y={padT + plotH + 16}
-              textAnchor="middle"
-              className="wm-axis-tick"
-              fill="rgba(255,255,255,0.55)"
-              fontSize="10"
-              fontFamily="Source Serif 4, Georgia, serif"
-            >
-              {tick.label}
-            </text>
-          </g>
-        ))}
 
-        {/* Axes lines */}
-        <line
-          x1={padL}
-          y1={padT}
-          x2={padL}
-          y2={padT + plotH}
-          stroke="rgba(255,255,255,0.35)"
-          strokeWidth="1.25"
-        />
-        <line
-          x1={padL}
-          y1={padT + plotH}
-          x2={padL + plotW}
-          y2={padT + plotH}
-          stroke="rgba(255,255,255,0.35)"
-          strokeWidth="1.25"
-        />
+            <polygon points={area} fill={`url(#${gradId})`} />
+            <polyline
+              points={coords.join(" ")}
+              fill="none"
+              stroke={color}
+              strokeWidth="2.25"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
 
-        {/* Series */}
-        <polygon points={area} fill={`url(#${gradId})`} />
-        <polyline
-          points={coords.join(" ")}
-          fill="none"
-          stroke={color}
-          strokeWidth="2.25"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-
-        {/* Y-axis title (rotated) */}
-        <text
-          x={14}
-          y={padT + plotH / 2}
-          textAnchor="middle"
-          fill="rgba(255,255,255,0.7)"
-          fontSize="11"
-          fontFamily="Source Serif 4, Georgia, serif"
-          fontWeight="600"
-          transform={`rotate(-90 14 ${padT + plotH / 2})`}
-        >
-          {yLabel}
-        </text>
-
-        {/* X-axis title */}
-        <text
-          x={padL + plotW / 2}
-          y={h - 6}
-          textAnchor="middle"
-          fill="rgba(255,255,255,0.7)"
-          fontSize="11"
-          fontFamily="Source Serif 4, Georgia, serif"
-          fontWeight="600"
-        >
-          {xLabel}
-        </text>
-      </svg>
-    </div>
+            {/* Invisible hit targets on each point for “what you tapped” */}
+            {points.map((p, i) => (
+              <circle
+                key={p.t}
+                cx={xAt(i)}
+                cy={yAt(p.close)}
+                r={10}
+                fill="transparent"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openExplain(
+                    `${fmtAxisDate(p.date)}: close ${fmtAxisPrice(p.close)}.`
+                  );
+                }}
+              />
+            ))}
+          </svg>
+        </div>
+      )}
+    </ExplainableChart>
   );
 }
 
@@ -633,15 +756,41 @@ function ModelCompareChart({
   const plotH = h - padT - padB;
   const groupW = plotW / dimensions.length;
   const barW = Math.max(6, (groupW - 10) / models.length);
+  const isCoding = scoreKey === "codingScores";
 
   return (
-    <div className="wm-chart-frame">
+    <ExplainableChart
+      title={isCoding ? "Coding strengths by skill" : "Model capability composite"}
+      what={
+        isCoding
+          ? "Grouped bars compare how Claude, GPT, and Grok score on different coding skills (0–100). Each color is one model; each cluster on the X-axis is one skill (refactoring, tests, speed, etc.)."
+          : "Grouped bars compare AI models on capability dimensions (0–100). Each color is one model family; each cluster is one dimension like reasoning or tools."
+      }
+      how="Taller bar = higher score on that skill/dimension. Compare colors inside one cluster to see who leads. Compare the same color across clusters to see a model’s strengths vs weaknesses."
+      tips={[
+        "Scores are a desk synthesis, not a formal lab benchmark.",
+        "A model can win coding overall and still lose on one skill.",
+        "Tap the chart for this full explanation anytime.",
+      ]}
+    >
+      {({ openExplain }) => (
+    <div
+      className="wm-chart-frame"
+      onClick={(e) => {
+        e.stopPropagation();
+        openExplain(
+          isCoding
+            ? `${models.map((m) => m.name).join(" · ")} across ${dimensions.length} coding skills.`
+            : `${models.length} models · ${dimensions.length} dimensions.`
+        );
+      }}
+    >
       <svg
         className="wm-svg-chart wm-svg-axes"
         viewBox={`0 0 ${w} ${h}`}
         preserveAspectRatio="xMidYMid meet"
         role="img"
-        aria-label={ariaLabel}
+        aria-label={`${ariaLabel}. Tap for explanation.`}
       >
         <rect
           x={padL}
@@ -760,6 +909,8 @@ function ModelCompareChart({
         ))}
       </div>
     </div>
+      )}
+    </ExplainableChart>
   );
 }
 
@@ -782,13 +933,28 @@ function ModelHeatBars({ models }: { models: ModelCard[] }) {
   const barW = plotW / models.length - 16;
 
   return (
+    <ExplainableChart
+      title="Attention heat · Hacker News"
+      what="These bars measure recent ‘heat’ — roughly how much discussion and points a model is getting on Hacker News (tech crowd chatter), not how smart the model is."
+      how="Taller bar = more recent attention points. A hot model is being talked about a lot; a short bar is quieter online right now. Heat can rise after a launch or drama — it is not a quality score."
+      tips={[
+        "Heat ≠ quality. Quiet models can still ship the best work.",
+        "Compare heat to capability bars: loud but weak vs quiet but strong.",
+        "Tap a bar for that model’s point total.",
+      ]}
+    >
+      {({ openExplain }) => (
     <div className="wm-chart-frame">
       <svg
         className="wm-svg-chart wm-svg-axes"
         viewBox={`0 0 ${w} ${h}`}
         preserveAspectRatio="xMidYMid meet"
         role="img"
-        aria-label="HN attention heat by model"
+        aria-label="HN attention heat by model. Tap for explanation."
+        onClick={(e) => {
+          e.stopPropagation();
+          openExplain("Heat = recent Hacker News attention, not model IQ.");
+        }}
       >
         <rect
           x={padL}
@@ -818,7 +984,15 @@ function ModelHeatBars({ models }: { models: ModelCard[] }) {
           const x = padL + i * (plotW / models.length) + 10;
           const y = padT + plotH - bh;
           return (
-            <g key={m.id}>
+            <g
+              key={m.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                openExplain(
+                  `${m.name}: ~${pts} recent HN points. Heat = chatter, not capability.`
+                );
+              }}
+            >
               <rect
                 x={x}
                 y={y}
@@ -827,6 +1001,13 @@ function ModelHeatBars({ models }: { models: ModelCard[] }) {
                 rx="3"
                 fill={m.color}
                 opacity={0.88}
+              />
+              <rect
+                x={x - 4}
+                y={padT}
+                width={barW + 8}
+                height={plotH}
+                fill="transparent"
               />
               <text
                 x={x + barW / 2}
@@ -876,6 +1057,8 @@ function ModelHeatBars({ models }: { models: ModelCard[] }) {
         </text>
       </svg>
     </div>
+      )}
+    </ExplainableChart>
   );
 }
 
@@ -890,6 +1073,7 @@ function BarSeriesChart({
   valueKey = "revenue",
   yLabel = "Revenue (USD)",
   xLabel = "Quarter end",
+  company,
 }: {
   series: Array<Record<string, unknown>>;
   height?: number;
@@ -898,6 +1082,7 @@ function BarSeriesChart({
   valueKey?: string;
   yLabel?: string;
   xLabel?: string;
+  company?: string;
 }) {
   const rows = series
     .map((s) => ({
@@ -927,81 +1112,124 @@ function BarSeriesChart({
     return { t, value, y: padT + t * plotH };
   });
 
+  const who = company || "This company";
+  const metric = valueKey === "revenue" ? "revenue" : valueKey;
+
   return (
-    <div className="wm-chart-frame">
-      {/* Axis titles as real text — never rotated into the numbers */}
-      <p className="wm-chart-axis-y">{yLabel}</p>
-      <svg
-        className="wm-svg-chart wm-svg-axes"
-        viewBox={`0 0 ${w} ${h}`}
-        preserveAspectRatio="xMidYMid meet"
-        role="img"
-        aria-label={`${yLabel} versus ${xLabel}`}
-      >
-        {yTicks.map((tick) => (
-          <g key={`by-${tick.t}`}>
+    <ExplainableChart
+      title={`${who} · ${metric} by quarter`}
+      what={`Each bar is one reporting quarter’s ${metric} for ${who}, taken from official SEC filings (10-Q / 10-K style facts), not a random web scrape. Taller bar = more ${metric} that quarter.`}
+      how={`Bottom axis = when the quarter ended. Left axis = money size. Read left → right for time. Rising bars mean growing ${metric}; falling bars mean shrinking ${metric}. Compare neighboring bars for quarter-over-quarter change.`}
+      tips={[
+        "One tall bar after a quiet stretch can be a one-time event — still check the filing text.",
+        "Growing revenue with falling profit (elsewhere) is a red flag for quality of growth.",
+        "Tap a single bar for that quarter’s exact number.",
+      ]}
+    >
+      {({ openExplain }) => (
+        <div className="wm-chart-frame">
+          <p className="wm-chart-axis-y">{yLabel}</p>
+          <svg
+            className="wm-svg-chart wm-svg-axes"
+            viewBox={`0 0 ${w} ${h}`}
+            preserveAspectRatio="xMidYMid meet"
+            role="img"
+            aria-label={`${yLabel} versus ${xLabel}. Tap for explanation.`}
+            onClick={(e) => {
+              e.stopPropagation();
+              openExplain(
+                `${rows.length} quarters plotted. Peak bar ≈ ${fmtAxisPrice(max)}.`
+              );
+            }}
+          >
+            {yTicks.map((tick) => (
+              <g key={`by-${tick.t}`}>
+                <line
+                  x1={padL}
+                  y1={tick.y}
+                  x2={padL + plotW}
+                  y2={tick.y}
+                  stroke="rgba(255,255,255,0.06)"
+                  strokeWidth="1"
+                />
+                <text
+                  x={padL - 10}
+                  y={tick.y + 3.5}
+                  textAnchor="end"
+                  fill="rgba(255,255,255,0.45)"
+                  fontSize="11"
+                  fontFamily="Source Serif 4, Georgia, serif"
+                >
+                  {fmtAxisPrice(tick.value)}
+                </text>
+              </g>
+            ))}
+
             <line
               x1={padL}
-              y1={tick.y}
+              y1={padT + plotH}
               x2={padL + plotW}
-              y2={tick.y}
-              stroke="rgba(255,255,255,0.06)"
+              y2={padT + plotH}
+              stroke="rgba(255,255,255,0.2)"
               strokeWidth="1"
             />
-            <text
-              x={padL - 10}
-              y={tick.y + 3.5}
-              textAnchor="end"
-              fill="rgba(255,255,255,0.45)"
-              fontSize="11"
-              fontFamily="Source Serif 4, Georgia, serif"
-            >
-              {fmtAxisPrice(tick.value)}
-            </text>
-          </g>
-        ))}
 
-        <line
-          x1={padL}
-          y1={padT + plotH}
-          x2={padL + plotW}
-          y2={padT + plotH}
-          stroke="rgba(255,255,255,0.2)"
-          strokeWidth="1"
-        />
-
-        {rows.map((r, i) => {
-          const bh = (Math.abs(r.value) / max) * (plotH - 6);
-          const x = padL + i * slot + (slot - barW) / 2;
-          const y = padT + plotH - bh;
-          const short = fmtAxisDate(r.label);
-          return (
-            <g key={`${r.label}-${i}`}>
-              <rect
-                x={x}
-                y={y}
-                width={barW}
-                height={Math.max(bh, 2)}
-                rx="2"
-                fill={color}
-                opacity={0.9}
-              />
-              <text
-                x={x + barW / 2}
-                y={padT + plotH + 16}
-                textAnchor="middle"
-                fill="rgba(255,255,255,0.5)"
-                fontSize="10"
-                fontFamily="Source Serif 4, Georgia, serif"
-              >
-                {short}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-      <p className="wm-chart-axis-x">{xLabel}</p>
-    </div>
+            {rows.map((r, i) => {
+              const bh = (Math.abs(r.value) / max) * (plotH - 6);
+              const x = padL + i * slot + (slot - barW) / 2;
+              const y = padT + plotH - bh;
+              const short = fmtAxisDate(r.label);
+              return (
+                <g
+                  key={`${r.label}-${i}`}
+                  className="wm-bar-hit"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const prev = i > 0 ? rows[i - 1].value : null;
+                    const qoq =
+                      prev && prev !== 0
+                        ? ` QoQ ${(((r.value - prev) / Math.abs(prev)) * 100).toFixed(1)}%.`
+                        : "";
+                    openExplain(
+                      `Quarter ending ${short}: ${metric} ${fmtAxisPrice(r.value)}.${qoq}`
+                    );
+                  }}
+                >
+                  <rect
+                    x={x}
+                    y={y}
+                    width={barW}
+                    height={Math.max(bh, 2)}
+                    rx="2"
+                    fill={color}
+                    opacity={0.9}
+                  />
+                  {/* Taller invisible hit area for fingers */}
+                  <rect
+                    x={x - 4}
+                    y={padT}
+                    width={barW + 8}
+                    height={plotH}
+                    fill="transparent"
+                  />
+                  <text
+                    x={x + barW / 2}
+                    y={padT + plotH + 16}
+                    textAnchor="middle"
+                    fill="rgba(255,255,255,0.5)"
+                    fontSize="10"
+                    fontFamily="Source Serif 4, Georgia, serif"
+                  >
+                    {short}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+          <p className="wm-chart-axis-x">{xLabel}</p>
+        </div>
+      )}
+    </ExplainableChart>
   );
 }
 
@@ -1452,6 +1680,7 @@ export function WorldMonitor() {
                     height={180}
                     yLabel="Price (USD)"
                     xLabel="Date"
+                    symbol={focusSymbol}
                   />
                   <div className="wm-focus-meta">
                     <span>
@@ -1492,6 +1721,7 @@ export function WorldMonitor() {
                         valueKey="revenue"
                         yLabel="Revenue (USD)"
                         xLabel="Quarter end"
+                        company={focusSymbol}
                       />
                       <div className="wm-focus-meta">
                         <span>

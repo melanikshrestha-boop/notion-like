@@ -313,6 +313,140 @@
   text-align: center;
 }
 
+/* Tap-to-explain charts */
+.wm-chart-tap {
+  position: relative;
+  cursor: pointer;
+  outline: none;
+}
+
+.wm-chart-tap:focus-visible {
+  box-shadow: 0 0 0 1px rgba(168, 196, 240, 0.45);
+}
+
+.wm-chart-tap-hint {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  font-family: var(--wm-font);
+}
+
+.wm-chart-tap:hover .wm-chart-tap-hint,
+.wm-chart-tap:focus-visible .wm-chart-tap-hint {
+  color: #fff;
+  border-color: rgba(168, 196, 240, 0.55);
+}
+
+.wm-bar-hit {
+  cursor: pointer;
+}
+
+.wm-explain-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.wm-explain-sheet {
+  width: min(420px, 100%);
+  max-height: min(84vh, 640px);
+  overflow: auto;
+  padding: 18px 18px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: #0a0a0a;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.65);
+  color: rgba(255, 255, 255, 0.9);
+  font-family: var(--wm-font);
+}
+
+.wm-explain-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.wm-explain-head h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #fff;
+}
+
+.wm-explain-head button {
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.wm-explain-head button:hover {
+  color: #fff;
+}
+
+.wm-explain-k {
+  margin: 12px 0 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #a8c4f0;
+}
+
+.wm-explain-p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.wm-explain-p.is-detail {
+  color: #fff;
+  font-weight: 500;
+}
+
+.wm-explain-tips {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.wm-explain-tips li {
+  margin: 0 0 4px;
+}
+
+.wm-explain-note {
+  margin: 16px 0 0;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  line-height: 1.35;
+}
+
 /* Blocks */
 .wm-block {
   margin-bottom: 28px;
