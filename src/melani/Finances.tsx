@@ -913,10 +913,7 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
 
       <div className="wd-main">
         <header className="wd-top">
-          <div>
-            <h1>{tabTitle}</h1>
-            {importNote ? <p className="wd-note">{importNote}</p> : null}
-          </div>
+          <h1>{tabTitle}</h1>
           <div className="wd-top-actions">
             <select
               className="wd-select"
@@ -941,6 +938,7 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
               + Add
             </button>
           </div>
+          {importNote ? <p className="wd-note wd-top-note">{importNote}</p> : null}
         </header>
 
         <input
