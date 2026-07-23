@@ -24,11 +24,10 @@
     Georgia, "Times New Roman", Times, serif;
   --wd-mono: "Source Serif 4", Georgia, "Times New Roman", serif;
 
-  display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
-  min-height: calc(100vh - 72px);
-  margin: -4px -2px 0;
-  background: #000;
+  display: block;
+  min-height: 0;
+  margin: 0;
+  background: transparent;
   color: var(--wd-text);
   font-family: var(--wd-font);
   font-size: 13px;
@@ -37,145 +36,74 @@
   line-height: 1.3;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  border-radius: 12px;
-  overflow: hidden;
+  border-radius: 0;
+  overflow: visible;
   border: 0;
   box-shadow: none;
 }
 
-@media (max-width: 860px) {
-  .wd {
-    grid-template-columns: 1fr;
-  }
-  .wd-nav {
-    display: none;
-  }
-}
-
-/* ═══════════════ NAV ═══════════════ */
-.wd-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 14px 10px 12px;
-  background: #000;
-  border-right: 1px solid var(--wd-hairline);
-}
-
-.wd-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 2px 8px 12px;
-}
-
-.wd-logo {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: linear-gradient(165deg, #3dff7a 0%, #30d158 40%, #1f9d46 100%);
-  color: #00330f;
-  font-weight: 700;
-  font-size: 14px;
-  letter-spacing: -0.04em;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.25) inset,
-    0 4px 12px rgba(48, 209, 88, 0.22);
-}
-
-.wd-brand strong {
-  display: block;
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: #fff;
-  line-height: 1.1;
-}
-
-.wd-brand em {
-  display: block;
-  margin-top: 0;
-  font-style: normal;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0;
-  color: var(--wd-tertiary);
-  line-height: 1.15;
-}
-
-.wd-nav-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  flex: 1;
-}
-
-.wd-nav-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 34px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--wd-secondary);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    background 0.15s var(--wd-ease),
-    color 0.15s var(--wd-ease);
-}
-
-.wd-nav-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
-}
-
-.wd-nav-item.is-on {
-  background: rgba(48, 209, 88, 0.12);
-  color: #fff;
-  box-shadow: inset 0 0 0 1px rgba(48, 209, 88, 0.22);
-}
-
-.wd-nav-ico {
-  width: 16px;
-  text-align: center;
-  font-size: 12px;
-  opacity: 0.9;
-}
-
+/* Legacy nested sidebar — killed (tabs are in-page now) */
+.wd-nav,
+.wd-brand,
+.wd-nav-list,
 .wd-nav-foot {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  padding-top: 8px;
-  margin-top: 4px;
-  border-top: 1px solid var(--wd-hairline);
+  display: none !important;
 }
 
-.wd-nav-foot .wd-nav-item {
-  min-height: 30px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--wd-tertiary);
-}
-
-/* ═══════════════ MAIN — tight single spacing ═══════════════ */
+/* ═══════════════ MAIN — full page like Fitness ═══════════════ */
 .wd-main {
   min-width: 0;
-  padding: 14px 16px 28px;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 4px 2px 40px;
   overflow-x: hidden;
-  background: #000;
+  background: transparent;
+}
+
+/* In-page tabs — Fitness pattern: Overview · Transactions · Plan … */
+.wd-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0;
+  margin: 0 0 14px;
+  padding: 0;
+  font-family: var(--wd-font);
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.wd-subnav-item {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.wd-subnav-dot {
+  margin: 0 8px;
+  color: rgba(255, 255, 255, 0.35);
+  user-select: none;
+}
+
+.wd-subnav-link {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  line-height: 1.3;
+}
+
+.wd-subnav-link:hover {
+  color: #fff;
+}
+
+.wd-subnav-link.is-active {
+  color: #fff;
+  font-weight: 650;
 }
 
 .wd-top {

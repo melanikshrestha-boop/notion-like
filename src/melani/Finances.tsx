@@ -827,60 +827,7 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
 
   return (
     <div className="wd">
-      {/* Left rail */}
-      <aside className="wd-nav" aria-label="Finance">
-        <div className="wd-brand">
-          <span className="wd-logo" aria-hidden>
-            W
-          </span>
-          <div>
-            <strong>Wonder</strong>
-            <em>Money</em>
-          </div>
-        </div>
-        <nav className="wd-nav-list">
-          {NAV.map((n) => (
-            <button
-              key={n.id}
-              type="button"
-              className={`wd-nav-item${tab === n.id ? " is-on" : ""}`}
-              onClick={() => setTab(n.id)}
-            >
-              <span className="wd-nav-ico" aria-hidden>
-                {n.icon}
-              </span>
-              {n.label}
-            </button>
-          ))}
-        </nav>
-        <div className="wd-nav-foot">
-          <button
-            type="button"
-            className="wd-nav-item"
-            onClick={() => fileRef.current?.click()}
-          >
-            Import CSV
-          </button>
-          <button type="button" className="wd-nav-item" onClick={downloadCsv}>
-            Export
-          </button>
-          {state.txs.length === 0 ? (
-            <button type="button" className="wd-nav-item" onClick={loadDemo}>
-              Load demo
-            </button>
-          ) : null}
-          {onGo ? (
-            <button
-              type="button"
-              className="wd-nav-item"
-              onClick={() => onGo("pg-world-monitor")}
-            >
-              Markets
-            </button>
-          ) : null}
-        </div>
-      </aside>
-
+      {/* Single column — no second sidebar. Tabs live in the page like Fitness. */}
       <div className="wd-main">
         <header className="wd-top">
           <h1>{tabTitle}</h1>
@@ -899,6 +846,21 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
             </select>
             <button
               type="button"
+              className="wd-btn"
+              onClick={() => fileRef.current?.click()}
+            >
+              Import
+            </button>
+            <button type="button" className="wd-btn" onClick={downloadCsv}>
+              Export
+            </button>
+            {state.txs.length === 0 ? (
+              <button type="button" className="wd-btn" onClick={loadDemo}>
+                Demo
+              </button>
+            ) : null}
+            <button
+              type="button"
               className="wd-btn wd-btn-primary"
               onClick={() => {
                 setShowTxForm(true);
@@ -910,6 +872,26 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
           </div>
           {importNote ? <p className="wd-note wd-top-note">{importNote}</p> : null}
         </header>
+
+        {/* In-page subnav — same pattern as Fitness (Sleep · Meals · Gym) */}
+        <nav className="wd-subnav" aria-label="Finance sections">
+          {NAV.map((n, i) => (
+            <span key={n.id} className="wd-subnav-item">
+              {i > 0 ? (
+                <span className="wd-subnav-dot" aria-hidden>
+                  ·
+                </span>
+              ) : null}
+              <button
+                type="button"
+                className={`wd-subnav-link${tab === n.id ? " is-active" : ""}`}
+                onClick={() => setTab(n.id)}
+              >
+                {n.label}
+              </button>
+            </span>
+          ))}
+        </nav>
 
         <input
           ref={fileRef}
@@ -2221,3 +2203,4 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
     </div>
   );
 }
+
