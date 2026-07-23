@@ -1,7 +1,7 @@
 /**
  * Personal finance ledger for Wonder Finances.
- * Mintable-inspired: every transaction, every account, local-first.
- * Optional Plaid when keys are set. Numbers stay on this device by default.
+ * Rockefeller bookkeeping: every dollar named, every cent recorded,
+ * period closed, local-first. Optional Plaid. Numbers stay on this device.
  */
 
 export type AccountKind =
@@ -475,6 +475,97 @@ export function moneyExact(n: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+}
+
+/** Always show cents — bookkeeper precision (never round away pennies). */
+export function moneyCents(n: number): string {
+  const sign = n < 0 ? "−" : n > 0 ? "" : "";
+  return (
+    sign +
+    Math.abs(n).toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+  );
+}
+
+/**
+ * Running balance through time (oldest → newest).
+ * Income adds, expense subtracts. Map is tx id → balance after that row.
+ */
+export function runningBalanceMap(txs: FinanceTx[]): Map<string, number> {
+  const sorted = [...txs].sort((a, b) => {
+    const d = a.date.localeCompare(b.date);
+    if (d !== 0) return d;
+    return a.id.localeCompare(b.id);
+  });
+  let bal = 0;
+  const map = new Map<string, number>();
+  for (const t of sorted) {
+    bal += t.kind === "income" ? t.amount : -t.amount;
+    // Round to cents so float dust never fakes a balance
+    bal = Math.round(bal * 100) / 100;
+    map.set(t.id, bal);
+  }
+  return map;
+}
+
+/** Rows a meticulous bookkeeper still needs to finish */
+export function bookkeeperGaps(state: FinanceState, ym: string): {
+  uncategorized: number;
+  blankMerchant: number;
+  noAccounts: boolean;
+  noIncomeThisMonth: boolean;
+  noTxThisMonth: boolean;
+  openDaysWithoutEntry: number;
+  disciplineScore: number; // 0–100
+} {
+  const monthTxs = txsInMonth(state.txs, ym);
+  const uncategorized = monthTxs.filter(
+    (t) =>
+      !t.category ||
+      t.category === "Uncategorized" ||
+      t.category === "Other" ||
+      t.category.trim() === ""
+  ).length;
+  const blankMerchant = monthTxs.filter(
+    (t) => !(t.merchant || t.note || "").trim()
+  ).length;
+  const noAccounts = state.accounts.length === 0;
+  const noIncomeThisMonth = monthIncome(state.txs, ym) <= 0;
+  const noTxThisMonth = monthTxs.length === 0;
+
+  // How many of the last 7 days have at least one entry?
+  let daysWith = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    if (state.txs.some((t) => t.date === key)) daysWith += 1;
+  }
+  const openDaysWithoutEntry = 7 - daysWith;
+
+  let score = 100;
+  if (noTxThisMonth) score -= 35;
+  if (uncategorized > 0) score -= Math.min(25, uncategorized * 3);
+  if (blankMerchant > 0) score -= Math.min(15, blankMerchant * 2);
+  if (noAccounts) score -= 10;
+  if (noIncomeThisMonth && !noTxThisMonth) score -= 10;
+  if (openDaysWithoutEntry >= 5) score -= 15;
+  else if (openDaysWithoutEntry >= 3) score -= 8;
+  score = Math.max(0, Math.min(100, score));
+
+  return {
+    uncategorized,
+    blankMerchant,
+    noAccounts,
+    noIncomeThisMonth,
+    noTxThisMonth,
+    openDaysWithoutEntry,
+    disciplineScore: score,
+  };
 }
 
 /** Last N calendar months keys YYYY-MM newest first */

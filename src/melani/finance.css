@@ -1,6 +1,6 @@
 /*
-  Wonder Money — Option A quiet full page
-  Jet black · Source Serif · no cards · Notion editorial rhythm
+  Wonder Money — Rockefeller bookkeeper desk
+  Jet black · Source Serif · every cent · quiet ledger · no flashy chrome
 */
 
 .wd {
@@ -123,6 +123,20 @@
   row-gap: 4px;
 }
 
+.wd-top-titles {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.wd-kicker {
+  margin: 0 0 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--wd-tertiary);
+}
+
 .wd-top h1 {
   margin: 0;
   font-size: 1.15rem;
@@ -131,6 +145,170 @@
   line-height: 1.25;
   color: #fff;
   font-family: var(--wd-font);
+}
+
+.wd-top-principle {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--wd-secondary);
+  max-width: 36rem;
+}
+
+/* Daily discipline strip — always on the desk */
+.wd-discipline {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 20px;
+  align-items: start;
+  margin: 0 0 18px;
+  padding: 0 0 14px;
+  border-bottom: 1px solid var(--wd-hairline);
+}
+
+.wd-discipline-score {
+  display: grid;
+  gap: 2px;
+  min-width: 4.5rem;
+}
+
+.wd-discipline-score span {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--wd-tertiary);
+}
+
+.wd-discipline-score strong {
+  font-size: 1.6rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: #fff;
+}
+
+.wd-discipline-score strong.is-good {
+  color: var(--wd-green);
+}
+
+.wd-discipline-score strong.is-mid {
+  color: #e8c56a;
+}
+
+.wd-discipline-score strong.is-low {
+  color: var(--wd-red);
+}
+
+.wd-discipline-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--wd-secondary);
+}
+
+.wd-discipline-list li.is-done {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.wd-discipline-list li.is-open {
+  color: #e8c56a;
+}
+
+.wd-discipline-list li.is-done::before {
+  content: "✓ ";
+  color: var(--wd-green);
+}
+
+.wd-discipline-list li.is-open::before {
+  content: "· ";
+  color: #e8c56a;
+}
+
+.wd-discipline-rule {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--wd-tertiary);
+  line-height: 1.4;
+}
+
+.wd-book-rules {
+  margin-top: 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.wd-book-rules p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--wd-secondary);
+  line-height: 1.4;
+}
+
+.wd-book-rules p::before {
+  content: "— ";
+  color: var(--wd-tertiary);
+}
+
+.wd-ledger-sub {
+  margin: 4px 0 0;
+  font-size: 12px;
+  max-width: 40rem;
+}
+
+.wd-ledger-close {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 0 0 12px;
+  padding: 0 0 10px;
+  border-bottom: 1px solid var(--wd-hairline);
+  font-size: 12px;
+  color: var(--wd-secondary);
+}
+
+.wd-ledger-close strong {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.wd-ledger-close .is-pos {
+  color: var(--wd-green);
+}
+
+.wd-ledger-close .is-neg {
+  color: var(--wd-red);
+}
+
+.wd-ledger-table tr.is-gap td {
+  background: rgba(232, 197, 106, 0.04);
+}
+
+.wd-balance {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--wd-secondary);
+}
+
+.wd-quick-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--wd-tertiary);
+  margin-right: 6px;
+}
+
+@media (max-width: 640px) {
+  .wd-discipline {
+    grid-template-columns: 1fr;
+  }
 }
 
 .wd-top-note {

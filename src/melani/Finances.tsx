@@ -1,6 +1,6 @@
 /**
- * Wonder Finances — advanced dashboard UI (Overview / Transactions / Plan / Goals / Insights / Accounts).
- * Matches the Wonder Money design: dark glass cards, green accents, cash-flow chart, safe-to-spend.
+ * Wonder Finances — Rockefeller bookkeeping desk.
+ * Ledger first · every dollar named · every cent recorded · period closed.
  * Not financial advice. Credit estimate is educational, not FICO.
  */
 import {
@@ -33,6 +33,7 @@ import {
   mergeTxs,
   money,
   moneyExact,
+  moneyCents,
   monthExpense,
   monthIncome,
   monthKey,
@@ -42,6 +43,8 @@ import {
   newGoal,
   newTx,
   recentMonthKeys,
+  runningBalanceMap,
+  bookkeeperGaps,
   saveFinance,
   savingsRate,
   scaleBudget,
@@ -86,13 +89,22 @@ type TabId =
 
 type SortKey = "date" | "merchant" | "category" | "amount" | "kind";
 
+/** Bookkeeper desk — ledger is home, not a marketing dashboard */
 const NAV: { id: TabId; label: string; icon: string }[] = [
-  { id: "overview", label: "Overview", icon: "◉" },
-  { id: "transactions", label: "Transactions", icon: "☰" },
+  { id: "transactions", label: "Ledger", icon: "☰" },
+  { id: "overview", label: "Books", icon: "◉" },
   { id: "plan", label: "Plan", icon: "▦" },
   { id: "goals", label: "Goals", icon: "◎" },
-  { id: "insights", label: "Insights", icon: "◈" },
+  { id: "insights", label: "Review", icon: "◈" },
   { id: "accounts", label: "Accounts", icon: "▭" },
+];
+
+/** Rockefeller-style rules — short, quiet, always on the desk */
+const BOOKKEEPER_RULES = [
+  "Record every dollar the day it moves.",
+  "Name every line — no blank payees, no vague categories.",
+  "Balance the books before you spend again.",
+  "Keep what you can. Waste nothing you track.",
 ];
 
 const QUICK_ADDS: {
@@ -190,7 +202,8 @@ function dailyBars(txs: FinanceTx[], ym: string) {
 
 export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
   const [state, setState] = useState<FinanceState>(() => loadFinance());
-  const [tab, setTab] = useState<TabId>("overview");
+  // Ledger first — a meticulous bookkeeper opens the daybook, not a dashboard
+  const [tab, setTab] = useState<TabId>("transactions");
   const [showTxForm, setShowTxForm] = useState(false);
   const [txDraft, setTxDraft] = useState(() => newTx());
   const [filterQ, setFilterQ] = useState("");
@@ -329,6 +342,18 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
     });
     return list;
   }, [state.txs, filterMonth, filterKind, filterCat, filterQ, sortKey, sortDir]);
+
+  /** Running balance after each tx (full books, not just filter) */
+  const balanceById = useMemo(
+    () => runningBalanceMap(state.txs),
+    [state.txs]
+  );
+
+  /** Rockefeller discipline score + open gaps */
+  const gaps = useMemo(
+    () => bookkeeperGaps(state, ym),
+    [state, ym]
+  );
 
   const maxBar = useMemo(() => {
     const m = Math.max(1, ...bars.map((b) => Math.abs(b.net)));
@@ -823,14 +848,20 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
   }
 
   const tabTitle =
-    NAV.find((n) => n.id === tab)?.label || "Overview";
+    NAV.find((n) => n.id === tab)?.label || "Ledger";
 
   return (
     <div className="wd">
       {/* Single column — no second sidebar. Tabs live in the page like Fitness. */}
       <div className="wd-main">
         <header className="wd-top">
-          <h1>{tabTitle}</h1>
+          <div className="wd-top-titles">
+            <p className="wd-kicker">Personal ledger · Rockefeller desk</p>
+            <h1>{tabTitle}</h1>
+            <p className="wd-top-principle">
+              Every dollar named. Every cent recorded. Balance before you spend.
+            </p>
+          </div>
           <div className="wd-top-actions">
             <select
               className="wd-select"
@@ -852,7 +883,7 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
               Import
             </button>
             <button type="button" className="wd-btn" onClick={downloadCsv}>
-              Export
+              Export books
             </button>
             {state.txs.length === 0 ? (
               <button type="button" className="wd-btn" onClick={loadDemo}>
@@ -867,11 +898,54 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                 setTab("transactions");
               }}
             >
-              + Add
+              + Entry
             </button>
           </div>
           {importNote ? <p className="wd-note wd-top-note">{importNote}</p> : null}
         </header>
+
+        {/* Discipline strip — always visible, like a bookkeeper’s daily checklist */}
+        <section className="wd-discipline" aria-label="Bookkeeper discipline">
+          <div className="wd-discipline-score">
+            <span>Discipline</span>
+            <strong
+              className={
+                gaps.disciplineScore >= 80
+                  ? "is-good"
+                  : gaps.disciplineScore >= 50
+                    ? "is-mid"
+                    : "is-low"
+              }
+            >
+              {gaps.disciplineScore}
+            </strong>
+          </div>
+          <ul className="wd-discipline-list">
+            <li className={gaps.noTxThisMonth ? "is-open" : "is-done"}>
+              {gaps.noTxThisMonth
+                ? "No entries this month — open the ledger"
+                : `${state.txs.filter((t) => t.date.startsWith(ym)).length} entries this period`}
+            </li>
+            <li className={gaps.uncategorized > 0 ? "is-open" : "is-done"}>
+              {gaps.uncategorized > 0
+                ? `${gaps.uncategorized} uncategorized — name every line`
+                : "Every line categorized"}
+            </li>
+            <li className={gaps.blankMerchant > 0 ? "is-open" : "is-done"}>
+              {gaps.blankMerchant > 0
+                ? `${gaps.blankMerchant} blank payees — write who got the money`
+                : "Every payee named"}
+            </li>
+            <li className={gaps.noAccounts ? "is-open" : "is-done"}>
+              {gaps.noAccounts
+                ? "No accounts — set cash, bank, and credit"
+                : `${state.accounts.length} accounts on the books`}
+            </li>
+          </ul>
+          <p className="wd-discipline-rule">
+            {BOOKKEEPER_RULES[new Date().getDate() % BOOKKEEPER_RULES.length]}
+          </p>
+        </section>
 
         {/* In-page subnav — same pattern as Fitness (Sleep · Meals · Gym) */}
         <nav className="wd-subnav" aria-label="Finance sections">
@@ -901,21 +975,26 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
           onChange={(e) => onCsvFile(e.target.files?.[0] || null)}
         />
 
-        {/* ════════ OVERVIEW ════════ */}
+        {/* ════════ BOOKS (period summary) ════════ */}
         {tab === "overview" ? (
           <div className="wd-overview">
-            {/* Intelligence strip — honest system status */}
+            {/* Bookkeeper period close — not a vanity dashboard */}
             <section className="wd-panel wd-brain">
               <div className="wd-brain-top">
                 <div>
-                  <p className="wd-brain-k">Decision engine</p>
+                  <p className="wd-brain-k">Period · {ym}</p>
                   <h2 className="wd-brain-h">{brief.headline}</h2>
                   <p className="wd-muted">{brief.sub}</p>
                 </div>
-                <div className="wd-brain-q" title="How complete your data is">
-                  <span>Data trust</span>
-                  <strong>{brief.dataQuality.score}</strong>
+                <div className="wd-brain-q" title="Bookkeeper discipline this period">
+                  <span>Discipline</span>
+                  <strong>{gaps.disciplineScore}</strong>
                 </div>
+              </div>
+              <div className="wd-book-rules">
+                {BOOKKEEPER_RULES.map((rule) => (
+                  <p key={rule}>{rule}</p>
+                ))}
               </div>
               {brief.dataQuality.score < 50 ? (
                 <div className="wd-brain-cta">
@@ -1350,12 +1429,18 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
           </div>
         ) : null}
 
-        {/* ════════ TRANSACTIONS ════════ */}
+        {/* ════════ LEDGER (daybook) ════════ */}
         {tab === "transactions" ? (
           <div className="wd-page">
             <section className="wd-panel">
               <div className="wd-panel-head">
-                <h2>Transactions</h2>
+                <div>
+                  <h2>Daybook · every entry</h2>
+                  <p className="wd-muted wd-ledger-sub">
+                    Income in · expense out · running balance in cents. Paste bank
+                    rows (date, amount, payee) straight into the table.
+                  </p>
+                </div>
                 <div className="wd-top-actions">
                   <button
                     type="button"
@@ -1369,9 +1454,43 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                     className="wd-btn wd-btn-primary"
                     onClick={() => setShowTxForm((v) => !v)}
                   >
-                    {showTxForm ? "Close form" : "Add"}
+                    {showTxForm ? "Close form" : "Add entry"}
                   </button>
                 </div>
+              </div>
+
+              {/* Period totals — bookkeeper close strip */}
+              <div className="wd-ledger-close">
+                <span>
+                  Income{" "}
+                  <strong className="is-pos">
+                    {moneyCents(monthIncome(state.txs, ym))}
+                  </strong>
+                </span>
+                <span>
+                  Expense{" "}
+                  <strong className="is-neg">
+                    {moneyCents(monthExpense(state.txs, ym))}
+                  </strong>
+                </span>
+                <span>
+                  Net{" "}
+                  <strong
+                    className={
+                      monthIncome(state.txs, ym) - monthExpense(state.txs, ym) >=
+                      0
+                        ? "is-pos"
+                        : "is-neg"
+                    }
+                  >
+                    {moneyCents(
+                      monthIncome(state.txs, ym) - monthExpense(state.txs, ym)
+                    )}
+                  </strong>
+                </span>
+                <span>
+                  Lines <strong>{ledger.length}</strong>
+                </span>
               </div>
 
               {showTxForm ? (
@@ -1492,7 +1611,7 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                 onPaste={onLedgerPaste}
                 tabIndex={0}
               >
-                <table className="wd-table wd-edit">
+                <table className="wd-table wd-edit wd-ledger-table">
                   <thead>
                     <tr>
                       <th>
@@ -1505,7 +1624,7 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                           type="button"
                           onClick={() => toggleSort("merchant")}
                         >
-                          Merchant
+                          Payee
                         </button>
                       </th>
                       <th>
@@ -1518,7 +1637,7 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                       </th>
                       <th>
                         <button type="button" onClick={() => toggleSort("kind")}>
-                          Type
+                          Dr/Cr
                         </button>
                       </th>
                       <th className="num">
@@ -1529,12 +1648,25 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                           Amount
                         </button>
                       </th>
+                      <th className="num" title="Running balance after this line">
+                        Balance
+                      </th>
                       <th />
                     </tr>
                   </thead>
                   <tbody>
                     {ledger.slice(0, 400).map((t) => (
-                      <tr key={t.id}>
+                      <tr
+                        key={t.id}
+                        className={
+                          !t.category ||
+                          t.category === "Uncategorized" ||
+                          t.category === "Other" ||
+                          !(t.merchant || t.note || "").trim()
+                            ? "is-gap"
+                            : undefined
+                        }
+                      >
                         <td>
                           <input
                             type="date"
@@ -1547,6 +1679,7 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                         <td>
                           <input
                             value={t.merchant || t.note || ""}
+                            placeholder="Who · what"
                             onChange={(e) =>
                               patchTx(t.id, {
                                 merchant: e.target.value,
@@ -1578,13 +1711,14 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                               })
                             }
                           >
-                            <option value="expense">Out</option>
-                            <option value="income">In</option>
+                            <option value="expense">Dr · out</option>
+                            <option value="income">Cr · in</option>
                           </select>
                         </td>
                         <td className="num">
                           <input
                             type="number"
+                            step="0.01"
                             className={
                               t.kind === "income" ? "is-pos" : "is-neg"
                             }
@@ -1593,11 +1727,22 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                               patchTx(t.id, {
                                 amount: Math.max(
                                   0,
-                                  Number(e.target.value) || 0
+                                  Math.round(
+                                    (Number(e.target.value) || 0) * 100
+                                  ) / 100
                                 ),
                               })
                             }
                           />
+                        </td>
+                        <td
+                          className={`num wd-balance ${
+                            (balanceById.get(t.id) || 0) >= 0
+                              ? "is-pos"
+                              : "is-neg"
+                          }`}
+                        >
+                          {moneyCents(balanceById.get(t.id) || 0)}
                         </td>
                         <td>
                           <button
@@ -1610,10 +1755,20 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                         </td>
                       </tr>
                     ))}
+                    {ledger.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="wd-muted">
+                          Empty daybook — add an entry, import CSV, or paste
+                          bank rows. A meticulous bookkeeper never leaves a day
+                          blank on purpose.
+                        </td>
+                      </tr>
+                    ) : null}
                   </tbody>
                 </table>
               </div>
               <div className="wd-quick">
+                <span className="wd-quick-label">Quick post</span>
                 {QUICK_ADDS.map((q) => (
                   <button
                     key={q.label}
