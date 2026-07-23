@@ -19,9 +19,10 @@
   --wd-radius: 14px;
   --wd-radius-sm: 10px;
   --wd-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
-  --wd-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
-    "Segoe UI", system-ui, sans-serif;
-  --wd-mono: "SF Mono", ui-monospace, "Cascadia Code", Menlo, monospace;
+  /* Serif throughout — matches Wonder’s editorial money desk */
+  --wd-font: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino,
+    Georgia, "Times New Roman", Times, serif;
+  --wd-mono: "Source Serif 4", Georgia, "Times New Roman", serif;
 
   display: grid;
   grid-template-columns: 200px minmax(0, 1fr);
@@ -32,8 +33,8 @@
   font-family: var(--wd-font);
   font-size: 13px;
   font-weight: 400;
-  letter-spacing: -0.01em;
-  line-height: 1.25;
+  letter-spacing: 0;
+  line-height: 1.3;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   border-radius: 12px;
@@ -192,11 +193,12 @@
 
 .wd-top h1 {
   margin: 0;
-  font-size: 1.35rem;
-  font-weight: 650;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
   color: #fff;
+  font-family: var(--wd-font);
 }
 
 .wd-top-note {
@@ -382,13 +384,14 @@
 
 .wd-metric strong {
   display: block;
-  font-size: 1.35rem;
+  font-size: 1.4rem;
   font-weight: 600;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.01em;
   color: #fff;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
-  line-height: 1.15;
+  line-height: 1.2;
+  font-family: var(--wd-font);
 }
 
 .wd-metric strong small {
@@ -658,12 +661,13 @@
 
 .wd-safe-num {
   margin: 0 0 4px;
-  font-size: 2rem;
+  font-size: 2.1rem;
   font-weight: 600;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.015em;
   color: #fff;
   font-variant-numeric: tabular-nums;
-  line-height: 1.1;
+  line-height: 1.15;
+  font-family: var(--wd-font);
 }
 
 /* Learn */
