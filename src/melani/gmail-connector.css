@@ -1,18 +1,19 @@
 /* Real Gmail client + connect form */
 
 .gc {
-  color: #fff;
-  font-family: "Times New Roman", Times, serif;
-  padding: 0 clamp(14px, 2.5vw, 36px) 40px;
+  color: rgba(255, 255, 255, 0.92);
+  font-family: "Source Serif 4", Georgia, "Times New Roman", Times, serif;
+  padding: 10px clamp(18px, 3.2vw, 48px) 48px;
   width: 100%;
   max-width: none;
   margin: 0;
   box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
 }
 
 @media (max-width: 560px) {
   .gc {
-    padding: 0 14px 40px;
+    padding: 8px 16px 40px;
   }
 }
 

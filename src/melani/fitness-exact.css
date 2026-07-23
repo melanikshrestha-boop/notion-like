@@ -1,84 +1,48 @@
-/* Exact Dr. Melani Fitness layout (screenshot match) */
+/*
+  Option A — Quiet full page (Notion editorial)
+  Full width · serif · no cards · tight vertical rhythm · calm hierarchy
+*/
 
 .fx-page {
+  --fx-font: "Source Serif 4", Georgia, "Times New Roman", Times, ui-serif, serif;
+  --fx-text: rgba(255, 255, 255, 0.92);
+  --fx-muted: rgba(255, 255, 255, 0.48);
+  --fx-faint: rgba(255, 255, 255, 0.32);
+  --fx-accent: #9ecbff;
+
   background: #000;
-  color: #fff;
-  font-family: "Times New Roman", Times, ui-serif, Georgia, serif;
-  /* Fill the whole main column (next to the sidebar) — no skinny center strip */
+  color: var(--fx-text);
+  font-family: var(--fx-font);
   min-height: 100%;
-  padding: 0 0 64px;
+  padding: 0 0 72px;
   width: 100%;
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
 .fx-inner {
-  /* Use every bit of the page width; pad so text never touches edges */
+  /* Edge-to-edge of main column; comfortable page margins only */
   width: 100%;
   max-width: none;
   margin: 0;
-  padding: 12px clamp(14px, 2.5vw, 36px) 48px;
+  padding: 10px clamp(18px, 3.2vw, 48px) 56px;
   text-align: left;
   box-sizing: border-box;
   min-width: 0;
 }
 
-/* On wide computer screens, use the extra width instead of empty black */
-@media (min-width: 960px) {
-  .fx-sleep-spread {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
-    gap: 8px 40px;
-    align-items: start;
-  }
-
-  .fx-sleep-spread > .fx-section {
-    margin-bottom: 18px;
-  }
-
-  /* Weekly sleep chart spans full row under the two columns */
-  .fx-sleep-spread > .fx-section:last-child {
-    grid-column: 1 / -1;
-  }
-
-  /* Meals: ring + stats sit next to each other */
-  .fx-section:has(.macro-ring-wrap) {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 16px 40px;
-    align-items: center;
-  }
-
-  .fx-section:has(.macro-ring-wrap) > .fx-h2 {
-    grid-column: 1 / -1;
-  }
-
-  .macro-ring-wrap {
-    margin: 0;
-  }
-
-  /* Meal cards fill a grid so the page does not look empty on the right */
-  .usuals-section {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 4px 24px;
-    align-items: start;
-  }
-
-  .usuals-section > .usual-flash {
-    grid-column: 1 / -1;
-  }
-
-  .fx-chart {
-    height: 220px;
-  }
+/* Single calm column always — never a dashboard grid */
+.fx-sleep-spread {
+  display: block;
+  width: 100%;
 }
 
-/* Quote — plain text only */
+/* Quote — plain editorial text, no bubble */
 .fx-quote {
-  margin: 4px 0 14px;
+  margin: 0 0 18px;
   padding: 0;
   border: none;
   background: transparent;
@@ -86,30 +50,33 @@
 
 .fx-quote-text {
   margin: 0;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 400;
-  line-height: 1.4;
+  line-height: 1.45;
   color: #fff;
-  font-family: "Times New Roman", Times, serif;
+  font-family: var(--fx-font);
+  letter-spacing: -0.01em;
 }
 
 .fx-quote-author {
   margin: 6px 0 0;
-  font-size: 14px;
-  color: #9ecbff;
-  font-family: "Times New Roman", Times, serif;
+  font-size: 13px;
+  color: var(--fx-accent);
+  font-family: var(--fx-font);
+  font-weight: 400;
 }
 
-/* Subnav: Sleep · Meals · Gym · Body */
+/* Subnav: Sleep · Meals · Gym — text only, like page links */
 .fx-subnav {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0;
-  margin: 0 0 22px;
-  padding: 0;
+  margin: 0 0 28px;
+  padding: 0 0 14px;
   font-size: 14px;
-  font-family: "Times New Roman", Times, serif;
+  font-family: var(--fx-font);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .fx-subnav-item {
@@ -118,8 +85,8 @@
 }
 
 .fx-dot {
-  margin: 0 8px;
-  color: rgba(255, 255, 255, 0.4);
+  margin: 0 10px;
+  color: var(--fx-faint);
   user-select: none;
 }
 
@@ -131,46 +98,112 @@
   font-family: inherit;
   font-size: 14px;
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--fx-muted);
   cursor: pointer;
   text-decoration: none;
+  letter-spacing: 0.01em;
 }
 
 .fx-subnav-link.is-active {
   color: #fff;
-  font-weight: 650;
-  text-decoration: none; /* no underline */
+  font-weight: 600;
 }
 
 .fx-subnav-link:hover {
   color: #fff;
-  text-decoration: none;
 }
 
-/* Sections */
+/* Sections — airy, no boxes */
 .fx-section {
-  margin: 0 0 26px;
+  margin: 0 0 32px;
   padding: 0;
   border: none;
   background: transparent;
 }
 
+/* Smart meal = plain block of text + text actions (not a card) */
 .smart-meal {
-  margin: 0 0 30px;
-  padding: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  border-radius: 8px;
-  background: #050505;
+  margin: 0 0 28px;
+  padding: 0 0 4px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
 }
 
-.smart-meal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
-.smart-meal-head h2, .smart-meal-sheet h2 { margin: 2px 0 5px; font-size: 20px; font-weight: 500; }
-.smart-meal-head p { margin: 0; color: rgba(255,255,255,.56); font-size: 13px; line-height: 1.45; }
-.smart-meal-kicker { margin: 0 !important; color: #8fc5ff !important; font-size: 10px !important; text-transform: uppercase; letter-spacing: .14em; }
-.smart-meal-camera, .smart-meal-upload, .smart-meal-confirm { display: inline-flex; align-items: center; justify-content: center; gap: 7px; font: inherit; cursor: pointer; }
-.smart-meal-camera { flex: none; border: 1px solid rgba(255,255,255,.22); border-radius: 999px; background: #fff; color: #000; padding: 8px 13px; font-size: 13px; }
-.smart-meal-upload { margin-top: 15px; padding: 0; border: 0; background: transparent; color: rgba(255,255,255,.68); font-size: 12px; }
-.smart-meal-upload:hover { color: #fff; }
+.smart-meal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.smart-meal-head h2,
+.smart-meal-sheet h2 {
+  margin: 2px 0 5px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-family: var(--fx-font);
+}
+
+.smart-meal-head p {
+  margin: 0;
+  color: var(--fx-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.smart-meal-kicker {
+  margin: 0 !important;
+  color: var(--fx-accent) !important;
+  font-size: 11px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 500;
+}
+
+.smart-meal-camera,
+.smart-meal-upload,
+.smart-meal-confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Quiet text action — not a white pill */
+.smart-meal-camera {
+  flex: none;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--fx-accent);
+  padding: 0;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.smart-meal-camera:hover {
+  color: #c5e0ff;
+}
+
+.smart-meal-upload {
+  margin-top: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fx-muted);
+  font-size: 13px;
+}
+
+.smart-meal-upload:hover {
+  color: #fff;
+}
 
 .smart-meal-modal { position: fixed; inset: 0; z-index: 110; display: grid; place-items: center; padding: 20px; background: rgba(0,0,0,.76); backdrop-filter: blur(8px); }
 .smart-meal-sheet { width: min(520px, 100%); max-height: min(760px, 92vh); overflow: auto; padding: 18px; border: 1px solid rgba(255,255,255,.16); border-radius: 10px; background: #070707; box-shadow: 0 30px 100px #000; }
@@ -193,50 +226,58 @@
 .smart-meal-confirm { width: 100%; margin-top: 14px; border: 0; border-radius: 6px; background: #fff; color: #000; padding: 11px 14px; }
 
 @media (max-width: 520px) {
-  .smart-meal { padding: 15px; }
-  .smart-meal-head { align-items: center; }
-  .smart-meal-head h2 { font-size: 17px; }
-  .smart-meal-head > div > p:last-child { display: none; }
-  .smart-meal-camera { padding: 7px 10px; }
-  .smart-meal-macros { grid-template-columns: repeat(3, 1fr); }
+  .smart-meal-head {
+    align-items: flex-start;
+  }
+
+  .smart-meal-head > div > p:last-child {
+    display: none;
+  }
+
+  .smart-meal-macros {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
+/* Section titles — quiet uppercase labels, not loud UI chrome */
 .fx-h2 {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   padding: 0;
-  font-size: 16px;
-  font-weight: 650;
-  letter-spacing: 0.04em;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.95);
-  font-family: "Times New Roman", Times, serif;
+  color: var(--fx-muted);
+  font-family: var(--fx-font);
 }
 
 /* Sleep time hint when bed/wake don't form a real night */
 .fx-sleep-hint {
-  margin-top: 4px;
-  font-size: 12px;
-  color: rgba(251, 113, 133, 0.9);
-  line-height: 1.35;
-  max-width: 28rem;
+  margin-top: 6px;
+  font-size: 13px;
+  color: rgba(251, 113, 133, 0.88);
+  line-height: 1.4;
+  max-width: 36rem;
 }
 
+/* Data rows — read like a clean list */
 .fx-line {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 6px 8px;
-  margin: 0 0 6px;
+  gap: 6px 10px;
+  margin: 0 0 8px;
   padding: 0;
-  font-size: 14px;
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.88);
-  font-family: "Times New Roman", Times, serif;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--fx-text);
+  font-family: var(--fx-font);
 }
 
 .fx-key {
   flex: 0 0 auto;
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--fx-muted);
+  min-width: 4.5em;
 }
 
 .fx-val {
@@ -249,70 +290,68 @@
   min-width: 5.5em;
   margin: 0;
   padding: 0 2px;
-  border: none; /* no underline under bedtime / wake */
+  border: none;
   border-radius: 0;
   background: transparent;
   color: #fff;
-  font-family: "Times New Roman", Times, serif;
-  font-size: 14px;
-  line-height: 1.5;
+  font-family: var(--fx-font);
+  font-size: 15px;
+  line-height: 1.45;
   -webkit-appearance: none;
   appearance: none;
 }
 
 .fx-input:focus {
   outline: none;
-  color: #9ccfff;
+  color: var(--fx-accent);
 }
 
 .fx-meta {
   margin: 0 0 8px;
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.78);
-  font-family: "Times New Roman", Times, serif;
+  color: rgba(255, 255, 255, 0.72);
+  font-family: var(--fx-font);
 }
 
 .fx-meta strong {
   color: #fff;
-  font-weight: 650;
+  font-weight: 600;
 }
 
-/* Brain fog Yes / No — color only, no underlines */
+/* Brain fog Yes / No — text only */
 .fx-bf-btns {
   display: flex;
-  gap: 14px;
-  margin: 4px 0 10px;
+  gap: 16px;
+  margin: 2px 0 12px;
 }
 
 .fx-bf-tap {
   border: none;
   background: transparent;
   padding: 0;
-  font-family: "Times New Roman", Times, serif;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.55);
+  font-family: var(--fx-font);
+  font-size: 15px;
+  color: var(--fx-muted);
   cursor: pointer;
   text-decoration: none;
 }
 
 .fx-bf-yes.is-on {
   color: #ef4444;
-  font-weight: 650;
-  text-decoration: none;
+  font-weight: 600;
 }
 
 .fx-bf-no.is-on {
   color: #22c55e;
-  font-weight: 650;
-  text-decoration: none;
+  font-weight: 600;
 }
 
-/* Week letters S S M T W T F — no underlines */
+/* Week letters — plain text row */
 .fx-bf-week {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 14px;
-  margin: 4px 0 6px;
+  gap: 10px 16px;
+  margin: 2px 0 8px;
 }
 
 .fx-bf-day {
@@ -320,62 +359,63 @@
   background: transparent;
   padding: 0;
   margin: 0;
-  font-family: "Times New Roman", Times, serif;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.55);
+  font-family: var(--fx-font);
+  font-size: 15px;
+  color: var(--fx-muted);
   text-decoration: none;
   cursor: pointer;
 }
 
 .fx-bf-day.is-fog {
   color: #ef4444;
-  font-weight: 650;
-  text-decoration: none;
+  font-weight: 600;
 }
 
 .fx-bf-summary {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
-  font-family: "Times New Roman", Times, serif;
+  color: var(--fx-muted);
+  font-family: var(--fx-font);
 }
 
-/* Weekly sleep chart card */
+/* Chart sits on the page — no framed card */
 .fx-chart-wrap {
-  margin-top: 12px;
-  padding: 12px 8px 8px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: linear-gradient(
-    180deg,
-    rgba(20, 28, 40, 0.9) 0%,
-    rgba(8, 10, 14, 0.95) 100%
-  );
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  margin-top: 10px;
+  padding: 4px 0 0;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  width: 100%;
 }
 
 .fx-chart {
   display: block;
   width: 100%;
-  height: 180px;
+  height: 200px;
 }
 
-/* iPhone / small screens — full width, safe edge padding, no side-by-side */
+/* iPhone — same quiet page, tighter side pad */
 @media (max-width: 560px) {
   .fx-inner {
-    padding: 10px 14px 40px;
+    padding: 8px 16px 48px;
   }
 
-  .fx-quote {
-    margin-bottom: 18px;
+  .fx-quote-text {
+    font-size: 16px;
   }
 
   .fx-subnav {
-    margin-bottom: 20px;
+    margin-bottom: 22px;
+    padding-bottom: 12px;
   }
 
-  .fx-sleep-spread {
-    display: block;
+  .fx-section {
+    margin-bottom: 28px;
+  }
+
+  .fx-chart {
+    height: 160px;
   }
 
   .consume-row {
@@ -387,12 +427,12 @@
   }
 }
 
-/* Macro rings (meals tab — same as Melani) */
+/* Macro rings — left-aligned on the page (editorial, not app dashboard center) */
 .macro-ring-wrap {
   position: relative;
-  width: 200px;
-  height: 200px;
-  margin: 12px auto 16px;
+  width: 168px;
+  height: 168px;
+  margin: 4px 0 14px;
 }
 
 .macro-rings {
@@ -531,21 +571,25 @@
   color: rgba(255, 255, 255, 0.45);
 }
 
-/* ── My usuals (one-tap breakfast log) ── */
+/* ── My usuals — plain list, no cards ── */
 .usuals-section {
-  margin-top: 8px;
+  margin-top: 4px;
+  display: block;
 }
 
 .usual-flash {
   margin: 0 0 10px;
   font-size: 13px;
-  color: #6eb4ff;
+  color: var(--fx-accent, #9ecbff);
 }
 
 .usual-card {
-  margin: 0 0 16px;
-  padding: 12px 0 14px;
-  border-bottom: none;
+  margin: 0 0 18px;
+  padding: 0 0 2px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .usual-card.is-breakfast {

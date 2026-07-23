@@ -16,22 +16,23 @@
 }
 
 .melani-shell {
+  /* Option A — quiet full-page editorial (same system as Fitness) */
   --m-bg: #000000;
-  --m-surface: #020303;
-  --m-text: #ffffff;
-  --m-muted: rgba(255, 255, 255, 0.62);
-  --m-border: rgba(255, 255, 255, 0.12);
+  --m-surface: transparent;
+  --m-text: rgba(255, 255, 255, 0.92);
+  --m-muted: rgba(255, 255, 255, 0.48);
+  --m-border: rgba(255, 255, 255, 0.08);
   --m-green: #2eea7f;
   --m-yellow: #facc15;
   --m-orange: #ff8a3d;
   --m-blue: #4da3ff;
   --m-pink: #fb7185;
   --m-font: "Source Serif 4", Georgia, "Times New Roman", ui-serif, serif;
+  --m-accent: #9ecbff;
 
   background: var(--m-bg);
   color: var(--m-text);
   font-family: var(--m-font);
-  /* Fill main column; parent .main-scroll handles vertical scroll */
   min-height: min-content;
   height: auto;
   width: 100%;
@@ -40,14 +41,14 @@
   padding: 0 0 80px;
   overflow-x: hidden;
   box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
 }
 
 .melani-inner {
-  /* My Data fills the whole page width (not a skinny 720px strip) */
   width: 100%;
   max-width: none;
   margin: 0;
-  padding: 8px clamp(14px, 2.5vw, 36px) 64px;
+  padding: 10px clamp(18px, 3.2vw, 48px) 64px;
   box-sizing: border-box;
   min-width: 0;
 }
@@ -124,12 +125,12 @@
 }
 
 .melani-h2 {
-  margin: 0 0 6px;
-  font-size: 16px;
-  font-weight: 650;
-  letter-spacing: 0.04em;
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--m-muted);
 }
 
 .melani-hint {
@@ -139,15 +140,14 @@
   line-height: 1.35;
 }
 
+/* No cards — plain section of text on the black page */
 .melani-card {
-  border: 1px solid rgba(255, 255, 255, 0.085);
-  border-radius: 8px;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(77, 163, 255, 0.055), transparent 44%),
-    #020303;
-  padding: 15px 14px;
-  margin: 0 0 14px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0 0 4px;
+  margin: 0 0 28px;
+  box-shadow: none;
 }
 
 .melani-live-bar {
@@ -155,13 +155,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 14px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: rgba(35, 131, 226, 0.12);
-  border: 1px solid rgba(35, 131, 226, 0.28);
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 16px;
+  padding: 0 0 12px;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--m-border);
+  font-size: 13px;
+  color: var(--m-muted);
 }
 
 .melani-live-bar a {
@@ -517,12 +518,12 @@
 
 /* ── Labs — Melani Data layout ── */
 .lab-h2 {
-  margin: 18px 0 10px;
+  margin: 8px 0 14px;
   font-size: 12px;
-  font-weight: 650;
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--m-muted, rgba(255, 255, 255, 0.48));
 }
 
 .lab-h2-muted {
@@ -530,111 +531,118 @@
   margin-top: 22px;
 }
 
-/* Status cards grid */
+/* Status — quiet rows, not glowing dashboard tiles */
 .lab-status-block {
-  margin: 12px 0 14px;
+  margin: 8px 0 28px;
 }
 
 .lab-status-grid {
-  display: grid;
-  /* Grows with the page: 2 on phone, 3 default, 4+ on wide computers */
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .lab-status-card {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  min-height: 88px;
-  padding: 12px 8px;
-  border-radius: 8px;
-  border: 1.5px solid rgba(74, 222, 128, 0.35);
-  background: rgba(0, 0, 0, 0.35);
-  box-shadow: 0 0 18px rgba(74, 222, 128, 0.12),
-    inset 0 0 20px rgba(74, 222, 128, 0.05);
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+  min-height: 0;
+  padding: 10px 0;
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
+  box-shadow: none;
   color: #fff;
-  font-family: "Times New Roman", Times, serif;
+  font-family: var(--m-font);
   cursor: pointer;
-  text-align: center;
+  text-align: left;
 }
 
-.lab-status-card.lab-status-high {
-  border-color: rgba(251, 113, 133, 0.55);
-  box-shadow: 0 0 18px rgba(251, 113, 133, 0.15),
-    inset 0 0 20px rgba(251, 113, 133, 0.06);
+.lab-status-card:hover {
+  background: transparent;
+  color: #fff;
 }
 
-.lab-status-card.lab-status-low {
-  border-color: rgba(96, 165, 250, 0.45);
-  box-shadow: 0 0 18px rgba(96, 165, 250, 0.12);
+.lab-status-card.lab-status-high,
+.lab-status-card.lab-status-low,
+.lab-status-card.lab-status-ok {
+  border-color: transparent;
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
 }
 
 .lab-status-wide {
-  grid-column: 1 / -1;
+  grid-column: auto;
 }
 
 .lab-status-name {
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
   color: rgba(255, 255, 255, 0.55);
+  min-width: 7rem;
 }
 
 .lab-status-date {
-  font-size: 12px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 500;
   color: #fff;
+  flex: 1;
 }
 
-/* Pills OK / HIGH / LOW */
+/* Status words — text color only, no pill chrome */
 .lab-pill {
-  display: inline-flex;
+  display: inline;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 750;
+  min-width: 0;
+  padding: 0;
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .lab-pill-ok {
   color: #86efac;
-  background: rgba(34, 197, 94, 0.22);
-  box-shadow: 0 0 12px rgba(74, 222, 128, 0.35);
+  background: transparent;
+  box-shadow: none;
 }
 
 .lab-pill-high {
   color: #fecdd3;
-  background: rgba(244, 63, 94, 0.28);
-  box-shadow: 0 0 12px rgba(251, 113, 133, 0.3);
+  background: transparent;
+  box-shadow: none;
 }
 
 .lab-pill-low {
   color: #bfdbfe;
-  background: rgba(59, 130, 246, 0.25);
-  box-shadow: 0 0 12px rgba(96, 165, 250, 0.25);
+  background: transparent;
+  box-shadow: none;
 }
 
-/* Smart drop zone for new labs */
+/* Smart drop — plain text zone, no dashed card */
 .lab-drop {
-  margin: 14px 0 20px;
-  padding: 12px 12px 10px;
-  border: 1px dashed rgba(255, 255, 255, 0.18);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.02);
-  transition: border-color 0.15s ease, background 0.15s ease;
+  margin: 8px 0 28px;
+  padding: 0 0 16px;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0;
+  background: transparent;
+  transition: color 0.15s ease;
 }
 
 .lab-drop.is-over {
-  border-color: rgba(110, 180, 255, 0.55);
-  background: rgba(110, 180, 255, 0.06);
+  border-color: rgba(110, 180, 255, 0.4);
+  background: transparent;
 }
 
 .lab-drop-title {
@@ -1008,17 +1016,14 @@
   background: rgba(34, 197, 94, 0.15);
 }
 
-/* iPhone — edge padding and 2-up status cards */
+/* iPhone — same quiet list, tighter pad */
 @media (max-width: 520px) {
   .melani-inner {
-    padding: 6px 14px 48px;
+    padding: 8px 16px 48px;
   }
 
-  .lab-status-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .lab-status-wide {
-    grid-column: 1 / -1;
+  .lab-status-name {
+    min-width: 5.5rem;
   }
 }
 

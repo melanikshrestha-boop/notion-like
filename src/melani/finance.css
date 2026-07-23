@@ -1,25 +1,22 @@
 /*
-  Wonder Money — product-level beauty
-  Jet black · large boxes · Apple-grade type, space, and light
-  Steve Jobs bar: restraint, hierarchy, one accent, nothing accidental
+  Wonder Money — Option A quiet full page
+  Jet black · Source Serif · no cards · Notion editorial rhythm
 */
 
 .wd {
-  /* Pure black canvas */
   --wd-bg: #000000;
-  --wd-elevated: #0a0a0a;
-  --wd-hairline: rgba(255, 255, 255, 0.09);
-  --wd-hairline-strong: rgba(255, 255, 255, 0.14);
-  --wd-text: #f5f5f7;
-  --wd-secondary: #a1a1a6;
-  --wd-tertiary: #6e6e73;
+  --wd-elevated: transparent;
+  --wd-hairline: rgba(255, 255, 255, 0.08);
+  --wd-hairline-strong: rgba(255, 255, 255, 0.12);
+  --wd-text: rgba(255, 255, 255, 0.92);
+  --wd-secondary: rgba(255, 255, 255, 0.48);
+  --wd-tertiary: rgba(255, 255, 255, 0.32);
   --wd-green: #30d158;
   --wd-green-soft: rgba(48, 209, 88, 0.14);
   --wd-red: #ff453a;
-  --wd-radius: 14px;
-  --wd-radius-sm: 10px;
+  --wd-radius: 0;
+  --wd-radius-sm: 0;
   --wd-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
-  /* Serif throughout — matches Wonder’s editorial money desk */
   --wd-font: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino,
     Georgia, "Times New Roman", Times, serif;
   --wd-mono: "Source Serif 4", Georgia, "Times New Roman", serif;
@@ -30,10 +27,10 @@
   background: transparent;
   color: var(--wd-text);
   font-family: var(--wd-font);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 400;
   letter-spacing: 0;
-  line-height: 1.3;
+  line-height: 1.4;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   border-radius: 0;
@@ -50,13 +47,13 @@
   display: none !important;
 }
 
-/* ═══════════════ MAIN — fills the whole content column ═══════════════ */
+/* ═══════════════ MAIN — full-width calm page ═══════════════ */
 .wd-main {
   min-width: 0;
   width: 100%;
   max-width: none;
   margin: 0;
-  padding: 4px clamp(14px, 2.5vw, 36px) 40px;
+  padding: 10px clamp(18px, 3.2vw, 48px) 56px;
   overflow-x: hidden;
   background: transparent;
   box-sizing: border-box;
@@ -64,21 +61,22 @@
 
 @media (max-width: 560px) {
   .wd-main {
-    padding: 4px 14px 40px;
+    padding: 8px 16px 48px;
   }
 }
 
-/* In-page tabs — Fitness pattern: Overview · Transactions · Plan … */
+/* In-page tabs — plain links like Fitness */
 .wd-subnav {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0;
-  margin: 0 0 14px;
-  padding: 0;
+  margin: 0 0 28px;
+  padding: 0 0 14px;
   font-family: var(--wd-font);
   font-size: 14px;
   line-height: 1.3;
+  border-bottom: 1px solid var(--wd-hairline);
 }
 
 .wd-subnav-item {
@@ -127,10 +125,10 @@
 
 .wd-top h1 {
   margin: 0;
-  font-size: 1.4rem;
+  font-size: 1.15rem;
   font-weight: 600;
   letter-spacing: -0.01em;
-  line-height: 1.2;
+  line-height: 1.25;
   color: #fff;
   font-family: var(--wd-font);
 }
