@@ -112,7 +112,9 @@ const DEFAULT_BUDGET: BudgetLine[] = [
   { category: "Subscriptions", planned: 0 },
   { category: "Build / tools", planned: 0 },
   { category: "Travel", planned: 0 },
+  { category: "Education / school", planned: 0 },
   { category: "Fun", planned: 0 },
+  { category: "Credit card payment", planned: 0 },
   { category: "Transfers", planned: 0 },
   { category: "Fees", planned: 0 },
   { category: "Other", planned: 0 },
@@ -140,13 +142,14 @@ function defaultState(): FinanceState {
     plaidMeta: null,
     goals: [],
     creditProfile: {
-      onTimePct: 90,
+      onTimePct: 95,
       historyYears: 3,
-      hardInquiries: 2,
-      openAccounts: 3,
+      hardInquiries: 1,
+      openAccounts: 2,
       recentLates: 0,
       collections: 0,
-      knownScore: null,
+      /** Real bureau score — Melani: 677 */
+      knownScore: 677,
     },
   };
 }
@@ -219,7 +222,20 @@ export function loadFinance(): FinanceState {
           : ["SPY", "QQQ", "AAPL", "NVDA"],
       plaidMeta: parsed.plaidMeta || null,
       goals: Array.isArray(parsed.goals) ? parsed.goals : [],
-      creditProfile: parsed.creditProfile || defaultState().creditProfile,
+      creditProfile: (() => {
+        const d = defaultState().creditProfile!;
+        const c = parsed.creditProfile;
+        if (!c) return d;
+        return {
+          ...d,
+          ...c,
+          // Real score wins when user never set one
+          knownScore:
+            c.knownScore != null && c.knownScore >= 300 && c.knownScore <= 850
+              ? c.knownScore
+              : d.knownScore ?? 677,
+        };
+      })(),
     };
   } catch {
     return defaultState();

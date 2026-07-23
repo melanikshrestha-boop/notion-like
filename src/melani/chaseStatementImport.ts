@@ -12,7 +12,8 @@ import {
 import type { FinanceAccount, FinanceState, FinanceTx } from "./financeStore";
 
 /** Bump when re-extracted statements should force re-merge */
-export const CHASE_IMPORT_VERSION = "chase-v2-dec2025-jun2026";
+/** Bump when Chase CSV/PDF re-import should force re-merge into local books */
+export const CHASE_IMPORT_VERSION = "chase-v3-activity-csv-627-2025-08-to-2026-07";
 
 const FLAG_KEY = "wonder-finance-chase-import-version";
 

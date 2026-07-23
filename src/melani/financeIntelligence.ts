@@ -22,6 +22,17 @@ import { buildTaxBrief, answerTax } from "./financeTax";
 import { buildAuditBrief, answerAudit } from "./financeAudit";
 import { buildForecastBrief, answerForecast } from "./financeForecast";
 import { buildAdvisoryBrief, answerAdvisory } from "./financeAdvisory";
+import {
+  answerAccounting,
+  buildAccountingPack,
+  type AccountingPack,
+} from "./financeAccounting";
+import { loadBooksExtra } from "./financeBooksStore";
+import {
+  answerAdept,
+  buildAdeptBrief,
+  type AdeptBrief,
+} from "./financeAdept";
 
 /** Default: reinvest at least half of income. Ruthless mode aims higher. */
 export const REINVEST_TARGET_RATE = 0.5;
@@ -87,6 +98,10 @@ export type SmartBrief = {
   audit: ReturnType<typeof buildAuditBrief>;
   forecast: ReturnType<typeof buildForecastBrief>;
   advisory: ReturnType<typeof buildAdvisoryBrief>;
+  /** Full 14-module accounting pack (inbox → monthly close) */
+  accounting: AccountingPack;
+  /** Financially adept OS — credit climb + cash discipline */
+  adept: AdeptBrief;
   dataQuality: {
     hasTxs: boolean;
     hasIncome: boolean;
@@ -203,7 +218,9 @@ export function buildSmartBrief(
   state: FinanceState,
   ym: string,
   planRows: { id: string; label: string; planned: number; spent: number; remaining: number }[],
-  credit: CreditReport
+  credit: CreditReport,
+  /** Optional books extras (payables/receipts/closes). Defaults to localStorage. */
+  booksExtra = loadBooksExtra()
 ): SmartBrief {
   const txs = state.txs;
   const accounts = state.accounts;
@@ -245,6 +262,10 @@ export function buildSmartBrief(
   const audit = buildAuditBrief(state);
   const forecast = buildForecastBrief(state, ym, planRows);
   const advisory = buildAdvisoryBrief(state, reinvest, audit, tax, forecast);
+  // Full accounting desk: 14 modules on live ledger + books extras
+  const accounting = buildAccountingPack(state, ym, booksExtra);
+  // Adept OS — real score (677) + her books
+  const adept = buildAdeptBrief(state, credit, ym);
 
   const hasTxs = txs.length > 0;
   const hasIncome = income > 0 || txs.some((t) => t.kind === "income");
@@ -270,6 +291,46 @@ export function buildSmartBrief(
   }
 
   const actions: SmartAction[] = [];
+
+  // ── Credit climb from real score (677) ──
+  if (credit.scoreSource === "official" && credit.estimate < 700) {
+    actions.push({
+      id: "credit-climb-700",
+      priority: 97,
+      severity: "high",
+      title: `Credit ${credit.estimate} → target 700`,
+      detail: `${adept.order} Utilization ${
+        credit.utilization == null
+          ? "UNKNOWN — add card limit"
+          : `${Math.round(credit.utilization * 100)}%`
+      }. Next: ${adept.climb[0]?.moves[0] || "pay before statement close"}.`,
+      cta: "Review → credit drills",
+      tab: "insights",
+    });
+  }
+  if (credit.utilization == null && accounts.some((a) => a.kind === "credit")) {
+    actions.push({
+      id: "need-limit",
+      priority: 98,
+      severity: "critical",
+      title: "Card limit missing — utilization is blind",
+      detail:
+        "You cannot climb 677 without knowing % used. Open Accounts → set Limit on Chase card.",
+      cta: "Add credit limit",
+      tab: "accounts",
+    });
+  }
+  if (adept.level === "survival") {
+    actions.push({
+      id: "survival-floor",
+      priority: 99,
+      severity: "critical",
+      title: "Cash floor is broken",
+      detail: adept.leaks[0] || adept.order,
+      cta: "See adept drills",
+      tab: "insights",
+    });
+  }
 
   // ── Data foundation (can't be smart on empty) ──
   if (!hasTxs && !hasAccounts) {
@@ -607,6 +668,8 @@ export function buildSmartBrief(
     audit,
     forecast,
     advisory,
+    accounting,
+    adept,
     dataQuality: {
       hasTxs,
       hasIncome,
@@ -641,7 +704,11 @@ export function answerFromBrief(
     return "I don't have transactions yet. Import a bank CSV (Accounts) or Load demo — then I can answer with numbers, not vibes.";
   }
 
-  // Accountant backends first
+  // Adept OS + accountant backends first
+  const adeptA = answerAdept(q, brief.adept);
+  if (adeptA) return adeptA;
+  const booksA = answerAccounting(q, brief.accounting);
+  if (booksA) return booksA;
   const taxA = answerTax(q, brief.tax);
   if (taxA) return taxA;
   const auditA = answerAudit(q, brief.audit);
@@ -682,7 +749,11 @@ export function answerFromBrief(
         ? "unknown (add card limits)"
         : `${Math.round(extras.credit.utilization * 100)}%`;
     const tip = extras.credit.tips[0];
-    return `Educational health ${extras.credit.estimate} (${extras.credit.band}), not a bureau FICO. Utilization ${u}. ${tip ? `Next move: ${tip.title} — ${tip.how}` : ""}`;
+    const src =
+      extras.credit.scoreSource === "official"
+        ? "official on the books"
+        : "model estimate — enter Known score";
+    return `Credit ${extras.credit.estimate} (${extras.credit.band}, ${src}). Utilization ${u}. 90-day target ${brief.adept.targets.score90d}. ${tip ? `Next: ${tip.title} — ${tip.how}` : ""} ${brief.adept.order}`;
   }
 
   if (/runway|broke|last|survive/.test(q)) {
