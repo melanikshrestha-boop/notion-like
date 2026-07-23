@@ -58,6 +58,16 @@ export type PlaidLinkMeta = {
   linkedAt?: string;
 };
 
+/** Savings / money goal (Mintable-style target) */
+export type FinanceGoal = {
+  id: string;
+  name: string;
+  target: number;
+  saved: number;
+  /** Optional deadline YYYY-MM-DD */
+  deadline?: string | null;
+};
+
 export type FinanceState = {
   version: 2;
   accounts: FinanceAccount[];
@@ -66,6 +76,8 @@ export type FinanceState = {
   watchlist: string[];
   /** Optional Plaid item metadata (tokens never stored in localStorage) */
   plaidMeta?: PlaidLinkMeta | null;
+  /** Savings goals */
+  goals?: FinanceGoal[];
 };
 
 const KEY = "wonder-finance-v2";
@@ -108,6 +120,7 @@ function defaultState(): FinanceState {
     budget: DEFAULT_BUDGET,
     watchlist: ["SPY", "QQQ", "AAPL", "NVDA"],
     plaidMeta: null,
+    goals: [],
   };
 }
 
@@ -150,6 +163,7 @@ export function loadFinance(): FinanceState {
               ? old.watchlist
               : ["SPY", "QQQ", "AAPL", "NVDA"],
           plaidMeta: null,
+          goals: [],
         };
         saveFinance(next);
         return next;
@@ -173,6 +187,7 @@ export function loadFinance(): FinanceState {
           ? parsed.watchlist
           : ["SPY", "QQQ", "AAPL", "NVDA"],
       plaidMeta: parsed.plaidMeta || null,
+      goals: Array.isArray(parsed.goals) ? parsed.goals : [],
     };
   } catch {
     return defaultState();
@@ -369,4 +384,135 @@ export function recentMonthKeys(count = 6): string[] {
     d.setMonth(d.getMonth() - 1);
   }
   return out;
+}
+
+export function newGoal(partial?: Partial<FinanceGoal>): FinanceGoal {
+  return {
+    id: uid("goal"),
+    name: partial?.name || "New goal",
+    target: partial?.target ?? 1000,
+    saved: partial?.saved ?? 0,
+    deadline: partial?.deadline ?? null,
+  };
+}
+
+/** Month-by-month income / expense / flow (oldest → newest for charts) */
+export function monthlySeries(
+  txs: FinanceTx[],
+  monthsBack = 6
+): { ym: string; income: number; expense: number; flow: number }[] {
+  const keys = recentMonthKeys(monthsBack).reverse();
+  return keys.map((ym) => {
+    const income = monthIncome(txs, ym);
+    const expense = monthExpense(txs, ym);
+    return { ym, income, expense, flow: income - expense };
+  });
+}
+
+/** % of income kept this month (0–100, null if no income) */
+export function savingsRate(txs: FinanceTx[], ym: string): number | null {
+  const inc = monthIncome(txs, ym);
+  if (inc <= 0) return null;
+  const exp = monthExpense(txs, ym);
+  return Math.round(((inc - exp) / inc) * 100);
+}
+
+/** Demo seed so empty desks still look real (user can clear) */
+export function demoSeedTxs(): FinanceTx[] {
+  const ym = monthKey();
+  const [y, m] = ym.split("-");
+  const day = (d: number) =>
+    `${y}-${m}-${String(Math.min(28, d)).padStart(2, "0")}`;
+  return [
+    newTx({
+      date: day(1),
+      kind: "income",
+      amount: 4200,
+      category: "Other",
+      note: "Paycheck",
+      merchant: "Paycheck",
+      source: "manual",
+    }),
+    newTx({
+      date: day(2),
+      kind: "expense",
+      amount: 1850,
+      category: "Rent / housing",
+      note: "Rent",
+      merchant: "Rent",
+      source: "manual",
+    }),
+    newTx({
+      date: day(3),
+      kind: "expense",
+      amount: 86.4,
+      category: "Food / groceries",
+      note: "Trader Joe's",
+      merchant: "Trader Joe's",
+      source: "manual",
+    }),
+    newTx({
+      date: day(5),
+      kind: "expense",
+      amount: 14.5,
+      category: "Restaurants / coffee",
+      note: "Coffee",
+      merchant: "Blue Bottle",
+      source: "manual",
+    }),
+    newTx({
+      date: day(7),
+      kind: "expense",
+      amount: 62,
+      category: "Transport",
+      note: "MetroCard",
+      merchant: "MTA",
+      source: "manual",
+    }),
+    newTx({
+      date: day(9),
+      kind: "expense",
+      amount: 29.99,
+      category: "Subscriptions",
+      note: "Spotify + tools",
+      merchant: "Subscriptions",
+      source: "manual",
+    }),
+    newTx({
+      date: day(12),
+      kind: "expense",
+      amount: 118,
+      category: "Shopping",
+      note: "Uniqlo",
+      merchant: "Uniqlo",
+      source: "manual",
+    }),
+    newTx({
+      date: day(15),
+      kind: "expense",
+      amount: 45,
+      category: "Health",
+      note: "Pharmacy",
+      merchant: "Duane Reade",
+      source: "manual",
+    }),
+    newTx({
+      date: day(18),
+      kind: "income",
+      amount: 350,
+      category: "Other",
+      note: "Side gig",
+      merchant: "Freelance",
+      source: "manual",
+    }),
+    newTx({
+      date: day(20),
+      kind: "expense",
+      amount: 52.3,
+      category: "Food / groceries",
+      note: "Whole Foods",
+      merchant: "Whole Foods",
+      source: "manual",
+    }),
+  ];
 }

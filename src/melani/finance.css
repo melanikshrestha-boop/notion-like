@@ -70,6 +70,211 @@
   cursor: default;
 }
 
+/* Quick-add chips */
+.fin-quick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.fin-quick-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.fin-chip {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.88);
+  font: inherit;
+  font-size: 12px;
+  padding: 6px 11px;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.fin-chip:hover {
+  background: rgba(168, 196, 240, 0.12);
+  border-color: rgba(168, 196, 240, 0.35);
+  color: #fff;
+}
+
+.fin-empty-box {
+  padding: 18px;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.fin-empty-box .fin-btn {
+  margin-top: 10px;
+}
+
+/* Insights */
+.fin-insight-grid {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 720px) {
+  .fin-insight-grid {
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 20px;
+  }
+}
+
+.fin-insight-block {
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.fin-insight-block h3 {
+  margin: 0 0 12px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.fin-spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  min-height: 96px;
+  padding-top: 8px;
+}
+
+.fin-spark-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fin-spark-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 72px;
+}
+
+.fin-spark-bars i {
+  display: block;
+  width: 8px;
+  border-radius: 3px 3px 0 0;
+  min-height: 2px;
+}
+
+.fin-spark-bars i.is-in {
+  background: rgba(168, 212, 184, 0.85);
+}
+
+.fin-spark-bars i.is-out {
+  background: rgba(240, 160, 160, 0.8);
+}
+
+.fin-spark-col span {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.04em;
+}
+
+.fin-legend {
+  display: flex;
+  gap: 14px;
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.fin-legend .is-pos {
+  color: #a8d4b8;
+}
+
+.fin-legend .is-neg {
+  color: #f0a0a0;
+}
+
+.fin-bar-fill.is-goal {
+  background: linear-gradient(90deg, #7eb6ff, #a8d4b8);
+}
+
+/* Goals */
+.fin-goal-card {
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  margin-bottom: 10px;
+}
+
+.fin-goal-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.fin-goal-name {
+  flex: 1;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 4px 2px;
+  outline: none;
+}
+
+.fin-goal-track {
+  margin-bottom: 10px;
+}
+
+.fin-goal-nums {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
+.fin-goal-nums label {
+  display: grid;
+  gap: 4px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.fin-goal-nums input {
+  width: 7rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  padding: 6px 8px;
+}
+
+.fin-goal-nums em {
+  font-style: normal;
+  font-weight: 600;
+  color: #a8d4b8;
+  margin-left: auto;
+}
+
 /* Snapshot cards */
 .fin-snap {
   display: grid;

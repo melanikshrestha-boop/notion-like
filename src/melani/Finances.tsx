@@ -12,6 +12,7 @@ import { exportLedgerCsv, parseBankCsv } from "./financeCsv";
 import {
   cashOnHand,
   creditOwed,
+  demoSeedTxs,
   fingerprintsFromTxs,
   invested,
   loadFinance,
@@ -21,11 +22,14 @@ import {
   monthExpense,
   monthIncome,
   monthKey,
+  monthlySeries,
   netWorth,
   newAccount,
+  newGoal,
   newTx,
   recentMonthKeys,
   saveFinance,
+  savingsRate,
   spentByCategory,
   topMerchants,
   type AccountKind,
@@ -55,7 +59,15 @@ type PlaidStatus = {
   linkedItems?: number;
 };
 
-type TabId = "ledger" | "budget" | "accounts" | "connect";
+type TabId = "insights" | "ledger" | "budget" | "goals" | "accounts" | "connect";
+
+/** One-tap starter expenses for first-timers */
+const QUICK_ADDS: { label: string; amount: number; category: string; note: string }[] = [
+  { label: "☕ Coffee $5", amount: 5, category: "Restaurants / coffee", note: "Coffee" },
+  { label: "🚇 Transit $3", amount: 2.9, category: "Transport", note: "Transit" },
+  { label: "🥗 Lunch $15", amount: 15, category: "Restaurants / coffee", note: "Lunch" },
+  { label: "🛒 Groceries $60", amount: 60, category: "Food / groceries", note: "Groceries" },
+];
 
 const KINDS: { id: AccountKind; label: string }[] = [
   { id: "checking", label: "Checking" },
@@ -86,7 +98,7 @@ function mapQuote(raw: Record<string, unknown>): Quote {
 
 export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
   const [state, setState] = useState<FinanceState>(() => loadFinance());
-  const [tab, setTab] = useState<TabId>("ledger");
+  const [tab, setTab] = useState<TabId>("insights");
   const [showTxForm, setShowTxForm] = useState(false);
   const [txDraft, setTxDraft] = useState(() => newTx());
   const [filterQ, setFilterQ] = useState("");
@@ -98,6 +110,7 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
   const [plaidBusy, setPlaidBusy] = useState(false);
   const [plaidNote, setPlaidNote] = useState("");
   const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [goalDraft, setGoalDraft] = useState(() => newGoal({ name: "Emergency fund", target: 5000 }));
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -134,6 +147,18 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
     [state.txs, ym]
   );
   const months = useMemo(() => recentMonthKeys(12), []);
+  const series = useMemo(() => monthlySeries(state.txs, 6), [state.txs]);
+  const rate = useMemo(() => savingsRate(state.txs, ym), [state.txs, ym]);
+  const goals = state.goals || [];
+  const catSpend = useMemo(() => {
+    const entries = Object.entries(spentMap).sort((a, b) => b[1] - a[1]);
+    const max = entries[0]?.[1] || 1;
+    return entries.slice(0, 8).map(([cat, total]) => ({
+      cat,
+      total,
+      pct: Math.round((total / max) * 100),
+    }));
+  }, [spentMap]);
 
   const categories = useMemo(() => {
     const set = new Set<string>([
@@ -231,6 +256,68 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
     setState((s) => ({ ...s, txs: [tx, ...s.txs] }));
     setTxDraft(newTx({ kind: txDraft.kind, category: txDraft.category }));
     setShowTxForm(false);
+  }
+
+  /** One-tap expense — for people who hate forms */
+  function quickAdd(q: (typeof QUICK_ADDS)[number]) {
+    const tx = newTx({
+      kind: "expense",
+      amount: q.amount,
+      category: q.category,
+      note: q.note,
+      merchant: q.note,
+      source: "manual",
+    });
+    setState((s) => ({ ...s, txs: [tx, ...s.txs] }));
+    setImportNote(`Added ${q.label}`);
+    setTab("ledger");
+  }
+
+  /** Load sample month so the desk never feels empty */
+  function loadDemo() {
+    const seed = demoSeedTxs();
+    setState((s) => {
+      const merged = mergeTxs(s.txs, seed);
+      const accounts = s.accounts.map((a) =>
+        a.kind === "checking" ? { ...a, balance: Math.max(a.balance, 2400) } : a
+      );
+      const goals =
+        s.goals && s.goals.length
+          ? s.goals
+          : [
+              newGoal({ name: "Emergency fund", target: 5000, saved: 1200 }),
+              newGoal({ name: "Clinic seed", target: 10000, saved: 800 }),
+            ];
+      return { ...s, txs: merged.txs, accounts, goals };
+    });
+    setImportNote("Demo month loaded — edit or delete anything.");
+    setTab("insights");
+  }
+
+  function addGoal() {
+    if (!goalDraft.name.trim() || goalDraft.target <= 0) return;
+    setState((s) => ({
+      ...s,
+      goals: [...(s.goals || []), { ...goalDraft, id: newGoal().id }],
+    }));
+    setGoalDraft(newGoal({ name: "", target: 1000, saved: 0 }));
+  }
+
+  function patchGoal(
+    id: string,
+    patch: Partial<{ name: string; target: number; saved: number }>
+  ) {
+    setState((s) => ({
+      ...s,
+      goals: (s.goals || []).map((g) => (g.id === id ? { ...g, ...patch } : g)),
+    }));
+  }
+
+  function removeGoal(id: string) {
+    setState((s) => ({
+      ...s,
+      goals: (s.goals || []).filter((g) => g.id !== id),
+    }));
   }
 
   function removeTx(id: string) {
@@ -463,6 +550,11 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
           <button type="button" className="fin-btn" onClick={downloadCsv}>
             Export CSV
           </button>
+          {state.txs.length === 0 ? (
+            <button type="button" className="fin-btn" onClick={loadDemo}>
+              Load demo month
+            </button>
+          ) : null}
           {onGo ? (
             <button
               type="button"
@@ -472,6 +564,21 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
               Markets desk
             </button>
           ) : null}
+        </div>
+
+        {/* Quick-add row — zero learning curve */}
+        <div className="fin-quick" aria-label="Quick add expenses">
+          <span className="fin-quick-label">Quick add</span>
+          {QUICK_ADDS.map((q) => (
+            <button
+              key={q.label}
+              type="button"
+              className="fin-chip"
+              onClick={() => quickAdd(q)}
+            >
+              {q.label}
+            </button>
+          ))}
         </div>
         {importNote ? <p className="fin-note">{importNote}</p> : null}
       </header>
@@ -509,8 +616,10 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
           </strong>
         </div>
         <div className="fin-card">
-          <span>Transactions</span>
-          <strong>{state.txs.length.toLocaleString()}</strong>
+          <span>Savings rate</span>
+          <strong className={rate != null && rate < 0 ? "is-neg" : "is-pos"}>
+            {rate == null ? "—" : `${rate}%`}
+          </strong>
         </div>
       </div>
 
@@ -518,10 +627,12 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
       <div className="fin-tabs" role="tablist">
         {(
           [
+            ["insights", "Insights"],
             ["ledger", "Ledger"],
             ["budget", "Budget"],
+            ["goals", "Goals"],
             ["accounts", "Accounts"],
-            ["connect", "Bank connect"],
+            ["connect", "Bank"],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -536,6 +647,147 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
           </button>
         ))}
       </div>
+
+      {/* ── INSIGHTS ── */}
+      {tab === "insights" ? (
+        <section className="fin-sec">
+          <div className="fin-sec-head">
+            <h2>Money at a glance · {ym}</h2>
+            <p>Where it went · how the last 6 months look</p>
+          </div>
+
+          {state.txs.length === 0 ? (
+            <div className="fin-empty-box">
+              <p className="fin-empty">
+                Empty desk. Import a bank CSV, tap <strong>Quick add</strong>, or
+                load a demo month to see the full engine.
+              </p>
+              <button
+                type="button"
+                className="fin-btn fin-btn-primary"
+                onClick={loadDemo}
+              >
+                Load demo month
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="fin-insight-grid">
+                <div className="fin-insight-block">
+                  <h3>Spend by category</h3>
+                  {catSpend.length === 0 ? (
+                    <p className="fin-empty">No expenses this month.</p>
+                  ) : (
+                    catSpend.map((row) => (
+                      <div key={row.cat} className="fin-bar-row">
+                        <span title={row.cat}>{row.cat}</span>
+                        <div className="fin-bar-track" aria-hidden>
+                          <div
+                            className="fin-bar-fill"
+                            style={{ width: `${row.pct}%` }}
+                          />
+                        </div>
+                        <em>{money(row.total)}</em>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="fin-insight-block">
+                  <h3>6-month cash flow</h3>
+                  <div className="fin-spark" role="img" aria-label="Monthly cash flow">
+                    {series.map((s) => {
+                      const max = Math.max(
+                        1,
+                        ...series.map((x) => Math.max(x.income, x.expense))
+                      );
+                      const hIn = Math.round((s.income / max) * 72);
+                      const hOut = Math.round((s.expense / max) * 72);
+                      return (
+                        <div key={s.ym} className="fin-spark-col" title={`${s.ym}: in ${money(s.income)} out ${money(s.expense)}`}>
+                          <div className="fin-spark-bars">
+                            <i className="is-in" style={{ height: hIn }} />
+                            <i className="is-out" style={{ height: hOut }} />
+                          </div>
+                          <span>{s.ym.slice(5)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="fin-legend">
+                    <span className="is-pos">■ income</span>
+                    <span className="is-neg">■ spend</span>
+                  </p>
+                </div>
+              </div>
+
+              {merchants.length > 0 ? (
+                <>
+                  <div className="fin-sec-head" style={{ marginTop: 20 }}>
+                    <h2>Top merchants</h2>
+                    <p>This month</p>
+                  </div>
+                  <table className="fin-table">
+                    <thead>
+                      <tr>
+                        <th>Merchant</th>
+                        <th className="num">Times</th>
+                        <th className="num">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {merchants.slice(0, 6).map((m) => (
+                        <tr key={m.merchant}>
+                          <td>{m.merchant}</td>
+                          <td className="num">{m.count}</td>
+                          <td className="num">{moneyExact(m.total)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              ) : null}
+
+              {goals.length > 0 ? (
+                <>
+                  <div className="fin-sec-head" style={{ marginTop: 20 }}>
+                    <h2>Goals pulse</h2>
+                    <p>
+                      <button
+                        type="button"
+                        className="fin-ghost"
+                        onClick={() => setTab("goals")}
+                      >
+                        Manage →
+                      </button>
+                    </p>
+                  </div>
+                  {goals.map((g) => {
+                    const pct =
+                      g.target > 0
+                        ? Math.min(100, Math.round((g.saved / g.target) * 100))
+                        : 0;
+                    return (
+                      <div key={g.id} className="fin-bar-row">
+                        <span>{g.name}</span>
+                        <div className="fin-bar-track" aria-hidden>
+                          <div
+                            className="fin-bar-fill is-goal"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <em>
+                          {money(g.saved)} / {money(g.target)}
+                        </em>
+                      </div>
+                    );
+                  })}
+                </>
+              ) : null}
+            </>
+          )}
+        </section>
+      ) : null}
 
       {showTxForm ? (
         <section className="fin-sec">
@@ -863,6 +1115,137 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
               ))}
             </tbody>
           </table>
+        </section>
+      ) : null}
+
+      {/* ── GOALS ── */}
+      {tab === "goals" ? (
+        <section className="fin-sec">
+          <div className="fin-sec-head">
+            <h2>Savings goals</h2>
+            <p>Name a target · track what you’ve put aside</p>
+          </div>
+
+          {goals.length === 0 ? (
+            <p className="fin-empty">
+              No goals yet. Add one below (emergency fund, clinic seed, trip…).
+            </p>
+          ) : (
+            goals.map((g) => {
+              const pct =
+                g.target > 0
+                  ? Math.min(100, Math.round((g.saved / g.target) * 100))
+                  : 0;
+              return (
+                <div key={g.id} className="fin-goal-card">
+                  <div className="fin-goal-top">
+                    <input
+                      className="fin-goal-name"
+                      value={g.name}
+                      onChange={(e) => patchGoal(g.id, { name: e.target.value })}
+                      aria-label="Goal name"
+                    />
+                    <button
+                      type="button"
+                      className="fin-ghost"
+                      onClick={() => removeGoal(g.id)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <div className="fin-bar-track fin-goal-track" aria-hidden>
+                    <div
+                      className="fin-bar-fill is-goal"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <div className="fin-goal-nums">
+                    <label>
+                      Saved
+                      <input
+                        type="number"
+                        min={0}
+                        step="1"
+                        value={g.saved || ""}
+                        onChange={(e) =>
+                          patchGoal(g.id, {
+                            saved: Math.max(0, Number(e.target.value) || 0),
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Target
+                      <input
+                        type="number"
+                        min={0}
+                        step="1"
+                        value={g.target || ""}
+                        onChange={(e) =>
+                          patchGoal(g.id, {
+                            target: Math.max(0, Number(e.target.value) || 0),
+                          })
+                        }
+                      />
+                    </label>
+                    <em>{pct}%</em>
+                  </div>
+                </div>
+              );
+            })
+          )}
+
+          <div className="fin-sec-head" style={{ marginTop: 22 }}>
+            <h2>Add goal</h2>
+          </div>
+          <div className="fin-form">
+            <label>
+              Name
+              <input
+                type="text"
+                value={goalDraft.name}
+                placeholder="Emergency fund"
+                onChange={(e) =>
+                  setGoalDraft((d) => ({ ...d, name: e.target.value }))
+                }
+              />
+            </label>
+            <label>
+              Target $
+              <input
+                type="number"
+                min={0}
+                value={goalDraft.target || ""}
+                onChange={(e) =>
+                  setGoalDraft((d) => ({
+                    ...d,
+                    target: Math.max(0, Number(e.target.value) || 0),
+                  }))
+                }
+              />
+            </label>
+            <label>
+              Already saved $
+              <input
+                type="number"
+                min={0}
+                value={goalDraft.saved || ""}
+                onChange={(e) =>
+                  setGoalDraft((d) => ({
+                    ...d,
+                    saved: Math.max(0, Number(e.target.value) || 0),
+                  }))
+                }
+              />
+            </label>
+            <button
+              type="button"
+              className="fin-btn fin-btn-primary"
+              onClick={addGoal}
+            >
+              Save goal
+            </button>
+          </div>
         </section>
       ) : null}
 
