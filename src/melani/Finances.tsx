@@ -1,12 +1,24 @@
 /**
- * Wonder Finances — Mintable-style full money tracker.
- * - Manual + CSV bank statements (works offline, no ads)
- * - Optional Plaid bank link when PLAID_* keys are set
- * - Every transaction searchable; auto-category; budgets; export
- * Not financial advice.
+ * Wonder Finances — Mintable + Sheets-level money desk.
+ * - Bank CSV + optional Plaid auto-sync
+ * - Credit health estimate + real-world improvement tips
+ * - Spreadsheet-style ledger (edit cells, paste rows, SUM footer)
+ * Not financial advice. Credit number is educational, not FICO.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ClipboardEvent,
+} from "react";
 import "./finance.css";
+import {
+  buildCreditReport,
+  DEFAULT_CREDIT_PROFILE,
+  type CreditProfile,
+} from "./financeCredit";
 import { FINANCE_CATEGORIES } from "./financeCategorize";
 import { exportLedgerCsv, parseBankCsv } from "./financeCsv";
 import {
@@ -59,14 +71,28 @@ type PlaidStatus = {
   linkedItems?: number;
 };
 
-type TabId = "insights" | "ledger" | "budget" | "goals" | "accounts" | "connect";
+type TabId =
+  | "insights"
+  | "ledger"
+  | "credit"
+  | "budget"
+  | "goals"
+  | "accounts"
+  | "connect";
+
+type SortKey = "date" | "merchant" | "category" | "amount" | "kind";
 
 /** One-tap starter expenses for first-timers */
-const QUICK_ADDS: { label: string; amount: number; category: string; note: string }[] = [
-  { label: "☕ Coffee $5", amount: 5, category: "Restaurants / coffee", note: "Coffee" },
-  { label: "🚇 Transit $3", amount: 2.9, category: "Transport", note: "Transit" },
-  { label: "🥗 Lunch $15", amount: 15, category: "Restaurants / coffee", note: "Lunch" },
-  { label: "🛒 Groceries $60", amount: 60, category: "Food / groceries", note: "Groceries" },
+const QUICK_ADDS: {
+  label: string;
+  amount: number;
+  category: string;
+  note: string;
+}[] = [
+  { label: "Coffee $5", amount: 5, category: "Restaurants / coffee", note: "Coffee" },
+  { label: "Transit $3", amount: 2.9, category: "Transport", note: "Transit" },
+  { label: "Lunch $15", amount: 15, category: "Restaurants / coffee", note: "Lunch" },
+  { label: "Groceries $60", amount: 60, category: "Food / groceries", note: "Groceries" },
 ];
 
 const KINDS: { id: AccountKind; label: string }[] = [
@@ -110,8 +136,25 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
   const [plaidBusy, setPlaidBusy] = useState(false);
   const [plaidNote, setPlaidNote] = useState("");
   const [quotes, setQuotes] = useState<Quote[]>([]);
-  const [goalDraft, setGoalDraft] = useState(() => newGoal({ name: "Emergency fund", target: 5000 }));
+  const [goalDraft, setGoalDraft] = useState(() =>
+    newGoal({ name: "Emergency fund", target: 5000 })
+  );
+  const [sortKey, setSortKey] = useState<SortKey>("date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const creditProfile: CreditProfile = useMemo(
+    () => ({
+      ...DEFAULT_CREDIT_PROFILE,
+      ...(state.creditProfile || {}),
+    }),
+    [state.creditProfile]
+  );
+
+  const creditReport = useMemo(
+    () => buildCreditReport(creditProfile, state.accounts),
+    [creditProfile, state.accounts]
+  );
 
   useEffect(() => {
     saveFinance(state);
@@ -169,7 +212,7 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
     return Array.from(set);
   }, [state.budget, state.txs]);
 
-  // Full filtered ledger (everything trackable)
+  // Full filtered ledger (Sheets-style table source)
   const ledger = useMemo(() => {
     let list = [...state.txs];
     if (filterMonth !== "all") {
@@ -187,9 +230,123 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
           (t.category || "").toLowerCase().includes(q)
       );
     }
-    list.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+    // Sheets-style column sort
+    const dir = sortDir === "asc" ? 1 : -1;
+    list.sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === "date") cmp = a.date.localeCompare(b.date);
+      else if (sortKey === "merchant")
+        cmp = (a.merchant || a.note || "").localeCompare(b.merchant || b.note || "");
+      else if (sortKey === "category") cmp = a.category.localeCompare(b.category);
+      else if (sortKey === "kind") cmp = a.kind.localeCompare(b.kind);
+      else cmp = a.amount - b.amount;
+      return cmp * dir;
+    });
     return list;
-  }, [state.txs, filterMonth, filterKind, filterCat, filterQ]);
+  }, [state.txs, filterMonth, filterKind, filterCat, filterQ, sortKey, sortDir]);
+
+  /** Footer totals for visible sheet rows (like =SUM) */
+  const ledgerTotals = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    for (const t of ledger) {
+      if (t.kind === "income") income += t.amount;
+      else expense += t.amount;
+    }
+    return { income, expense, net: income - expense, count: ledger.length };
+  }, [ledger]);
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSortKey(key);
+      setSortDir(key === "date" || key === "amount" ? "desc" : "asc");
+    }
+  }
+
+  function patchCreditProfile(patch: Partial<CreditProfile>) {
+    setState((s) => ({
+      ...s,
+      creditProfile: {
+        ...DEFAULT_CREDIT_PROFILE,
+        ...(s.creditProfile || {}),
+        ...patch,
+      },
+    }));
+  }
+
+  /** Paste TSV/CSV from Google Sheets / Excel into the ledger */
+  function onLedgerPaste(e: ClipboardEvent<HTMLDivElement>) {
+    const text = e.clipboardData.getData("text/plain");
+    if (!text || !text.includes("\t") && !text.includes("\n")) return;
+    // Only intercept multi-cell paste
+    if (!text.includes("\n") && !text.includes("\t")) return;
+    e.preventDefault();
+    const lines = text
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const added: FinanceTx[] = [];
+    for (const line of lines) {
+      const cols = line.split("\t").length > 1 ? line.split("\t") : line.split(",");
+      // Expected: date | merchant | amount | category? | kind?
+      const dateRaw = (cols[0] || "").trim();
+      const merchant = (cols[1] || "").trim();
+      const amountRaw = (cols[2] || "").replace(/[$,]/g, "").trim();
+      const amount = Math.abs(Number(amountRaw));
+      if (!amount || Number.isNaN(amount)) continue;
+      let date = dateRaw;
+      // Accept M/D/YYYY
+      if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(dateRaw)) {
+        const [mm, dd, yy] = dateRaw.split("/");
+        const y = yy.length === 2 ? `20${yy}` : yy;
+        date = `${y}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+      }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        date = new Date().toISOString().slice(0, 10);
+      }
+      const kind: TxKind =
+        amountRaw.trim().startsWith("-") || (cols[4] || "").toLowerCase().includes("exp")
+          ? "expense"
+          : (cols[4] || "").toLowerCase().includes("inc")
+            ? "income"
+            : "expense";
+      // Prefer negative amounts as expense (sheets often use - for spend)
+      const isNeg = amountRaw.trim().startsWith("-") || Number(amountRaw) < 0;
+      added.push(
+        newTx({
+          date,
+          merchant: merchant || "Pasted",
+          note: merchant || "Pasted",
+          amount,
+          category: (cols[3] || "Uncategorized").trim() || "Uncategorized",
+          kind: isNeg || kind === "expense" ? "expense" : "income",
+          source: "import",
+        })
+      );
+    }
+    if (!added.length) {
+      setImportNote("Paste failed — use columns: Date · Merchant · Amount · Category");
+      return;
+    }
+    setState((s) => {
+      const merged = mergeTxs(s.txs, added);
+      return { ...s, txs: merged.txs };
+    });
+    setImportNote(`Pasted ${added.length} rows from spreadsheet`);
+  }
+
+  function addBlankSheetRow() {
+    const tx = newTx({
+      kind: "expense",
+      amount: 0,
+      category: "Uncategorized",
+      note: "",
+      merchant: "",
+      source: "manual",
+    });
+    setState((s) => ({ ...s, txs: [tx, ...s.txs] }));
+  }
 
   const loadQuotes = useCallback(async () => {
     if (!state.watchlist.length) return;
@@ -628,7 +785,8 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
         {(
           [
             ["insights", "Insights"],
-            ["ledger", "Ledger"],
+            ["ledger", "Sheet"],
+            ["credit", "Credit"],
             ["budget", "Budget"],
             ["goals", "Goals"],
             ["accounts", "Accounts"],
@@ -881,9 +1039,10 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
       {tab === "ledger" ? (
         <section className="fin-sec">
           <div className="fin-sec-head">
-            <h2>Every transaction</h2>
+            <h2>Money sheet</h2>
             <p>
-              Showing {ledger.length.toLocaleString()} · filter anything
+              Google Sheets mode — click cells to edit · paste rows from
+              Sheets/Excel · click headers to sort
             </p>
           </div>
 
@@ -930,45 +1089,92 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                 </option>
               ))}
             </select>
+            <button type="button" className="fin-btn" onClick={addBlankSheetRow}>
+              + Row
+            </button>
           </div>
 
-          {ledger.length === 0 ? (
-            <p className="fin-empty">
-              Nothing here yet. Import a bank CSV or add a transaction.
-            </p>
-          ) : (
-            <div className="fin-table-scroll">
-              <table className="fin-table">
-                <thead>
+          <p className="fin-sheet-hint">
+            Paste from Google Sheets: Date · Merchant · Amount · Category
+            (columns). Negative amounts = expense.
+          </p>
+
+          <div
+            className="fin-table-scroll fin-sheet"
+            onPaste={onLedgerPaste}
+            tabIndex={0}
+          >
+            <table className="fin-table fin-sheet-table">
+              <thead>
+                <tr>
+                  <th>
+                    <button type="button" className="fin-th-btn" onClick={() => toggleSort("date")}>
+                      Date {sortKey === "date" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" className="fin-th-btn" onClick={() => toggleSort("merchant")}>
+                      Merchant {sortKey === "merchant" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" className="fin-th-btn" onClick={() => toggleSort("category")}>
+                      Category {sortKey === "category" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" className="fin-th-btn" onClick={() => toggleSort("kind")}>
+                      Type {sortKey === "kind" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                    </button>
+                  </th>
+                  <th className="num">
+                    <button type="button" className="fin-th-btn" onClick={() => toggleSort("amount")}>
+                      Amount {sortKey === "amount" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                    </button>
+                  </th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {ledger.length === 0 ? (
                   <tr>
-                    <th>Date</th>
-                    <th>Merchant</th>
-                    <th>Category</th>
-                    <th>Source</th>
-                    <th className="num">Amount</th>
-                    <th />
+                    <td colSpan={6} className="fin-empty">
+                      Empty sheet. Import bank CSV, paste rows, or + Row.
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {ledger.slice(0, 500).map((t) => (
+                ) : (
+                  ledger.slice(0, 800).map((t) => (
                     <tr key={t.id}>
-                      <td>{t.date}</td>
                       <td>
-                        <div className="fin-merchant">
-                          {t.merchant || t.note || "—"}
-                          {t.pending ? (
-                            <em className="fin-pending">pending</em>
-                          ) : null}
-                        </div>
+                        <input
+                          type="date"
+                          className="fin-cell"
+                          value={t.date}
+                          onChange={(e) =>
+                            patchTx(t.id, { date: e.target.value })
+                          }
+                        />
+                      </td>
+                      <td>
+                        <input
+                          className="fin-cell"
+                          value={t.merchant || t.note || ""}
+                          placeholder="Who / what"
+                          onChange={(e) =>
+                            patchTx(t.id, {
+                              merchant: e.target.value,
+                              note: e.target.value,
+                            })
+                          }
+                        />
                       </td>
                       <td>
                         <select
-                          className="fin-cat-select"
+                          className="fin-cell"
                           value={t.category}
                           onChange={(e) =>
                             patchTx(t.id, { category: e.target.value })
                           }
-                          aria-label="Category"
                         >
                           {categories.map((c) => (
                             <option key={c} value={c}>
@@ -977,16 +1183,38 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                           ))}
                         </select>
                       </td>
-                      <td className="fin-src">{t.source || "manual"}</td>
-                      <td className="num">
-                        <span
-                          className={
-                            t.kind === "income" ? "is-pos" : "is-neg"
+                      <td>
+                        <select
+                          className="fin-cell"
+                          value={t.kind}
+                          onChange={(e) =>
+                            patchTx(t.id, {
+                              kind: e.target.value as TxKind,
+                            })
                           }
                         >
-                          {t.kind === "income" ? "+" : "−"}
-                          {moneyExact(t.amount)}
-                        </span>
+                          <option value="expense">Out</option>
+                          <option value="income">In</option>
+                        </select>
+                      </td>
+                      <td className="num">
+                        <input
+                          type="number"
+                          className={`fin-cell fin-cell-num${
+                            t.kind === "income" ? " is-pos" : " is-neg"
+                          }`}
+                          min={0}
+                          step="0.01"
+                          value={t.amount || ""}
+                          onChange={(e) =>
+                            patchTx(t.id, {
+                              amount: Math.max(
+                                0,
+                                Number(e.target.value) || 0
+                              ),
+                            })
+                          }
+                        />
                       </td>
                       <td>
                         <button
@@ -994,48 +1222,297 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                           className="fin-ghost"
                           onClick={() => removeTx(t.id)}
                         >
-                          Remove
+                          ×
                         </button>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              {ledger.length > 500 ? (
-                <p className="fin-note">
-                  Showing first 500 of {ledger.length}. Export CSV for full
-                  dump.
-                </p>
-              ) : null}
-            </div>
-          )}
+                  ))
+                )}
+              </tbody>
+              <tfoot>
+                <tr className="fin-sheet-sum">
+                  <td colSpan={4}>
+                    =SUM · {ledgerTotals.count} rows visible
+                  </td>
+                  <td className="num">
+                    <span className="is-pos">+{moneyExact(ledgerTotals.income)}</span>
+                    <br />
+                    <span className="is-neg">−{moneyExact(ledgerTotals.expense)}</span>
+                    <br />
+                    <strong className={ledgerTotals.net < 0 ? "is-neg" : "is-pos"}>
+                      net {moneyExact(ledgerTotals.net)}
+                    </strong>
+                  </td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </section>
+      ) : null}
 
-          {merchants.length > 0 ? (
-            <>
-              <div className="fin-sec-head" style={{ marginTop: 28 }}>
-                <h2>Top merchants · {ym}</h2>
-                <p>Where money goes</p>
+      {/* ── CREDIT HEALTH ── */}
+      {tab === "credit" ? (
+        <section className="fin-sec">
+          <div className="fin-sec-head">
+            <h2>Credit health</h2>
+            <p>Honest estimate + a plan to climb — not a bureau hard pull</p>
+          </div>
+
+          <div className="fin-credit-hero">
+            <div className="fin-credit-score">
+              <span>Health estimate</span>
+              <strong>{creditReport.estimate}</strong>
+              <em>{creditReport.band}</em>
+            </div>
+            <div className="fin-credit-util">
+              <span>Card utilization</span>
+              <strong>
+                {creditReport.utilization == null
+                  ? "Add limits"
+                  : `${Math.round(creditReport.utilization * 100)}%`}
+              </strong>
+              <em>
+                Goal: under 30% always · under 10% for excellent range
+              </em>
+            </div>
+          </div>
+
+          <p className="fin-note fin-credit-disclaimer">
+            {creditReport.disclaimer}
+          </p>
+
+          <div className="fin-sec-head" style={{ marginTop: 18 }}>
+            <h2>What’s driving this</h2>
+          </div>
+          {creditReport.factors.map((f) => (
+            <div key={f.id} className="fin-bar-row">
+              <span title={f.label}>
+                {f.label} · {f.weight}%
+              </span>
+              <div className="fin-bar-track" aria-hidden>
+                <div
+                  className={`fin-bar-fill${
+                    f.status === "bad"
+                      ? " is-over"
+                      : f.status === "good"
+                        ? " is-goal"
+                        : ""
+                  }`}
+                  style={{ width: `${f.score}%` }}
+                />
               </div>
-              <table className="fin-table">
-                <thead>
-                  <tr>
-                    <th>Merchant</th>
-                    <th className="num">Times</th>
-                    <th className="num">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {merchants.map((m) => (
-                    <tr key={m.merchant}>
-                      <td>{m.merchant}</td>
-                      <td className="num">{m.count}</td>
-                      <td className="num">{moneyExact(m.total)}</td>
+              <em>{f.score}</em>
+            </div>
+          ))}
+          <ul className="fin-factor-notes">
+            {creditReport.factors.map((f) => (
+              <li key={`${f.id}-d`}>
+                <strong>{f.label}:</strong> {f.detail}
+              </li>
+            ))}
+          </ul>
+
+          <div className="fin-sec-head" style={{ marginTop: 22 }}>
+            <h2>Your fix plan</h2>
+            <p>Do these in order — score follows behavior</p>
+          </div>
+          <div className="fin-tips">
+            {creditReport.tips.map((tip, i) => (
+              <article key={i} className={`fin-tip fin-tip-${tip.priority}`}>
+                <header>
+                  <span className="fin-tip-when">
+                    {tip.priority === "now"
+                      ? "Do now"
+                      : tip.priority === "this_month"
+                        ? "This month"
+                        : "This year"}
+                  </span>
+                  <h3>{tip.title}</h3>
+                </header>
+                <p>
+                  <strong>Why:</strong> {tip.why}
+                </p>
+                <p>
+                  <strong>How:</strong> {tip.how}
+                </p>
+              </article>
+            ))}
+          </div>
+
+          <div className="fin-sec-head" style={{ marginTop: 24 }}>
+            <h2>Tell the model your situation</h2>
+            <p>Honest answers = better tips (stays on this device)</p>
+          </div>
+          <div className="fin-form fin-credit-form">
+            <label>
+              On-time payments %
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={creditProfile.onTimePct}
+                onChange={(e) =>
+                  patchCreditProfile({
+                    onTimePct: Math.min(
+                      100,
+                      Math.max(0, Number(e.target.value) || 0)
+                    ),
+                  })
+                }
+              />
+            </label>
+            <label>
+              Years of credit history
+              <input
+                type="number"
+                min={0}
+                step="0.5"
+                value={creditProfile.historyYears}
+                onChange={(e) =>
+                  patchCreditProfile({
+                    historyYears: Math.max(0, Number(e.target.value) || 0),
+                  })
+                }
+              />
+            </label>
+            <label>
+              Hard inquiries (12 mo)
+              <input
+                type="number"
+                min={0}
+                value={creditProfile.hardInquiries}
+                onChange={(e) =>
+                  patchCreditProfile({
+                    hardInquiries: Math.max(0, Number(e.target.value) || 0),
+                  })
+                }
+              />
+            </label>
+            <label>
+              Open accounts
+              <input
+                type="number"
+                min={0}
+                value={creditProfile.openAccounts}
+                onChange={(e) =>
+                  patchCreditProfile({
+                    openAccounts: Math.max(0, Number(e.target.value) || 0),
+                  })
+                }
+              />
+            </label>
+            <label>
+              Lates in last 2 years
+              <input
+                type="number"
+                min={0}
+                value={creditProfile.recentLates}
+                onChange={(e) =>
+                  patchCreditProfile({
+                    recentLates: Math.max(0, Number(e.target.value) || 0),
+                  })
+                }
+              />
+            </label>
+            <label>
+              Open collections
+              <input
+                type="number"
+                min={0}
+                value={creditProfile.collections}
+                onChange={(e) =>
+                  patchCreditProfile({
+                    collections: Math.max(0, Number(e.target.value) || 0),
+                  })
+                }
+              />
+            </label>
+            <label>
+              Known real score (optional)
+              <input
+                type="number"
+                min={300}
+                max={850}
+                placeholder="e.g. 620"
+                value={creditProfile.knownScore ?? ""}
+                onChange={(e) =>
+                  patchCreditProfile({
+                    knownScore: e.target.value
+                      ? Number(e.target.value)
+                      : null,
+                  })
+                }
+              />
+            </label>
+          </div>
+
+          <div className="fin-sec-head" style={{ marginTop: 22 }}>
+            <h2>Cards feeding utilization</h2>
+            <p>Balance + limit on each credit account → auto % above</p>
+          </div>
+          <table className="fin-table">
+            <thead>
+              <tr>
+                <th>Card</th>
+                <th className="num">Balance owed</th>
+                <th className="num">Limit</th>
+                <th className="num">Used %</th>
+              </tr>
+            </thead>
+            <tbody>
+              {state.accounts
+                .filter((a) => a.kind === "credit")
+                .map((a) => {
+                  const lim = a.creditLimit || 0;
+                  const pct =
+                    lim > 0
+                      ? Math.round((Math.max(0, a.balance) / lim) * 100)
+                      : null;
+                  return (
+                    <tr key={a.id}>
+                      <td>{a.name}</td>
+                      <td className="num">
+                        <input
+                          type="number"
+                          value={a.balance}
+                          onChange={(e) =>
+                            patchAccount(a.id, {
+                              balance: Number(e.target.value) || 0,
+                            })
+                          }
+                        />
+                      </td>
+                      <td className="num">
+                        <input
+                          type="number"
+                          placeholder="limit"
+                          value={a.creditLimit ?? ""}
+                          onChange={(e) =>
+                            patchAccount(a.id, {
+                              creditLimit: e.target.value
+                                ? Number(e.target.value)
+                                : null,
+                            })
+                          }
+                        />
+                      </td>
+                      <td className="num">
+                        {pct == null ? "—" : `${pct}%`}
+                      </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </>
-          ) : null}
+                  );
+                })}
+              {state.accounts.filter((a) => a.kind === "credit").length ===
+              0 ? (
+                <tr>
+                  <td colSpan={4} className="fin-empty">
+                    Add a credit account on Accounts tab, set Type = Credit.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
         </section>
       ) : null}
 
@@ -1254,7 +1731,10 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
         <section className="fin-sec">
           <div className="fin-sec-head">
             <h2>Accounts</h2>
-            <p>Balances · credit = what you owe</p>
+            <p>
+              Attach banks via Bank tab · for cards set Limit so credit health
+              auto-calculates utilization
+            </p>
           </div>
           <table className="fin-table">
             <thead>
@@ -1263,6 +1743,7 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                 <th>Type</th>
                 <th>Bank</th>
                 <th className="num">Balance</th>
+                <th className="num">Limit</th>
                 <th />
               </tr>
             </thead>
@@ -1316,6 +1797,25 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                         })
                       }
                     />
+                  </td>
+                  <td className="num">
+                    {a.kind === "credit" ? (
+                      <input
+                        type="number"
+                        step="1"
+                        placeholder="limit"
+                        value={a.creditLimit ?? ""}
+                        onChange={(e) =>
+                          patchAccount(a.id, {
+                            creditLimit: e.target.value
+                              ? Number(e.target.value)
+                              : null,
+                          })
+                        }
+                      />
+                    ) : (
+                      "—"
+                    )}
                   </td>
                   <td>
                     <button
@@ -1371,8 +1871,36 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
       {tab === "connect" ? (
         <section className="fin-sec">
           <div className="fin-sec-head">
-            <h2>Bank connect</h2>
-            <p>Mintable path: Plaid free plan · or CSV only</p>
+            <h2>Attach bank accounts</h2>
+            <p>
+              Automatic when Plaid keys are set · otherwise export CSV from
+              your bank app and import (works today, zero setup)
+            </p>
+          </div>
+
+          <div className="fin-auto-steps">
+            <div>
+              <b>1 · Fast path (no keys)</b>
+              <p>
+                Chase / Amex / Capital One app → Statements or Download → CSV →
+                Import bank CSV above. Duplicates auto-skip.
+              </p>
+            </div>
+            <div>
+              <b>2 · Automatic path (Plaid)</b>
+              <p>
+                Free Plaid developer account → put PLAID_CLIENT_ID +
+                PLAID_SECRET in Wonder .env → restart → Connect sandbox / live
+                bank. Sync pulls accounts + transactions.
+              </p>
+            </div>
+            <div>
+              <b>3 · Credit climb</b>
+              <p>
+                After balances land, set each card’s Limit on Accounts → open
+                Credit tab for score estimate + fix plan.
+              </p>
+            </div>
           </div>
 
           <div className="fin-connect-grid">

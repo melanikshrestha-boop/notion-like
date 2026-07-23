@@ -18,6 +18,11 @@ export type FinanceAccount = {
   kind: AccountKind;
   /** Balance (credit = amount owed) */
   balance: number;
+  /**
+   * Credit limit (cards only). Needed for utilization % —
+   * the #1 lever people can move fast for credit health.
+   */
+  creditLimit?: number | null;
   /** Institution label e.g. Chase */
   institution?: string;
   /** Plaid account id when linked */
@@ -78,6 +83,19 @@ export type FinanceState = {
   plaidMeta?: PlaidLinkMeta | null;
   /** Savings goals */
   goals?: FinanceGoal[];
+  /**
+   * Credit profile (self-reported levers for the educational score).
+   * Stored as loose object so we don't hard-couple version bumps.
+   */
+  creditProfile?: {
+    onTimePct: number;
+    historyYears: number;
+    hardInquiries: number;
+    openAccounts: number;
+    recentLates: number;
+    collections: number;
+    knownScore?: number | null;
+  } | null;
 };
 
 const KEY = "wonder-finance-v2";
@@ -121,6 +139,15 @@ function defaultState(): FinanceState {
     watchlist: ["SPY", "QQQ", "AAPL", "NVDA"],
     plaidMeta: null,
     goals: [],
+    creditProfile: {
+      onTimePct: 90,
+      historyYears: 3,
+      hardInquiries: 2,
+      openAccounts: 3,
+      recentLates: 0,
+      collections: 0,
+      knownScore: null,
+    },
   };
 }
 
@@ -164,6 +191,7 @@ export function loadFinance(): FinanceState {
               : ["SPY", "QQQ", "AAPL", "NVDA"],
           plaidMeta: null,
           goals: [],
+          creditProfile: defaultState().creditProfile,
         };
         saveFinance(next);
         return next;
@@ -175,7 +203,10 @@ export function loadFinance(): FinanceState {
       version: 2,
       accounts:
         Array.isArray(parsed.accounts) && parsed.accounts.length
-          ? parsed.accounts
+          ? parsed.accounts.map((a) => ({
+              ...a,
+              creditLimit: a.creditLimit ?? null,
+            }))
           : DEFAULT_ACCOUNTS,
       txs: Array.isArray(parsed.txs) ? parsed.txs.map(migrateTx) : [],
       budget:
@@ -188,6 +219,7 @@ export function loadFinance(): FinanceState {
           : ["SPY", "QQQ", "AAPL", "NVDA"],
       plaidMeta: parsed.plaidMeta || null,
       goals: Array.isArray(parsed.goals) ? parsed.goals : [],
+      creditProfile: parsed.creditProfile || defaultState().creditProfile,
     };
   } catch {
     return defaultState();
@@ -329,6 +361,7 @@ export function newAccount(partial?: Partial<FinanceAccount>): FinanceAccount {
     name: partial?.name || "New account",
     kind: partial?.kind || "other",
     balance: partial?.balance ?? 0,
+    creditLimit: partial?.creditLimit ?? null,
     institution: partial?.institution || "",
     plaidAccountId: partial?.plaidAccountId ?? null,
     lastSyncAt: partial?.lastSyncAt ?? null,

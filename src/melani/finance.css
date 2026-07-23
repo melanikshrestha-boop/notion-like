@@ -275,6 +275,250 @@
   margin-left: auto;
 }
 
+/* ── Sheets-style ledger ── */
+.fin-sheet {
+  outline: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.fin-sheet:focus {
+  border-color: rgba(168, 196, 240, 0.35);
+}
+
+.fin-sheet-hint {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.fin-th-btn {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 0;
+}
+
+.fin-th-btn:hover {
+  color: #fff;
+}
+
+.fin-cell {
+  width: 100%;
+  min-width: 0;
+  border: 0 !important;
+  border-bottom: 1px solid transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #fff !important;
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 4px !important;
+  outline: none;
+}
+
+.fin-cell:focus {
+  background: rgba(168, 196, 240, 0.08) !important;
+  border-bottom-color: rgba(168, 196, 240, 0.45) !important;
+}
+
+.fin-cell-num {
+  text-align: right;
+  width: 6.5rem;
+  max-width: 100%;
+}
+
+.fin-cell-num.is-pos {
+  color: #a8d4b8 !important;
+}
+
+.fin-cell-num.is-neg {
+  color: #f0a0a0 !important;
+}
+
+.fin-sheet-sum td {
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  padding-top: 12px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  vertical-align: top;
+}
+
+.fin-sheet-sum strong {
+  font-size: 14px;
+}
+
+/* ── Credit health ── */
+.fin-credit-hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 560px) {
+  .fin-credit-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fin-credit-score,
+.fin-credit-util {
+  padding: 18px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(
+    160deg,
+    rgba(168, 196, 240, 0.08),
+    rgba(255, 255, 255, 0.02)
+  );
+}
+
+.fin-credit-score span,
+.fin-credit-util span {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.42);
+  margin-bottom: 6px;
+}
+
+.fin-credit-score strong {
+  display: block;
+  font-size: 3rem;
+  font-weight: 600;
+  line-height: 1;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.fin-credit-util strong {
+  display: block;
+  font-size: 2rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.fin-credit-score em,
+.fin-credit-util em {
+  display: block;
+  margin-top: 8px;
+  font-style: normal;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.fin-credit-disclaimer {
+  line-height: 1.45;
+}
+
+.fin-factor-notes {
+  margin: 12px 0 0;
+  padding-left: 1.1rem;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.45;
+}
+
+.fin-factor-notes strong {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.fin-tips {
+  display: grid;
+  gap: 10px;
+}
+
+.fin-tip {
+  padding: 14px 14px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.fin-tip-now {
+  border-color: rgba(240, 160, 160, 0.35);
+  background: rgba(240, 160, 160, 0.06);
+}
+
+.fin-tip-this_month {
+  border-color: rgba(230, 200, 120, 0.3);
+  background: rgba(230, 200, 120, 0.05);
+}
+
+.fin-tip-when {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 4px;
+}
+
+.fin-tip h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.fin-tip p {
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.fin-tip p:last-child {
+  margin-bottom: 0;
+}
+
+.fin-credit-form {
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)) !important;
+}
+
+.fin-auto-steps {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+@media (min-width: 720px) {
+  .fin-auto-steps {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.fin-auto-steps > div {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.fin-auto-steps b {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 6px;
+  color: #fff;
+}
+
+.fin-auto-steps p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.5);
+}
+
 /* Snapshot cards */
 .fin-snap {
   display: grid;
