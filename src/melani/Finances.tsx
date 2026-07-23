@@ -45,6 +45,7 @@ import {
   recentMonthKeys,
   runningBalanceMap,
   bookkeeperGaps,
+  saveFinance,
   savingsRate,
   scaleBudget,
   spentByCategory,
@@ -63,9 +64,7 @@ import {
   lockVault,
   probeVault,
   saveVault,
-  setupVault,
   unlockVault,
-  wipePlainFinanceKeys,
 } from "./financeVault";
 
 export const FINANCES_PAGE_ID = "pg-finance";
@@ -211,14 +210,13 @@ function dailyBars(txs: FinanceTx[], ym: string) {
 
 export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
   /**
-   * Vault gate — books never sit as plain JSON once encrypted.
-   * setup = create passphrase · unlock = open vault · ready = working
+   * Encryption is optional (off by default).
+   * Only if a vault was already set up: show unlock. Otherwise open ledger plain.
    */
-  const [vaultGate, setVaultGate] = useState<"setup" | "unlock" | "ready">(
-    () => (probeVault().mode === "encrypted" ? "unlock" : "setup")
+  const [vaultGate, setVaultGate] = useState<"unlock" | "ready">(() =>
+    probeVault().mode === "encrypted" ? "unlock" : "ready"
   );
   const [vaultPass, setVaultPass] = useState("");
-  const [vaultPass2, setVaultPass2] = useState("");
   const [vaultErr, setVaultErr] = useState("");
   const [vaultBusy, setVaultBusy] = useState(false);
   const [saveErr, setSaveErr] = useState("");
@@ -265,36 +263,46 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
     [creditProfile, state]
   );
 
-  // Persist only to encrypted vault while unlocked — never write plain books
+  // Save: encrypted vault if unlocked, otherwise plain local books
   useEffect(() => {
-    if (!state || vaultGate !== "ready" || !isVaultUnlocked()) return;
-    let cancelled = false;
-    void saveVault(state)
-      .then(() => {
-        if (!cancelled) setSaveErr("");
-      })
-      .catch((e) => {
-        if (!cancelled) {
-          setSaveErr(
-            e instanceof Error ? e.message : "Could not save encrypted vault"
-          );
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
+    if (!state || vaultGate !== "ready") return;
+    if (hasEncryptedVault() && isVaultUnlocked()) {
+      let cancelled = false;
+      void saveVault(state)
+        .then(() => {
+          if (!cancelled) setSaveErr("");
+        })
+        .catch((e) => {
+          if (!cancelled) {
+            setSaveErr(
+              e instanceof Error ? e.message : "Could not save encrypted vault"
+            );
+          }
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
+    // Plain mode (default) — no passphrase required
+    saveFinance(state);
+    setSaveErr("");
   }, [state, vaultGate]);
 
-  // Auto-lock after 12 minutes idle — key wiped from RAM
+  // Auto-lock only when an encrypted vault is in use
   useEffect(() => {
-    if (vaultGate !== "ready") return;
+    if (
+      vaultGate !== "ready" ||
+      !hasEncryptedVault() ||
+      !isVaultUnlocked()
+    ) {
+      return;
+    }
     const bump = () => {
       if (idleTimer.current != null) window.clearTimeout(idleTimer.current);
       idleTimer.current = window.setTimeout(() => {
         lockVault();
         setState(null);
         setVaultPass("");
-        setVaultPass2("");
         setVaultGate("unlock");
         setVaultErr("Locked after idle — unlock with your passphrase.");
       }, 12 * 60 * 1000);
@@ -307,32 +315,6 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
       for (const e of evs) window.removeEventListener(e, bump);
     };
   }, [vaultGate]);
-
-  async function onSetupVault() {
-    setVaultErr("");
-    if (vaultPass.length < 8) {
-      setVaultErr("Passphrase needs at least 8 characters.");
-      return;
-    }
-    if (vaultPass !== vaultPass2) {
-      setVaultErr("Passphrases do not match.");
-      return;
-    }
-    setVaultBusy(true);
-    try {
-      const base = state || loadFinance();
-      await setupVault(vaultPass, base);
-      wipePlainFinanceKeys();
-      setState(base);
-      setVaultPass("");
-      setVaultPass2("");
-      setVaultGate("ready");
-    } catch (e) {
-      setVaultErr(e instanceof Error ? e.message : "Could not lock vault");
-    } finally {
-      setVaultBusy(false);
-    }
-  }
 
   async function onUnlockVault() {
     setVaultErr("");
@@ -350,10 +332,10 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
   }
 
   function onLockNow() {
+    if (!hasEncryptedVault()) return;
     lockVault();
     setState(null);
     setVaultPass("");
-    setVaultPass2("");
     setVaultGate("unlock");
     setVaultErr("");
   }
@@ -991,71 +973,55 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
   const tabTitle =
     NAV.find((n) => n.id === tab)?.label || "Ledger";
 
-  // ── Vault gate (no numbers until encrypted + unlocked) ──
-  if (vaultGate !== "ready" || !state) {
-    const isUnlock = vaultGate === "unlock" || hasEncryptedVault();
+  // Only if user already set up a vault earlier — otherwise skip straight to ledger
+  if (vaultGate === "unlock" || !state) {
     return (
       <div className="wd">
         <div className="wd-main">
           <section className="wd-vault" aria-label="Encrypted finance vault">
-            <p className="wd-kicker">Encrypted vault · AES-256</p>
-            <h1>{isUnlock ? "Unlock your books" : "Lock your books"}</h1>
+            <p className="wd-kicker">Encrypted vault</p>
+            <h1>Unlock your books</h1>
             <p className="wd-vault-copy">
-              {isUnlock
-                ? "Your ledger is encrypted on this device. Enter your passphrase to open it. The key never leaves this browser tab."
-                : "Set a passphrase to encrypt every account, transaction, and plan. Plain copies are wiped. Forget it and the data stays locked forever — write it down somewhere safe."}
+              You set a passphrase before. Enter it to open the ledger. (Encryption
+              is optional — new setups open without a lock.)
             </p>
             <label className="wd-vault-label">
               Passphrase
               <input
                 type="password"
-                autoComplete={isUnlock ? "current-password" : "new-password"}
+                autoComplete="current-password"
                 value={vaultPass}
                 onChange={(e) => setVaultPass(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    if (isUnlock) void onUnlockVault();
-                    else void onSetupVault();
-                  }
+                  if (e.key === "Enter") void onUnlockVault();
                 }}
-                placeholder="At least 8 characters"
+                placeholder="Your vault passphrase"
               />
             </label>
-            {!isUnlock ? (
-              <label className="wd-vault-label">
-                Confirm passphrase
-                <input
-                  type="password"
-                  autoComplete="new-password"
-                  value={vaultPass2}
-                  onChange={(e) => setVaultPass2(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void onSetupVault();
-                  }}
-                  placeholder="Type it again"
-                />
-              </label>
-            ) : null}
             {vaultErr ? <p className="wd-vault-err">{vaultErr}</p> : null}
             <button
               type="button"
               className="wd-btn wd-btn-primary"
               disabled={vaultBusy}
-              onClick={() =>
-                void (isUnlock ? onUnlockVault() : onSetupVault())
-              }
+              onClick={() => void onUnlockVault()}
             >
-              {vaultBusy
-                ? "Working…"
-                : isUnlock
-                  ? "Unlock ledger"
-                  : "Encrypt & open"}
+              {vaultBusy ? "Working…" : "Unlock ledger"}
             </button>
-            <p className="wd-vault-note">
-              Uses AES-GCM with a key derived from your passphrase (PBKDF2 ·
-              310k rounds). Not bank-grade against malware that watches you type
-              — but no plain money data sits in storage for snoopers.
-            </p>
+            <button
+              type="button"
+              className="wd-btn"
+              style={{ marginLeft: 12 }}
+              onClick={() => {
+                // Escape hatch: open plain books if any; vault stays for later
+                lockVault();
+                setState(loadFinance());
+                setVaultGate("ready");
+                setVaultErr("");
+                setVaultPass("");
+              }}
+            >
+              Use without vault
+            </button>
           </section>
         </div>
       </div>
@@ -1068,21 +1034,23 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
       <div className="wd-main">
         <header className="wd-top">
           <div className="wd-top-titles">
-            <p className="wd-kicker">Personal ledger · encrypted vault</p>
+            <p className="wd-kicker">Personal ledger · Rockefeller desk</p>
             <h1>{tabTitle}</h1>
             <p className="wd-top-principle">
-              Every dollar named. Every cent recorded. Locked when you leave.
+              Every dollar named. Every cent recorded. Balance before you spend.
             </p>
           </div>
           <div className="wd-top-actions">
-            <button
-              type="button"
-              className="wd-btn"
-              onClick={onLockNow}
-              title="Lock vault — wipes key from memory"
-            >
-              Lock
-            </button>
+            {hasEncryptedVault() && isVaultUnlocked() ? (
+              <button
+                type="button"
+                className="wd-btn"
+                onClick={onLockNow}
+                title="Lock vault"
+              >
+                Lock
+              </button>
+            ) : null}
             <select
               className="wd-select"
               value={filterMonth === "all" ? monthKey() : filterMonth}
