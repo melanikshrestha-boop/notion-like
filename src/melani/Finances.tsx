@@ -66,6 +66,12 @@ import {
   saveVault,
   unlockVault,
 } from "./financeVault";
+import {
+  applyChaseStatements,
+  chaseImportNeeded,
+  chaseStatementSummary,
+  markChaseImportDone,
+} from "./chaseStatementImport";
 
 export const FINANCES_PAGE_ID = "pg-finance";
 
@@ -264,6 +270,23 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
         : buildCreditReport(DEFAULT_CREDIT_PROFILE, []),
     [creditProfile, state]
   );
+
+  // Import real Chase statements once (or when import version bumps)
+  useEffect(() => {
+    if (vaultGate !== "ready" || !state) return;
+    if (!chaseImportNeeded()) return;
+    const result = applyChaseStatements(state);
+    setState(result.state);
+    markChaseImportDone();
+    setFilterMonth("all"); // show full Dec 2025 → Jun 2026 history
+    setImportNote(
+      `Chase books loaded · ${chaseStatementSummary()}` +
+        (result.keptManual
+          ? ` · kept ${result.keptManual} other import lines`
+          : "")
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once when vault/session is ready
+  }, [vaultGate]);
 
   // Save: encrypted vault if unlocked, otherwise plain local books
   useEffect(() => {
@@ -1055,10 +1078,11 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
             ) : null}
             <select
               className="wd-select"
-              value={filterMonth === "all" ? monthKey() : filterMonth}
+              value={filterMonth}
               onChange={(e) => setFilterMonth(e.target.value)}
               aria-label="Period"
             >
+              <option value="all">All periods</option>
               {months.map((m) => (
                 <option key={m} value={m}>
                   {m === monthKey() ? "This month" : m}
