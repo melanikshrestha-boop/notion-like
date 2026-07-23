@@ -432,33 +432,34 @@ textarea {
   font-weight: 500;
 }
 
-/* Section labels (Health / Learn / Work) — same left edge as every row */
+/* Section labels (Health / Learn) — clean, no hint spam */
 .sidebar-section-label {
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
   box-sizing: border-box;
-  padding: 10px var(--sb-inset) 4px;
+  padding: 14px var(--sb-inset) 6px;
   margin: 0;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
   text-align: left;
   user-select: none;
 }
 
-/* Double-tap these to close / open the whole section */
 .sidebar-section-label.is-tappable {
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 .sidebar-section-label.is-tappable:hover {
-  color: var(--text-muted, rgba(255, 255, 255, 0.55));
-  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.62);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .sidebar-section-label.is-tappable:focus-visible {
@@ -468,37 +469,38 @@ textarea {
 
 .sidebar-section-label .sidebar-section-chev {
   display: inline-flex;
-  width: 10px;
-  font-size: 11px;
-  opacity: 0.5;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  font-size: 10px;
+  opacity: 0.55;
   transform: rotate(0deg);
-  transition: transform 0.28s var(--ease);
+  transition: transform 0.2s ease;
 }
 
 .sidebar-section-label .sidebar-section-chev.is-open {
   transform: rotate(90deg);
 }
 
-.sidebar-section-hint {
-  margin-left: auto;
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.02em;
-  opacity: 0;
-  transition: opacity 0.12s ease;
+.sidebar-section-name {
+  flex: 1;
+  min-width: 0;
 }
 
-.sidebar-section-label.is-tappable:hover .sidebar-section-hint {
-  opacity: 0.45;
+/* hide legacy double-tap hints if any remain */
+.sidebar-section-hint {
+  display: none !important;
 }
 
 .sidebar-empty-hint {
-  margin: 2px var(--sb-inset) 8px;
-  padding: 0 2px;
-  font-size: 11px;
-  line-height: 1.35;
-  color: var(--text-faint);
-  opacity: 0.75;
+  display: none;
+}
+
+.sidebar-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 2px 0 6px;
 }
 
 .sidebar-scroll {
@@ -508,15 +510,34 @@ textarea {
   box-sizing: border-box;
 }
 
+/* Tree chevron on pages that have children */
+.page-tree-chev {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  flex-shrink: 0;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.35);
+  transform: rotate(0deg);
+  transition: transform 0.18s ease, color 0.15s ease;
+  user-select: none;
+}
+
+.page-tree-chev.is-open {
+  transform: rotate(90deg);
+  color: rgba(255, 255, 255, 0.55);
+}
+
 .page-row {
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
-  gap: 0;
+  gap: 2px;
   border-radius: 6px;
-  min-height: 32px;
-  height: 32px;
+  min-height: 30px;
+  height: 30px;
   padding: 0 4px 0 0;
   margin: 1px 0;
   cursor: pointer;
@@ -550,7 +571,16 @@ textarea {
 }
 
 .page-row.is-active {
-  background: var(--sidebar-active);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.page-row.is-active .page-title-side {
+  color: #fff;
+  font-weight: 500;
+}
+
+.page-row.is-open > .page-tree-chev {
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .page-row-main {
@@ -570,10 +600,43 @@ textarea {
   cursor: pointer;
   color: inherit;
   text-align: left;
-  font-size: 14px;
+  font-size: 13.5px;
   line-height: 1;
   font-family: inherit;
   box-sizing: border-box;
+}
+
+.page-title-side {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.page-row:hover .page-title-side {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Nested kids sit quieter under Fitness / Hygiene */
+.page-tree-node .page-tree-node .page-title-side {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.page-tree-node .page-tree-node .page-row.is-active .page-title-side {
+  color: #fff;
+}
+
+/* Hide action buttons until hover — cleaner wall of pages */
+.page-row-actions {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.page-row:hover .page-row-actions,
+.page-row:focus-within .page-row-actions {
+  opacity: 1;
 }
 
 /* Sidebar line icons only — NOT the big page emoji picker */

@@ -60,25 +60,35 @@ const SECTION_KEYS = {
 } as const;
 
 function loadCollapsed(): Record<string, boolean> {
-  // false / missing = open (you see kids). true = closed. Double-tap toggles.
+  // true = closed (kids hidden). false = open. Double-tap toggles.
+  // Health roots start CLOSED so opening Health only shows Fitness / Hygiene / My Data.
   const defaults: Record<string, boolean> = {
-    "pg-fitness": false,
-    "pg-hygiene": false,
-    "pg-data": false,
+    "pg-fitness": true,
+    "pg-hygiene": true,
+    "pg-data": true,
     "pg-library": false,
     "pg-world-monitor": false,
     "pg-finance": false,
-    // Sections start open
+    // Sections start open (you see the three main Health pages)
     [SECTION_KEYS.health]: false,
     [SECTION_KEYS.learn]: false,
   };
   try {
-    // v5 = Learn has Bookshelf + World Monitor; Work section gone
-    if (localStorage.getItem(COLLAPSE_VERSION_KEY) !== "5") {
-      localStorage.setItem(COLLAPSE_VERSION_KEY, "5");
+    // v6 = Health subpages collapsed by default (only Fitness / Hygiene / My Data)
+    if (localStorage.getItem(COLLAPSE_VERSION_KEY) !== "6") {
+      localStorage.setItem(COLLAPSE_VERSION_KEY, "6");
       const raw = localStorage.getItem(COLLAPSE_KEY);
       const prev = raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
-      const merged = { ...defaults, ...prev, [SECTION_KEYS.learn]: false, "pg-library": false };
+      const merged = {
+        ...defaults,
+        ...prev,
+        // Force health trees shut so the sidebar isn’t a wall of subpages
+        "pg-fitness": true,
+        "pg-hygiene": true,
+        "pg-data": true,
+        [SECTION_KEYS.learn]: false,
+        "pg-library": false,
+      };
       localStorage.setItem(COLLAPSE_KEY, JSON.stringify(merged));
       return merged;
     }
@@ -154,7 +164,7 @@ function SectionLabel({
       }`}
       role="button"
       tabIndex={0}
-      title="Double-tap to close or open. Drop a page here to put it inside this section."
+      title={label}
       aria-expanded={!closed}
       onClick={() => {
         const now = Date.now();
@@ -185,8 +195,7 @@ function SectionLabel({
       <span className={`sidebar-section-chev${closed ? "" : " is-open"}`} aria-hidden>
         ▸
       </span>
-      <span>{label}</span>
-      <span className="sidebar-section-hint">double-tap</span>
+      <span className="sidebar-section-name">{label}</span>
     </div>
   );
 }
@@ -220,8 +229,14 @@ function PageTreeItem({
 }) {
   const kids = pages.filter((p) => p.parentId === page.id);
   const hasKids = kids.length > 0;
-  // Default open when you have kids so nesting Work under Learn is visible right away
-  const isCollapsed = hasKids && collapsed[page.id] === true;
+  // Missing key: treat as closed for health roots (defaults force true). Open only when explicitly false.
+  const isCollapsed =
+    hasKids &&
+    (collapsed[page.id] === true ||
+      (collapsed[page.id] === undefined &&
+        (page.id === "pg-fitness" ||
+          page.id === "pg-hygiene" ||
+          page.id === "pg-data")));
   const lastTapAt = useRef(0);
   const singleTapTimer = useRef<number | null>(null);
   const nestTimer = useRef<number | null>(null);
@@ -284,17 +299,22 @@ function PageTreeItem({
         }}
         onDragEnd={clearDropState}
       >
-        {/* No chevron. Single tap opens page; double-tap closes/opens sub-pages. */}
-        <span className="page-collapse-spacer" aria-hidden />
+        {/* Chevron only when there are kids — visual open/closed, no instruction text */}
+        {hasKids ? (
+          <span
+            className={`page-tree-chev${isCollapsed ? "" : " is-open"}`}
+            aria-hidden
+          >
+            ▸
+          </span>
+        ) : (
+          <span className="page-collapse-spacer" aria-hidden />
+        )}
         <button
           type="button"
           className={`page-row-main${hasKids ? " has-kids" : ""}`}
           aria-expanded={hasKids ? !isCollapsed : undefined}
-          title={
-            hasKids
-              ? "Tap to open. Double-tap to show or hide what’s inside."
-              : "Drag onto another page and hold to nest inside it"
-          }
+          title={page.title}
           onClick={() => {
             const now = Date.now();
             const doubleTap = now - lastTapAt.current <= DOUBLE_TAP_MS;
@@ -444,7 +464,7 @@ export function Sidebar({
         saveFlag(TRASH_KEY, false);
         request.result = {
           ok: true,
-          summary: `Closed all sidebar sections. Double-tap Health or Learn to open one again.`,
+          summary: `Closed all sidebar sections.`,
           data: { count: parentPages.length + 2 },
         };
         return;
@@ -655,11 +675,6 @@ export function Sidebar({
               onMovePage={onMovePage}
             />
           ))}
-          {healthTop.length === 0 ? (
-            <p className="sidebar-empty-hint">
-              Drop a page on “Health” or nest pages under Fitness / Hygiene.
-            </p>
-          ) : null}
         </div>
       ) : null}
 
