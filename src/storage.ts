@@ -106,7 +106,7 @@ const PURGE_PAGE_IDS = new Set([
   "pg-meetings", // Meetings
   "pg-classes", // Classes
   "pg-content", // Content OS
-  "pg-finance", // Finance
+  // pg-finance is live again (Finances desk under Learn)
   "pg-startups", // Startups / Silicon Valley
   "pg-reading-list", // Reading list
   "pg-wearables", // Wearables (WHOOP etc.) — not needed as a page
@@ -271,7 +271,9 @@ function ensureLifePages(ws: Workspace): Workspace {
             title: p.title || title,
             // Force line icons for system pages (emoji “🌍” was showing as empty page)
             icon:
-              id === "pg-world-monitor" || id === "pg-library"
+              id === "pg-world-monitor" ||
+              id === "pg-library" ||
+              id === "pg-finance"
                 ? icon
                 : p.icon || icon,
             trashedAt: null, // never leave Bookshelf / stocks in trash by accident
@@ -301,6 +303,20 @@ function ensureLifePages(ws: Workspace): Workspace {
       newBlock(
         "paragraph",
         "Tech + markets intelligence. Live stocks, news, charts, and crypto — free sources, no API keys."
+      ),
+    ]
+  );
+
+  // Learn — personal Finances desk (accounts + budget + spending)
+  ensurePage(
+    "pg-finance",
+    "Finances",
+    "finance",
+    null,
+    [
+      newBlock(
+        "paragraph",
+        "Your money desk: accounts, monthly budget, spending log, and a light market watchlist."
       ),
     ]
   );

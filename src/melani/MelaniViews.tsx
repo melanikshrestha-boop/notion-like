@@ -28,6 +28,7 @@ import { isWardrobePage } from "./wardrobe/route";
 import { isShoppingAgentPage, ShoppingAgent } from "./ShoppingAgent";
 import { isWorldMonitorPage, WorldMonitor } from "./WorldMonitor";
 import { CareConcierge, isCareConciergePage } from "./CareConcierge";
+import { Finances, isFinancesPage } from "./Finances";
 import "./melani.css";
 
 const WardrobeFrame = lazy(async () => {
@@ -346,6 +347,7 @@ export function isMelaniRichPage(pageId: string): boolean {
     isShoppingAgentPage(pageId) ||
     isCareConciergePage(pageId) ||
     isWorldMonitorPage(pageId) ||
+    isFinancesPage(pageId) ||
     pageId === "pg-data" ||
     pageId === "pg-my-data"
   );
@@ -394,6 +396,11 @@ export function MelaniRichPage({
 
   if (isWorldMonitorPage(pageId)) {
     return <WorldMonitor />;
+  }
+
+  // Learn → Finances (accounts, budget, spending, light quotes)
+  if (isFinancesPage(pageId)) {
+    return <Finances onGo={onGo} />;
   }
 
   // Learn → Bookshelf

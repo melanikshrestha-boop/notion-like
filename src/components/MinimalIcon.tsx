@@ -210,6 +210,18 @@ export function MinimalIcon({ name, size = 16, className = "" }: Props) {
           <circle {...stroke} cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
         </svg>
       );
+    case "finance":
+      // coin — Finances page
+      return (
+        <svg {...common}>
+          <circle {...stroke} cx="12" cy="12" r="8" />
+          <path {...stroke} d="M12 7v10" />
+          <path
+            {...stroke}
+            d="M9.5 9.5c.6-1 1.5-1.5 2.5-1.5 1.4 0 2.5.8 2.5 2s-1.1 2-2.5 2h-1c-1.4 0-2.5.8-2.5 2s1.1 2 2.5 2c1 0 1.9-.5 2.5-1.5"
+          />
+        </svg>
+      );
     case "journal":
       return (
         <svg {...common}>
@@ -417,7 +429,8 @@ export function iconForPage(page: Pick<Page, "id" | "title" | "kind" | "icon">):
   if (id.includes("doc") || t.includes("document") || t.includes("class") || t.includes("content"))
     return "docs";
   if (id.includes("suppl") || t.includes("suppl")) return "doctor";
-  if (id.includes("finance") || t.includes("finance")) return "goals";
+  if (id.includes("finance") || t.includes("finance") || t.includes("money"))
+    return "finance";
   if (id.includes("startup") || t.includes("startup")) return "work";
   if (id.includes("gmail") || t.includes("gmail") || t.includes("email"))
     return "work";

@@ -41,8 +41,8 @@ const DOUBLE_TAP_MS = 420;
 
 /** Health section roots */
 const HEALTH_ROOT_IDS = ["pg-fitness", "pg-hygiene", "pg-data"] as const;
-/** Learn section roots — Bookshelf + World Monitor (stocks). No Work section. */
-const LEARN_ROOT_IDS = ["pg-library", "pg-world-monitor"] as const;
+/** Learn section roots — Bookshelf + World Monitor + Finances. No Work section. */
+const LEARN_ROOT_IDS = ["pg-library", "pg-world-monitor", "pg-finance"] as const;
 /** Hidden from sidebar for good */
 const SIDEBAR_HIDDEN_IDS = new Set([
   "pg-life",
@@ -67,6 +67,7 @@ function loadCollapsed(): Record<string, boolean> {
     "pg-data": false,
     "pg-library": false,
     "pg-world-monitor": false,
+    "pg-finance": false,
     // Sections start open
     [SECTION_KEYS.health]: false,
     [SECTION_KEYS.learn]: false,
@@ -463,10 +464,11 @@ export function Sidebar({
       if (sectionMatch) {
         setCollapsed((previous) => {
           const next = { ...previous, [sectionMatch.key]: shouldCollapse };
-          // Opening Learn also shows Bookshelf + World Monitor kids
+          // Opening Learn also shows Bookshelf + World Monitor + Finances kids
           if (!shouldCollapse && sectionMatch.key === SECTION_KEYS.learn) {
             next["pg-library"] = false;
             next["pg-world-monitor"] = false;
+            next["pg-finance"] = false;
           }
           saveCollapsed(next);
           return next;
