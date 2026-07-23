@@ -36,13 +36,31 @@ type Props = {
 const COLLAPSE_KEY = "dr-melani-sidebar-collapsed";
 const COLLAPSE_VERSION_KEY = "dr-melani-sidebar-collapse-version";
 const TRASH_KEY = "dr-melani-show-trash";
-/** How long (ms) between two taps counts as a double-tap to open/close a toggle */
+/** How long (ms) between two taps counts as a double-tap to OPEN */
 const DOUBLE_TAP_MS = 420;
 
 /** Health section roots */
 const HEALTH_ROOT_IDS = ["pg-fitness", "pg-hygiene", "pg-data"] as const;
 /** Learn section roots — Bookshelf + World Monitor + Finances. No Work section. */
 const LEARN_ROOT_IDS = ["pg-library", "pg-world-monitor", "pg-finance"] as const;
+
+/** true = closed (kids hidden). Opening a parent always forces its kids closed. */
+function markClosed(ids: readonly string[], map: Record<string, boolean>) {
+  for (const id of ids) map[id] = true;
+}
+
+/** Close every page that has this parent (and their kids too) */
+function closeDescendants(
+  pages: Page[],
+  parentId: string,
+  map: Record<string, boolean>
+) {
+  for (const page of pages) {
+    if (page.parentId !== parentId) continue;
+    map[page.id] = true;
+    closeDescendants(pages, page.id, map);
+  }
+}
 /** Hidden from sidebar for good */
 const SIDEBAR_HIDDEN_IDS = new Set([
   "pg-life",
@@ -60,35 +78,24 @@ const SECTION_KEYS = {
 } as const;
 
 function loadCollapsed(): Record<string, boolean> {
-  // true = closed (kids hidden). false = open. Double-tap toggles.
-  // Health roots start CLOSED so opening Health only shows Fitness / Hygiene / My Data.
+  // true = closed (kids hidden). false = open.
+  // Double-tap opens · single-tap closes. Opening always restarts with kids closed.
   const defaults: Record<string, boolean> = {
     "pg-fitness": true,
     "pg-hygiene": true,
     "pg-data": true,
-    "pg-library": false,
-    "pg-world-monitor": false,
-    "pg-finance": false,
-    // Sections start open (you see the three main Health pages)
+    "pg-library": true,
+    "pg-world-monitor": true,
+    "pg-finance": true,
+    // Sections start open so you see the three Health roots (each still closed inside)
     [SECTION_KEYS.health]: false,
     [SECTION_KEYS.learn]: false,
   };
   try {
-    // v6 = Health subpages collapsed by default (only Fitness / Hygiene / My Data)
-    if (localStorage.getItem(COLLAPSE_VERSION_KEY) !== "6") {
-      localStorage.setItem(COLLAPSE_VERSION_KEY, "6");
-      const raw = localStorage.getItem(COLLAPSE_KEY);
-      const prev = raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
-      const merged = {
-        ...defaults,
-        ...prev,
-        // Force health trees shut so the sidebar isn’t a wall of subpages
-        "pg-fitness": true,
-        "pg-hygiene": true,
-        "pg-data": true,
-        [SECTION_KEYS.learn]: false,
-        "pg-library": false,
-      };
+    // v7 = double-tap open / single-tap close + kids closed on open
+    if (localStorage.getItem(COLLAPSE_VERSION_KEY) !== "7") {
+      localStorage.setItem(COLLAPSE_VERSION_KEY, "7");
+      const merged = { ...defaults };
       localStorage.setItem(COLLAPSE_KEY, JSON.stringify(merged));
       return merged;
     }
@@ -137,8 +144,8 @@ function PageIcon({ page }: { page: Page }) {
 }
 
 /**
- * Health / Learn / Work label.
- * Double-tap closes or opens the whole section.
+ * Health / Learn label.
+ * Double-tap → OPEN (kids start closed). Single tap while open → CLOSE.
  * Drop a page on it to nest under that section’s main page.
  */
 function SectionLabel({
@@ -146,36 +153,50 @@ function SectionLabel({
   sectionKey,
   closed,
   nestTargetId,
-  onToggle,
+  onOpen,
+  onClose,
   onNestInside,
 }: {
   label: string;
   sectionKey: string;
   closed: boolean;
   nestTargetId?: string;
-  onToggle: (sectionKey: string) => void;
+  onOpen: (sectionKey: string) => void;
+  onClose: (sectionKey: string) => void;
   onNestInside: (movingId: string, nestTargetId: string, sectionKey: string) => void;
 }) {
   const lastTap = useRef(0);
   return (
     <div
-      className={`sidebar-section-label is-tappable${closed ? " is-closed" : ""}${
+      className={`sidebar-section-label is-tappable${closed ? " is-closed" : " is-open"}${
         nestTargetId ? " is-drop-target" : ""
       }`}
       role="button"
       tabIndex={0}
-      title={label}
+      title={
+        closed
+          ? `${label} — double-tap to open`
+          : `${label} — tap once to close`
+      }
       aria-expanded={!closed}
       onClick={() => {
+        if (!closed) {
+          // Already open → one tap closes (no double-tap needed)
+          lastTap.current = 0;
+          onClose(sectionKey);
+          return;
+        }
+        // Closed → only double-tap opens
         const now = Date.now();
         const doubleTap = now - lastTap.current <= DOUBLE_TAP_MS;
         lastTap.current = doubleTap ? 0 : now;
-        if (doubleTap) onToggle(sectionKey);
+        if (doubleTap) onOpen(sectionKey);
       }}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          onToggle(sectionKey);
+          if (closed) onOpen(sectionKey);
+          else onClose(sectionKey);
         }
       }}
       onDragOver={(event) => {
@@ -192,7 +213,7 @@ function SectionLabel({
         }
       }}
     >
-      {/* No triangle toggle — label alone; double-tap still opens/closes */}
+      {/* No triangle icon — label only */}
       <span className="sidebar-section-name">{label}</span>
     </div>
   );
@@ -204,7 +225,8 @@ function PageTreeItem({
   activePageId,
   depth,
   collapsed,
-  onToggleCollapse,
+  onOpenBranch,
+  onCloseBranch,
   onSelect,
   onDeletePage,
   onToggleFavorite,
@@ -215,7 +237,10 @@ function PageTreeItem({
   activePageId: string;
   depth: number;
   collapsed: Record<string, boolean>;
-  onToggleCollapse: (id: string) => void;
+  /** Double-tap open — kids start closed */
+  onOpenBranch: (id: string) => void;
+  /** Single-tap close when branch is open */
+  onCloseBranch: (id: string) => void;
   onSelect: (id: string) => void;
   onDeletePage: (id: string) => void;
   onToggleFavorite: (id: string) => void;
@@ -227,14 +252,10 @@ function PageTreeItem({
 }) {
   const kids = pages.filter((p) => p.parentId === page.id);
   const hasKids = kids.length > 0;
-  // Missing key: treat as closed for health roots (defaults force true). Open only when explicitly false.
+  // Missing key → closed (safe default). Open only when explicitly false.
   const isCollapsed =
     hasKids &&
-    (collapsed[page.id] === true ||
-      (collapsed[page.id] === undefined &&
-        (page.id === "pg-fitness" ||
-          page.id === "pg-hygiene" ||
-          page.id === "pg-data")));
+    (collapsed[page.id] === true || collapsed[page.id] === undefined);
   const lastTapAt = useRef(0);
   const singleTapTimer = useRef<number | null>(null);
   const nestTimer = useRef<number | null>(null);
@@ -297,28 +318,46 @@ function PageTreeItem({
         }}
         onDragEnd={clearDropState}
       >
-        {/* No ▸ toggle icons — page icon + name only (double-tap still opens/closes kids) */}
+        {/* No ▸ icons — double-tap opens branch, one tap closes when open */}
         <button
           type="button"
           className={`page-row-main${hasKids ? " has-kids" : ""}`}
           aria-expanded={hasKids ? !isCollapsed : undefined}
-          title={page.title}
+          title={
+            hasKids
+              ? isCollapsed
+                ? `${page.title} — double-tap to open`
+                : `${page.title} — tap once to close`
+              : page.title
+          }
           onClick={() => {
+            // Branch open → one tap closes (and still opens that page)
+            if (hasKids && !isCollapsed) {
+              if (singleTapTimer.current !== null) {
+                window.clearTimeout(singleTapTimer.current);
+                singleTapTimer.current = null;
+              }
+              lastTapAt.current = 0;
+              onCloseBranch(page.id);
+              onSelect(page.id);
+              return;
+            }
+
             const now = Date.now();
             const doubleTap = now - lastTapAt.current <= DOUBLE_TAP_MS;
             lastTapAt.current = doubleTap ? 0 : now;
 
-            // Double-tap: only toggle open/closed — don’t fight you with navigation
+            // Branch closed → double-tap opens kids (all start closed inside)
             if (doubleTap && hasKids) {
               if (singleTapTimer.current !== null) {
                 window.clearTimeout(singleTapTimer.current);
                 singleTapTimer.current = null;
               }
-              onToggleCollapse(page.id);
+              onOpenBranch(page.id);
               return;
             }
 
-            // Single tap: open the page (tiny delay so double-tap can cancel it)
+            // Single tap: go to the page (delay only if double-tap could still open)
             if (hasKids) {
               if (singleTapTimer.current !== null) window.clearTimeout(singleTapTimer.current);
               singleTapTimer.current = window.setTimeout(() => {
@@ -375,7 +414,8 @@ function PageTreeItem({
                 activePageId={activePageId}
                 depth={depth + 1}
                 collapsed={collapsed}
-                onToggleCollapse={onToggleCollapse}
+                onOpenBranch={onOpenBranch}
+                onCloseBranch={onCloseBranch}
                 onSelect={onSelect}
                 onDeletePage={onDeletePage}
                 onToggleFavorite={onToggleFavorite}
@@ -412,11 +452,58 @@ export function Sidebar({
   );
   const [showTrash, setShowTrash] = useState(() => loadFlag(TRASH_KEY, false));
 
-  /** Flip open ↔ closed. true = closed (hidden kids / section body). */
-  function toggleCollapse(id: string) {
+  /** Double-tap open a page branch — show kids, but every kid starts closed */
+  function openBranch(id: string) {
     setCollapsed((prev) => {
-      const currentlyClosed = prev[id] === true;
-      const next = { ...prev, [id]: !currentlyClosed };
+      const next = { ...prev, [id]: false };
+      closeDescendants(pages, id, next);
+      saveCollapsed(next);
+      return next;
+    });
+  }
+
+  /** One tap close a page branch */
+  function closeBranch(id: string) {
+    setCollapsed((prev) => {
+      const next = { ...prev, [id]: true };
+      saveCollapsed(next);
+      return next;
+    });
+  }
+
+  /**
+   * Double-tap open Health / Learn.
+   * Roots inside always start closed (Fitness / Hygiene / My Data folded).
+   */
+  function openSection(sectionKey: string) {
+    setCollapsed((prev) => {
+      const next = { ...prev, [sectionKey]: false };
+      if (sectionKey === SECTION_KEYS.health) {
+        markClosed(HEALTH_ROOT_IDS, next);
+        for (const id of HEALTH_ROOT_IDS) closeDescendants(pages, id, next);
+      }
+      if (sectionKey === SECTION_KEYS.learn) {
+        markClosed(LEARN_ROOT_IDS, next);
+        for (const id of LEARN_ROOT_IDS) closeDescendants(pages, id, next);
+      }
+      saveCollapsed(next);
+      return next;
+    });
+  }
+
+  /** One tap close Health / Learn */
+  function closeSection(sectionKey: string) {
+    setCollapsed((prev) => {
+      const next = { ...prev, [sectionKey]: true };
+      // Remember: next open will re-close kids via openSection
+      if (sectionKey === SECTION_KEYS.health) {
+        markClosed(HEALTH_ROOT_IDS, next);
+        for (const id of HEALTH_ROOT_IDS) closeDescendants(pages, id, next);
+      }
+      if (sectionKey === SECTION_KEYS.learn) {
+        markClosed(LEARN_ROOT_IDS, next);
+        for (const id of LEARN_ROOT_IDS) closeDescendants(pages, id, next);
+      }
       saveCollapsed(next);
       return next;
     });
@@ -425,6 +512,7 @@ export function Sidebar({
   function openSectionAndParent(sectionKey: string, nestTargetId: string) {
     setCollapsed((prev) => {
       const next = { ...prev, [sectionKey]: false, [nestTargetId]: false };
+      closeDescendants(pages, nestTargetId, next);
       saveCollapsed(next);
       return next;
     });
@@ -470,17 +558,8 @@ export function Sidebar({
             : null;
 
       if (sectionMatch) {
-        setCollapsed((previous) => {
-          const next = { ...previous, [sectionMatch.key]: shouldCollapse };
-          // Opening Learn also shows Bookshelf + World Monitor + Finances kids
-          if (!shouldCollapse && sectionMatch.key === SECTION_KEYS.learn) {
-            next["pg-library"] = false;
-            next["pg-world-monitor"] = false;
-            next["pg-finance"] = false;
-          }
-          saveCollapsed(next);
-          return next;
-        });
+        if (shouldCollapse) closeSection(sectionMatch.key);
+        else openSection(sectionMatch.key);
         request.result = {
           ok: true,
           summary: `${shouldCollapse ? "Closed" : "Opened"} the ${sectionMatch.label} section.`,
@@ -504,11 +583,8 @@ export function Sidebar({
         return;
       }
 
-      setCollapsed((previous) => {
-        const next = { ...previous, [target.page.id]: shouldCollapse };
-        saveCollapsed(next);
-        return next;
-      });
+      if (shouldCollapse) closeBranch(target.page.id);
+      else openBranch(target.page.id);
       request.result = {
         ok: true,
         summary: `${shouldCollapse ? "Closed" : "Opened"} the ${target.page.title} sidebar section.`,
@@ -632,20 +708,21 @@ export function Sidebar({
         </button>
       </div>
 
-      {/* ── Health — double-tap label to close; drag pages anywhere ── */}
+      {/* ── Health — double-tap open · one tap close; kids start folded ── */}
       <SectionLabel
         label="Health"
         sectionKey={SECTION_KEYS.health}
         closed={sectionHealthClosed}
         nestTargetId={healthNestId}
-        onToggle={toggleCollapse}
+        onOpen={openSection}
+        onClose={closeSection}
         onNestInside={(movingId, nestId, sectionKey) => {
           onMovePage(movingId, nestId, "inside");
           openSectionAndParent(sectionKey, nestId);
         }}
       />
       {!sectionHealthClosed ? (
-        <div className="sidebar-block">
+        <div className="sidebar-block sidebar-block-health">
           {healthTop.map((page) => (
             <PageTreeItem
               key={page.id}
@@ -654,7 +731,8 @@ export function Sidebar({
               activePageId={activePageId}
               depth={0}
               collapsed={collapsed}
-              onToggleCollapse={toggleCollapse}
+              onOpenBranch={openBranch}
+              onCloseBranch={closeBranch}
               onSelect={onSelect}
               onDeletePage={onDeletePage}
               onToggleFavorite={onToggleFavorite}
@@ -664,13 +742,14 @@ export function Sidebar({
         </div>
       ) : null}
 
-      {/* ── Learn — Bookshelf + World Monitor (stocks). No Work section. ── */}
+      {/* ── Learn — double-tap open · one tap close ── */}
       <SectionLabel
         label="Learn"
         sectionKey={SECTION_KEYS.learn}
         closed={sectionLearnClosed}
         nestTargetId={learnNestId}
-        onToggle={toggleCollapse}
+        onOpen={openSection}
+        onClose={closeSection}
         onNestInside={(movingId, nestId, sectionKey) => {
           onMovePage(movingId, nestId, "inside");
           openSectionAndParent(sectionKey, nestId);
@@ -686,7 +765,8 @@ export function Sidebar({
               activePageId={activePageId}
               depth={0}
               collapsed={collapsed}
-              onToggleCollapse={toggleCollapse}
+              onOpenBranch={openBranch}
+              onCloseBranch={closeBranch}
               onSelect={onSelect}
               onDeletePage={onDeletePage}
               onToggleFavorite={onToggleFavorite}

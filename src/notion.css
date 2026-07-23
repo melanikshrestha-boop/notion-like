@@ -436,59 +436,61 @@ textarea {
   font-weight: 500;
 }
 
-/* Section labels (Health / Learn) — clean, no hint spam */
+/* Section labels (Health / Learn) — tight, single-spaced, no triangle */
 .sidebar-section-label {
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
+  gap: 0;
   width: 100%;
   box-sizing: border-box;
-  padding: 14px var(--sb-inset) 6px;
+  /* Equal pad so hover pill is vertically centered on the word */
+  min-height: 26px;
+  height: 26px;
+  padding: 0 var(--sb-inset);
   margin: 0;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  line-height: 1;
   color: rgba(255, 255, 255, 0.38);
   text-align: left;
   user-select: none;
 }
 
+/* Agents stays a static label — slightly more air above first section */
+.sidebar-section-label:not(.is-tappable) {
+  margin-top: 6px;
+  height: auto;
+  min-height: 22px;
+  padding-top: 4px;
+  padding-bottom: 2px;
+}
+
 .sidebar-section-label.is-tappable {
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 4px;
+  /* Hover sits on the label row only — not a floating mis-centered blob */
+  margin: 0;
 }
 
 .sidebar-section-label.is-tappable:hover {
-  color: rgba(255, 255, 255, 0.62);
-  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .sidebar-section-label.is-tappable:focus-visible {
   outline: 1px solid rgba(255, 255, 255, 0.2);
-  outline-offset: 1px;
-}
-
-.sidebar-section-label .sidebar-section-chev {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 12px;
-  font-size: 10px;
-  opacity: 0.55;
-  transform: rotate(0deg);
-  transition: transform 0.2s ease;
-}
-
-.sidebar-section-label .sidebar-section-chev.is-open {
-  transform: rotate(90deg);
+  outline-offset: 0;
 }
 
 .sidebar-section-name {
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
+  line-height: 26px;
+  display: block;
 }
 
 /* hide legacy double-tap hints if any remain */
@@ -503,8 +505,13 @@ textarea {
 .sidebar-block {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  padding: 2px 0 6px;
+  gap: 0;
+  padding: 0 0 2px;
+}
+
+/* Health roots sit tight under the HEALTH label */
+.sidebar-block-health {
+  padding: 0 0 2px;
 }
 
 .sidebar-scroll {
