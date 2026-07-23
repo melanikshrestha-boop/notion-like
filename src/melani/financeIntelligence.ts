@@ -18,6 +18,10 @@ import {
   type FinanceTx,
 } from "./financeStore";
 import type { CreditReport } from "./financeCredit";
+import { buildTaxBrief, answerTax } from "./financeTax";
+import { buildAuditBrief, answerAudit } from "./financeAudit";
+import { buildForecastBrief, answerForecast } from "./financeForecast";
+import { buildAdvisoryBrief, answerAdvisory } from "./financeAdvisory";
 
 /** Default: reinvest at least half of income. Ruthless mode aims higher. */
 export const REINVEST_TARGET_RATE = 0.5;
@@ -78,6 +82,11 @@ export type SmartBrief = {
   topLeak: { merchant: string; total: number; count: number } | null;
   planHealth: "empty" | "ok" | "tight" | "blown";
   reinvest: ReinvestPlan;
+  /** Accountant backends — no extra UI; drive actions + Ask */
+  tax: ReturnType<typeof buildTaxBrief>;
+  audit: ReturnType<typeof buildAuditBrief>;
+  forecast: ReturnType<typeof buildForecastBrief>;
+  advisory: ReturnType<typeof buildAdvisoryBrief>;
   dataQuality: {
     hasTxs: boolean;
     hasIncome: boolean;
@@ -230,6 +239,12 @@ export function buildSmartBrief(
   const merchants = topMerchants(txs, ym, 5);
   const topLeak = merchants[0] || null;
   const hasInvestAccount = accounts.some((a) => a.kind === "invest");
+
+  // Accountant backends (no new screens — feed actions + Ask)
+  const tax = buildTaxBrief(state, ym);
+  const audit = buildAuditBrief(state);
+  const forecast = buildForecastBrief(state, ym, planRows);
+  const advisory = buildAdvisoryBrief(state, reinvest, audit, tax, forecast);
 
   const hasTxs = txs.length > 0;
   const hasIncome = income > 0 || txs.some((t) => t.kind === "income");
@@ -480,6 +495,62 @@ export function buildSmartBrief(
     });
   }
 
+  // ── Tax / Audit / Forecast / Advisory → same action queue ──
+  for (const f of tax.findings.slice(0, 3)) {
+    if (f.severity === "info") continue;
+    actions.push({
+      id: f.id,
+      priority:
+        f.severity === "critical" ? 91 : f.severity === "high" ? 82 : 55,
+      severity: f.severity === "info" ? "low" : f.severity,
+      title: `Tax · ${f.title}`,
+      detail: f.detail,
+      amount: f.amount,
+      cta: "Ask: tax plan",
+      tab: "overview",
+    });
+  }
+  for (const f of audit.findings.slice(0, 4)) {
+    if (f.severity === "info") continue;
+    actions.push({
+      id: f.id,
+      priority:
+        f.severity === "critical" ? 94 : f.severity === "high" ? 83 : 58,
+      severity: f.severity === "info" ? "low" : f.severity,
+      title: `Audit · ${f.title}`,
+      detail: f.detail,
+      amount: f.amount,
+      cta: "Open ledger",
+      tab: "transactions",
+    });
+  }
+  for (const f of forecast.findings.slice(0, 3)) {
+    if (f.severity === "info") continue;
+    actions.push({
+      id: f.id,
+      priority:
+        f.severity === "critical" ? 89 : f.severity === "high" ? 78 : 52,
+      severity: f.severity === "info" ? "low" : f.severity,
+      title: `Forecast · ${f.title}`,
+      detail: f.detail,
+      amount: f.amount,
+      cta: "Review plan",
+      tab: "plan",
+    });
+  }
+  for (const d of advisory.decisions.filter((x) => x.verdict === "no").slice(0, 2)) {
+    actions.push({
+      id: `adv-${d.id}`,
+      priority: 72,
+      severity: "medium",
+      title: `Advisory · ${d.title}`,
+      detail: d.detail,
+      amount: d.maxSafeAmount,
+      cta: "Ask Mel for the call",
+      tab: "overview",
+    });
+  }
+
   // ── Good state ──
   if (!actions.length && hasTxs) {
     actions.push({
@@ -525,13 +596,17 @@ export function buildSmartBrief(
   return {
     headline,
     sub,
-    actions: actions.slice(0, 7),
+    actions: actions.slice(0, 8),
     projection,
     safeToSpend,
     runwayMonths,
     topLeak,
     planHealth,
     reinvest,
+    tax,
+    audit,
+    forecast,
+    advisory,
     dataQuality: {
       hasTxs,
       hasIncome,
@@ -560,11 +635,21 @@ export function answerFromBrief(
   }
 ): string {
   const q = question.toLowerCase().trim();
-  if (!q) return "Ask a real money question — afford, runway, credit, or what to cut.";
+  if (!q) return "Ask a real money question — afford, runway, credit, tax, audit, hire, or what to cut.";
 
   if (!brief.dataQuality.hasTxs) {
     return "I don't have transactions yet. Import a bank CSV (Accounts) or Load demo — then I can answer with numbers, not vibes.";
   }
+
+  // Accountant backends first
+  const taxA = answerTax(q, brief.tax);
+  if (taxA) return taxA;
+  const auditA = answerAudit(q, brief.audit);
+  if (auditA) return auditA;
+  const fcA = answerForecast(q, brief.forecast);
+  if (fcA) return fcA;
+  const advA = answerAdvisory(q, brief.advisory);
+  if (advA) return advA;
 
   if (/reinvest|invest|compound|ruthless|save rate|keep rate/.test(q)) {
     const r = brief.reinvest;
@@ -616,7 +701,11 @@ export function answerFromBrief(
     return `By month-end (day ${p.dayOfMonth}/${p.daysInMonth}): projected out ~${money(p.projectedSpend)}, in ~${money(p.projectedIncome)}, flow ~${money(p.projectedFlow)}. Based on linear pace from actuals — not magic.`;
   }
 
-  // Default: ranked action
+  // Default: ranked action + accountant posture
   const top = brief.actions[0];
-  return `${brief.headline}. ${brief.sub} Net ${money(extras.worth)} · Flow ${money(extras.cashFlow)} · ${extras.txCount} txs. Top action: ${top?.title ?? "Keep data fresh"}. ${top?.detail ?? ""}`;
+  return (
+    `${brief.headline}. ${brief.sub} Net ${money(extras.worth)} · Flow ${money(extras.cashFlow)} · ${extras.txCount} txs. ` +
+    `Audit ${brief.audit.score}/100 · Tax: ${brief.tax.order} · Forecast: ${brief.forecast.order} ` +
+    `Top action: ${top?.title ?? "Keep data fresh"}. ${top?.detail ?? ""}`
+  );
 }
