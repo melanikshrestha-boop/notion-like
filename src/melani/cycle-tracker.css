@@ -338,9 +338,9 @@
 }
 
 .ct-flow-btn.on {
-  border-color: #c97b84;
-  color: #e8a8b0;
-  background: rgba(201, 123, 132, 0.15);
+  border-color: rgba(160, 110, 118, 0.4);
+  color: var(--ct-menstrual-soft);
+  background: rgba(160, 110, 118, 0.12);
 }
 
 .ct-start {
