@@ -860,7 +860,9 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
       {/* Left rail */}
       <aside className="wd-nav" aria-label="Finance">
         <div className="wd-brand">
-          <span className="wd-logo">W</span>
+          <span className="wd-logo" aria-hidden>
+            W
+          </span>
           <div>
             <strong>Wonder</strong>
             <em>Money</em>
