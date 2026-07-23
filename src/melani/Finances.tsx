@@ -45,7 +45,6 @@ import {
   recentMonthKeys,
   runningBalanceMap,
   bookkeeperGaps,
-  saveFinance,
   savingsRate,
   scaleBudget,
   spentByCategory,
@@ -58,6 +57,16 @@ import {
   type FinanceTx,
   type TxKind,
 } from "./financeStore";
+import {
+  hasEncryptedVault,
+  isVaultUnlocked,
+  lockVault,
+  probeVault,
+  saveVault,
+  setupVault,
+  unlockVault,
+  wipePlainFinanceKeys,
+} from "./financeVault";
 
 export const FINANCES_PAGE_ID = "pg-finance";
 
@@ -201,7 +210,22 @@ function dailyBars(txs: FinanceTx[], ym: string) {
 }
 
 export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
-  const [state, setState] = useState<FinanceState>(() => loadFinance());
+  /**
+   * Vault gate — books never sit as plain JSON once encrypted.
+   * setup = create passphrase · unlock = open vault · ready = working
+   */
+  const [vaultGate, setVaultGate] = useState<"setup" | "unlock" | "ready">(
+    () => (probeVault().mode === "encrypted" ? "unlock" : "setup")
+  );
+  const [vaultPass, setVaultPass] = useState("");
+  const [vaultPass2, setVaultPass2] = useState("");
+  const [vaultErr, setVaultErr] = useState("");
+  const [vaultBusy, setVaultBusy] = useState(false);
+  const [saveErr, setSaveErr] = useState("");
+
+  const [state, setState] = useState<FinanceState | null>(() =>
+    probeVault().mode === "encrypted" ? null : loadFinance()
+  );
   // Ledger first — a meticulous bookkeeper opens the daybook, not a dashboard
   const [tab, setTab] = useState<TabId>("transactions");
   const [showTxForm, setShowTxForm] = useState(false);
@@ -223,23 +247,116 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
   const [askQ, setAskQ] = useState("");
   const [askA, setAskA] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const idleTimer = useRef<number | null>(null);
 
   const creditProfile: CreditProfile = useMemo(
     () => ({
       ...DEFAULT_CREDIT_PROFILE,
-      ...(state.creditProfile || {}),
+      ...((state?.creditProfile) || {}),
     }),
-    [state.creditProfile]
+    [state?.creditProfile]
   );
 
   const creditReport = useMemo(
-    () => buildCreditReport(creditProfile, state.accounts),
-    [creditProfile, state.accounts]
+    () =>
+      state
+        ? buildCreditReport(creditProfile, state.accounts)
+        : buildCreditReport(DEFAULT_CREDIT_PROFILE, []),
+    [creditProfile, state]
   );
 
+  // Persist only to encrypted vault while unlocked — never write plain books
   useEffect(() => {
-    saveFinance(state);
-  }, [state]);
+    if (!state || vaultGate !== "ready" || !isVaultUnlocked()) return;
+    let cancelled = false;
+    void saveVault(state)
+      .then(() => {
+        if (!cancelled) setSaveErr("");
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setSaveErr(
+            e instanceof Error ? e.message : "Could not save encrypted vault"
+          );
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [state, vaultGate]);
+
+  // Auto-lock after 12 minutes idle — key wiped from RAM
+  useEffect(() => {
+    if (vaultGate !== "ready") return;
+    const bump = () => {
+      if (idleTimer.current != null) window.clearTimeout(idleTimer.current);
+      idleTimer.current = window.setTimeout(() => {
+        lockVault();
+        setState(null);
+        setVaultPass("");
+        setVaultPass2("");
+        setVaultGate("unlock");
+        setVaultErr("Locked after idle — unlock with your passphrase.");
+      }, 12 * 60 * 1000);
+    };
+    bump();
+    const evs = ["pointerdown", "keydown", "scroll"] as const;
+    for (const e of evs) window.addEventListener(e, bump, { passive: true });
+    return () => {
+      if (idleTimer.current != null) window.clearTimeout(idleTimer.current);
+      for (const e of evs) window.removeEventListener(e, bump);
+    };
+  }, [vaultGate]);
+
+  async function onSetupVault() {
+    setVaultErr("");
+    if (vaultPass.length < 8) {
+      setVaultErr("Passphrase needs at least 8 characters.");
+      return;
+    }
+    if (vaultPass !== vaultPass2) {
+      setVaultErr("Passphrases do not match.");
+      return;
+    }
+    setVaultBusy(true);
+    try {
+      const base = state || loadFinance();
+      await setupVault(vaultPass, base);
+      wipePlainFinanceKeys();
+      setState(base);
+      setVaultPass("");
+      setVaultPass2("");
+      setVaultGate("ready");
+    } catch (e) {
+      setVaultErr(e instanceof Error ? e.message : "Could not lock vault");
+    } finally {
+      setVaultBusy(false);
+    }
+  }
+
+  async function onUnlockVault() {
+    setVaultErr("");
+    setVaultBusy(true);
+    try {
+      const next = await unlockVault(vaultPass);
+      setState(next);
+      setVaultPass("");
+      setVaultGate("ready");
+    } catch (e) {
+      setVaultErr(e instanceof Error ? e.message : "Unlock failed");
+    } finally {
+      setVaultBusy(false);
+    }
+  }
+
+  function onLockNow() {
+    lockVault();
+    setState(null);
+    setVaultPass("");
+    setVaultPass2("");
+    setVaultGate("unlock");
+    setVaultErr("");
+  }
 
   useEffect(() => {
     void fetch("/api/finance/plaid/status")
@@ -254,40 +371,37 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
   }, []);
 
   const ym = filterMonth === "all" ? monthKey() : filterMonth || monthKey();
-  const spentMap = useMemo(
-    () => spentByCategory(state.txs, ym),
-    [state.txs, ym]
-  );
-  const income = useMemo(() => monthIncome(state.txs, ym), [state.txs, ym]);
-  const expense = useMemo(() => monthExpense(state.txs, ym), [state.txs, ym]);
-  const worth = netWorth(state.accounts);
-  const cash = cashOnHand(state.accounts);
-  const debt = creditOwed(state.accounts);
-  const inv = invested(state.accounts);
+  const txs = state?.txs || [];
+  const accounts = state?.accounts || [];
+  const spentMap = useMemo(() => spentByCategory(txs, ym), [txs, ym]);
+  const income = useMemo(() => monthIncome(txs, ym), [txs, ym]);
+  const expense = useMemo(() => monthExpense(txs, ym), [txs, ym]);
+  const worth = netWorth(accounts);
+  const cash = cashOnHand(accounts);
+  const debt = creditOwed(accounts);
+  const inv = invested(accounts);
   const cashFlow = income - expense;
-  const rate = useMemo(() => savingsRate(state.txs, ym), [state.txs, ym]);
-  const goals = state.goals || [];
+  const rate = useMemo(() => savingsRate(txs, ym), [txs, ym]);
+  const goals = state?.goals || [];
   const months = useMemo(() => recentMonthKeys(12), []);
-  const series = useMemo(() => monthlySeries(state.txs, 6), [state.txs]);
-  const bars = useMemo(() => dailyBars(state.txs, ym), [state.txs, ym]);
-  const merchants = useMemo(
-    () => topMerchants(state.txs, ym, 8),
-    [state.txs, ym]
-  );
+  const series = useMemo(() => monthlySeries(txs, 6), [txs]);
+  const bars = useMemo(() => dailyBars(txs, ym), [txs, ym]);
+  const merchants = useMemo(() => topMerchants(txs, ym, 8), [txs, ym]);
 
+  const budget = state?.budget || [];
   const categories = useMemo(() => {
     const set = new Set<string>([
       ...FINANCE_CATEGORIES,
-      ...state.budget.map((b) => b.category),
-      ...state.txs.map((t) => t.category),
+      ...budget.map((b) => b.category),
+      ...txs.map((t) => t.category),
     ]);
     return Array.from(set);
-  }, [state.budget, state.txs]);
+  }, [budget, txs]);
 
   const planRows = useMemo(() => {
     return PLAN_GROUPS.map((g) => {
       const planned = g.cats.reduce((s, c) => {
-        const b = state.budget.find((x) => x.category === c);
+        const b = budget.find((x) => x.category === c);
         return s + (b?.planned || 0);
       }, 0);
       const spent = g.cats.reduce((s, c) => s + (spentMap[c] || 0), 0);
@@ -298,21 +412,37 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
         remaining: planned - spent,
       };
     });
-  }, [state.budget, spentMap]);
+  }, [budget, spentMap]);
 
   const planPlanned = planRows.reduce((s, r) => s + r.planned, 0);
   const planSpent = planRows.reduce((s, r) => s + r.spent, 0);
 
   /** Real decision engine — ranks next moves from live data */
   const brief = useMemo(
-    () => buildSmartBrief(state, ym, planRows, creditReport),
+    () =>
+      state
+        ? buildSmartBrief(state, ym, planRows, creditReport)
+        : buildSmartBrief(
+            {
+              version: 2,
+              accounts: [],
+              txs: [],
+              budget: [],
+              watchlist: [],
+              goals: [],
+              creditProfile: null,
+            },
+            ym,
+            planRows,
+            creditReport
+          ),
     [state, ym, planRows, creditReport]
   );
   const safeToSpend = brief.safeToSpend;
   const runwayMonths = brief.runwayMonths;
 
   const ledger = useMemo(() => {
-    let list = [...state.txs];
+    let list = [...txs];
     if (filterMonth !== "all") {
       list = list.filter((t) => t.date.startsWith(filterMonth));
     }
@@ -341,17 +471,28 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
       return cmp * dir;
     });
     return list;
-  }, [state.txs, filterMonth, filterKind, filterCat, filterQ, sortKey, sortDir]);
+  }, [txs, filterMonth, filterKind, filterCat, filterQ, sortKey, sortDir]);
 
   /** Running balance after each tx (full books, not just filter) */
-  const balanceById = useMemo(
-    () => runningBalanceMap(state.txs),
-    [state.txs]
-  );
+  const balanceById = useMemo(() => runningBalanceMap(txs), [txs]);
 
   /** Rockefeller discipline score + open gaps */
   const gaps = useMemo(
-    () => bookkeeperGaps(state, ym),
+    () =>
+      state
+        ? bookkeeperGaps(state, ym)
+        : bookkeeperGaps(
+            {
+              version: 2,
+              accounts: [],
+              txs: [],
+              budget: [],
+              watchlist: [],
+              goals: [],
+              creditProfile: null,
+            },
+            ym
+          ),
     [state, ym]
   );
 
@@ -850,19 +991,98 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
   const tabTitle =
     NAV.find((n) => n.id === tab)?.label || "Ledger";
 
+  // ── Vault gate (no numbers until encrypted + unlocked) ──
+  if (vaultGate !== "ready" || !state) {
+    const isUnlock = vaultGate === "unlock" || hasEncryptedVault();
+    return (
+      <div className="wd">
+        <div className="wd-main">
+          <section className="wd-vault" aria-label="Encrypted finance vault">
+            <p className="wd-kicker">Encrypted vault · AES-256</p>
+            <h1>{isUnlock ? "Unlock your books" : "Lock your books"}</h1>
+            <p className="wd-vault-copy">
+              {isUnlock
+                ? "Your ledger is encrypted on this device. Enter your passphrase to open it. The key never leaves this browser tab."
+                : "Set a passphrase to encrypt every account, transaction, and plan. Plain copies are wiped. Forget it and the data stays locked forever — write it down somewhere safe."}
+            </p>
+            <label className="wd-vault-label">
+              Passphrase
+              <input
+                type="password"
+                autoComplete={isUnlock ? "current-password" : "new-password"}
+                value={vaultPass}
+                onChange={(e) => setVaultPass(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    if (isUnlock) void onUnlockVault();
+                    else void onSetupVault();
+                  }
+                }}
+                placeholder="At least 8 characters"
+              />
+            </label>
+            {!isUnlock ? (
+              <label className="wd-vault-label">
+                Confirm passphrase
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={vaultPass2}
+                  onChange={(e) => setVaultPass2(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void onSetupVault();
+                  }}
+                  placeholder="Type it again"
+                />
+              </label>
+            ) : null}
+            {vaultErr ? <p className="wd-vault-err">{vaultErr}</p> : null}
+            <button
+              type="button"
+              className="wd-btn wd-btn-primary"
+              disabled={vaultBusy}
+              onClick={() =>
+                void (isUnlock ? onUnlockVault() : onSetupVault())
+              }
+            >
+              {vaultBusy
+                ? "Working…"
+                : isUnlock
+                  ? "Unlock ledger"
+                  : "Encrypt & open"}
+            </button>
+            <p className="wd-vault-note">
+              Uses AES-GCM with a key derived from your passphrase (PBKDF2 ·
+              310k rounds). Not bank-grade against malware that watches you type
+              — but no plain money data sits in storage for snoopers.
+            </p>
+          </section>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="wd">
       {/* Single column — no second sidebar. Tabs live in the page like Fitness. */}
       <div className="wd-main">
         <header className="wd-top">
           <div className="wd-top-titles">
-            <p className="wd-kicker">Personal ledger · Rockefeller desk</p>
+            <p className="wd-kicker">Personal ledger · encrypted vault</p>
             <h1>{tabTitle}</h1>
             <p className="wd-top-principle">
-              Every dollar named. Every cent recorded. Balance before you spend.
+              Every dollar named. Every cent recorded. Locked when you leave.
             </p>
           </div>
           <div className="wd-top-actions">
+            <button
+              type="button"
+              className="wd-btn"
+              onClick={onLockNow}
+              title="Lock vault — wipes key from memory"
+            >
+              Lock
+            </button>
             <select
               className="wd-select"
               value={filterMonth === "all" ? monthKey() : filterMonth}
@@ -902,6 +1122,9 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
             </button>
           </div>
           {importNote ? <p className="wd-note wd-top-note">{importNote}</p> : null}
+          {saveErr ? (
+            <p className="wd-note wd-top-note wd-vault-err">{saveErr}</p>
+          ) : null}
         </header>
 
         {/* Discipline strip — always visible, like a bookkeeper’s daily checklist */}
