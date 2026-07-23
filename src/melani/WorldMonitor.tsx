@@ -880,11 +880,11 @@ function ModelHeatBars({ models }: { models: ModelCard[] }) {
 }
 
 /**
- * Bar chart with labeled axes: Y = value ($), X = period (quarter end).
+ * Bar chart: Y = money, X = quarter. Labels sit outside the plot (no rotate mess).
  */
 function BarSeriesChart({
   series,
-  height = 160,
+  height = 200,
   color = "#a8c4f0",
   labelKey = "date",
   valueKey = "revenue",
@@ -910,16 +910,17 @@ function BarSeriesChart({
   }
 
   const max = Math.max(...rows.map((r) => Math.abs(r.value)), 1);
-  const w = 560;
-  const h = Math.max(height, 180);
-  const padL = 58;
-  const padR = 16;
-  const padT = 16;
-  const padB = 48;
+  // Wide plot so many quarters have room; numbers never crush the bars
+  const w = Math.max(480, 72 * rows.length + 80);
+  const h = Math.max(height, 200);
+  const padL = 64;
+  const padR = 12;
+  const padT = 12;
+  const padB = 36;
   const plotW = w - padL - padR;
   const plotH = h - padT - padB;
-  const gap = 6;
-  const barW = Math.max(8, plotW / rows.length - gap);
+  const slot = plotW / rows.length;
+  const barW = Math.min(36, Math.max(12, slot * 0.55));
 
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((t) => {
     const value = max * (1 - t);
@@ -928,6 +929,8 @@ function BarSeriesChart({
 
   return (
     <div className="wm-chart-frame">
+      {/* Axis titles as real text — never rotated into the numbers */}
+      <p className="wm-chart-axis-y">{yLabel}</p>
       <svg
         className="wm-svg-chart wm-svg-axes"
         viewBox={`0 0 ${w} ${h}`}
@@ -935,15 +938,6 @@ function BarSeriesChart({
         role="img"
         aria-label={`${yLabel} versus ${xLabel}`}
       >
-        <rect
-          x={padL}
-          y={padT}
-          width={plotW}
-          height={plotH}
-          fill="rgba(255,255,255,0.02)"
-          rx="4"
-        />
-
         {yTicks.map((tick) => (
           <g key={`by-${tick.t}`}>
             <line
@@ -951,15 +945,15 @@ function BarSeriesChart({
               y1={tick.y}
               x2={padL + plotW}
               y2={tick.y}
-              stroke="rgba(255,255,255,0.08)"
+              stroke="rgba(255,255,255,0.06)"
               strokeWidth="1"
             />
             <text
-              x={padL - 8}
+              x={padL - 10}
               y={tick.y + 3.5}
               textAnchor="end"
-              fill="rgba(255,255,255,0.55)"
-              fontSize="10"
+              fill="rgba(255,255,255,0.45)"
+              fontSize="11"
               fontFamily="Source Serif 4, Georgia, serif"
             >
               {fmtAxisPrice(tick.value)}
@@ -967,47 +961,37 @@ function BarSeriesChart({
           </g>
         ))}
 
-        {/* Axes */}
-        <line
-          x1={padL}
-          y1={padT}
-          x2={padL}
-          y2={padT + plotH}
-          stroke="rgba(255,255,255,0.35)"
-          strokeWidth="1.25"
-        />
         <line
           x1={padL}
           y1={padT + plotH}
           x2={padL + plotW}
           y2={padT + plotH}
-          stroke="rgba(255,255,255,0.35)"
-          strokeWidth="1.25"
+          stroke="rgba(255,255,255,0.2)"
+          strokeWidth="1"
         />
 
         {rows.map((r, i) => {
-          const bh = (Math.abs(r.value) / max) * (plotH - 4);
-          const x = padL + i * (plotW / rows.length) + gap / 2;
+          const bh = (Math.abs(r.value) / max) * (plotH - 6);
+          const x = padL + i * slot + (slot - barW) / 2;
           const y = padT + plotH - bh;
-          const short =
-            r.label.length > 10 ? r.label.slice(0, 7) : fmtAxisDate(r.label);
+          const short = fmtAxisDate(r.label);
           return (
             <g key={`${r.label}-${i}`}>
               <rect
                 x={x}
                 y={y}
                 width={barW}
-                height={Math.max(bh, 1)}
-                rx="3"
+                height={Math.max(bh, 2)}
+                rx="2"
                 fill={color}
-                opacity={0.88}
+                opacity={0.9}
               />
               <text
                 x={x + barW / 2}
-                y={padT + plotH + 14}
+                y={padT + plotH + 16}
                 textAnchor="middle"
-                fill="rgba(255,255,255,0.55)"
-                fontSize="9"
+                fill="rgba(255,255,255,0.5)"
+                fontSize="10"
                 fontFamily="Source Serif 4, Georgia, serif"
               >
                 {short}
@@ -1015,31 +999,8 @@ function BarSeriesChart({
             </g>
           );
         })}
-
-        <text
-          x={14}
-          y={padT + plotH / 2}
-          textAnchor="middle"
-          fill="rgba(255,255,255,0.7)"
-          fontSize="11"
-          fontFamily="Source Serif 4, Georgia, serif"
-          fontWeight="600"
-          transform={`rotate(-90 14 ${padT + plotH / 2})`}
-        >
-          {yLabel}
-        </text>
-        <text
-          x={padL + plotW / 2}
-          y={h - 6}
-          textAnchor="middle"
-          fill="rgba(255,255,255,0.7)"
-          fontSize="11"
-          fontFamily="Source Serif 4, Georgia, serif"
-          fontWeight="600"
-        >
-          {xLabel}
-        </text>
       </svg>
+      <p className="wm-chart-axis-x">{xLabel}</p>
     </div>
   );
 }
@@ -1337,14 +1298,17 @@ export function WorldMonitor() {
           <div className="wm-head-actions">
             <button
               type="button"
-              className="wm-btn"
+              className="wm-text-btn"
               disabled={busy}
               onClick={() => void refresh()}
             >
-              {busy ? "Updating…" : "Refresh desk"}
+              {busy ? "Updating…" : "Refresh"}
             </button>
+            <span className="wm-text-sep" aria-hidden>
+              ·
+            </span>
             <a
-              className="wm-btn wm-btn-primary"
+              className="wm-text-btn"
               href={EXTERNAL.sec}
               target="_blank"
               rel="noreferrer"
@@ -1354,76 +1318,79 @@ export function WorldMonitor() {
           </div>
         </header>
 
-        <div className="wm-status-bar">
+        {/* Plain status line — no box */}
+        <p className="wm-status-line">
           <span className={`wm-dot${busy ? " is-busy" : ""}`} aria-hidden />
+          <span>{status}</span>
+          <span className="wm-text-sep">·</span>
           <span>
-            <strong>{status}</strong>
-          </span>
-          <span className="wm-status-sep" aria-hidden />
-          <span>
-            Watchlist{" "}
             <strong className="wm-up">{marketTone.up}</strong> up ·{" "}
             <strong className="wm-down">{marketTone.down}</strong> down
           </span>
-          <span className="wm-status-sep" aria-hidden />
+          <span className="wm-text-sep">·</span>
           <span>
-            Filings loaded <strong>{okReports}/{WATCHLIST.length}</strong>
+            Filings <strong>{okReports}/{WATCHLIST.length}</strong>
           </span>
           {marketTone.vix?.regularMarketPrice != null ? (
             <>
-              <span className="wm-status-sep" aria-hidden />
+              <span className="wm-text-sep">·</span>
               <span>
-                VIX <strong>{marketTone.vix.regularMarketPrice.toFixed(2)}</strong>{" "}
+                VIX {marketTone.vix.regularMarketPrice.toFixed(2)}{" "}
                 <span className={chgClass(marketTone.vix.regularMarketChangePercent)}>
                   {fmtPct(marketTone.vix.regularMarketChangePercent)}
                 </span>
               </span>
             </>
           ) : null}
-        </div>
+        </p>
 
         {error ? <p className="wm-error">{error}</p> : null}
 
-        <nav className="wm-tabs" aria-label="Desk views">
+        {/* Fitness-style text nav — no pill boxes */}
+        <nav className="wm-subnav" aria-label="Desk views">
           {(
             [
-              ["desk", "Command desk"],
-              ["charts", "Price graphs"],
-              ["reports", "Quarterly + bars"],
-              ["models", "Model War"],
-              ["agents", "Agents on X"],
-              ["howto", "How-to playbooks"],
-              ["tech", "Tech signal"],
+              ["desk", "Desk"],
+              ["charts", "Prices"],
+              ["reports", "Quarterly"],
+              ["models", "Models"],
+              ["agents", "Agents"],
+              ["howto", "How-to"],
+              ["tech", "Tech"],
             ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              className={`wm-tab${tab === id ? " is-on" : ""}`}
-              onClick={() => setTab(id)}
-            >
-              {label}
-            </button>
+          ).map(([id, label], i) => (
+            <span key={id} className="wm-subnav-item">
+              {i > 0 ? <span className="wm-text-sep" aria-hidden>·</span> : null}
+              <button
+                type="button"
+                className={`wm-subnav-link${tab === id ? " is-on" : ""}`}
+                onClick={() => setTab(id)}
+              >
+                {label}
+              </button>
+            </span>
           ))}
         </nav>
 
-        {/* Symbol picker for focused analysis */}
+        {/* Symbols as plain text, not chips */}
         {tab === "charts" || tab === "reports" || tab === "desk" ? (
-          <div className="wm-sym-picker" role="tablist" aria-label="Watchlist">
-            {WATCHLIST.map((sym) => {
+          <div className="wm-sym-line" role="tablist" aria-label="Watchlist">
+            {WATCHLIST.map((sym, i) => {
               const q = quotes.find((x) => x.symbol === sym);
               return (
-                <button
-                  key={sym}
-                  type="button"
-                  className={`wm-sym-pill${focusSymbol === sym ? " is-on" : ""}`}
-                  onClick={() => setFocusSymbol(sym)}
-                >
-                  <strong>{sym}</strong>
-                  <span className={chgClass(q?.regularMarketChangePercent)}>
-                    {fmtPct(q?.regularMarketChangePercent)}
-                  </span>
-                </button>
+                <span key={sym} className="wm-sym-item">
+                  {i > 0 ? <span className="wm-text-sep" aria-hidden>·</span> : null}
+                  <button
+                    type="button"
+                    className={`wm-sym-link${focusSymbol === sym ? " is-on" : ""}`}
+                    onClick={() => setFocusSymbol(sym)}
+                  >
+                    <strong>{sym}</strong>
+                    <span className={chgClass(q?.regularMarketChangePercent)}>
+                      {fmtPct(q?.regularMarketChangePercent)}
+                    </span>
+                  </button>
+                </span>
               );
             })}
           </div>

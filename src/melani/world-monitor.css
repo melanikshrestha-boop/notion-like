@@ -1,36 +1,37 @@
-/* World Monitor — calm serif markets desk */
+/* World Monitor — quiet full page (no boxes, serif desk) */
 
 .wm-page {
-  --wm-bg: #050505;
-  --wm-panel: #0c0c0d;
-  --wm-panel-2: #101012;
-  --wm-line: rgba(255, 255, 255, 0.07);
-  --wm-line-strong: rgba(255, 255, 255, 0.11);
-  --wm-text: rgba(255, 255, 255, 0.93);
+  --wm-bg: #000;
+  --wm-panel: transparent;
+  --wm-panel-2: transparent;
+  --wm-line: rgba(255, 255, 255, 0.08);
+  --wm-line-strong: rgba(255, 255, 255, 0.12);
+  --wm-text: rgba(255, 255, 255, 0.92);
   --wm-muted: rgba(255, 255, 255, 0.48);
   --wm-faint: rgba(255, 255, 255, 0.32);
   --wm-up: #5ecf9a;
   --wm-down: #e8838a;
   --wm-accent: #a8c4f0;
-  --wm-radius: 12px;
+  --wm-radius: 0;
   --wm-font: "Source Serif 4", Georgia, "Times New Roman", ui-serif, serif;
   --wm-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
   min-height: 100%;
-  padding: 32px 32px 72px;
+  padding: 10px clamp(18px, 3.2vw, 48px) 64px;
   box-sizing: border-box;
   background: var(--wm-bg);
   color: var(--wm-text);
   font-family: var(--wm-font) !important;
   font-size: 15px;
-  line-height: 1.55;
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
 .wm-shell {
-  width: min(1080px, 100%);
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }
 
 /* ── Header ── */
@@ -76,73 +77,73 @@
 .wm-head-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
+/* Text actions — no pill buttons */
+.wm-text-btn,
 .wm-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 36px;
-  padding: 0 16px;
-  border: 1px solid var(--wm-line-strong);
-  border-radius: 999px;
+  display: inline;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   background: transparent;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--wm-accent);
   font-family: var(--wm-font) !important;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   text-decoration: none;
-  transition:
-    border-color 0.2s var(--wm-ease),
-    color 0.2s var(--wm-ease),
-    background 0.2s var(--wm-ease),
-    transform 0.2s var(--wm-ease);
+  box-shadow: none;
 }
 
+.wm-text-btn:hover:not(:disabled),
 .wm-btn:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.28);
   color: #fff;
-  background: rgba(255, 255, 255, 0.04);
+  background: transparent;
+  border: 0;
 }
 
-.wm-btn:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.wm-btn:disabled {
+.wm-btn:disabled,
+.wm-text-btn:disabled {
   opacity: 0.4;
   cursor: default;
 }
 
 .wm-btn-primary {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.14);
-  color: #fff;
+  background: transparent;
+  border: 0;
+  color: var(--wm-accent);
 }
 
-.wm-btn-primary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
+.wm-text-sep {
+  margin: 0 6px;
+  color: var(--wm-faint);
+  user-select: none;
 }
 
-/* Status */
+/* Status — one quiet line, no box */
+.wm-status-line,
 .wm-status-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
-  margin-bottom: 20px;
-  padding: 12px 16px;
-  border-radius: var(--wm-radius);
-  border: 1px solid var(--wm-line);
-  background: var(--wm-panel);
+  gap: 4px 0;
+  margin: 0 0 18px;
+  padding: 0 0 14px;
+  border: 0;
+  border-bottom: 1px solid var(--wm-line);
+  border-radius: 0;
+  background: transparent;
   font-size: 13px;
   color: var(--wm-muted);
   font-family: var(--wm-font);
+  line-height: 1.4;
 }
 
+.wm-status-line strong,
 .wm-status-bar strong {
   color: var(--wm-text);
   font-weight: 600;
@@ -190,43 +191,126 @@
   font-family: var(--wm-font);
 }
 
-/* Tabs */
-.wm-tabs {
+/* Tabs → Fitness-style text nav (no pill tray) */
+.wm-tabs,
+.wm-subnav {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 24px;
-  padding: 4px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--wm-line);
-  width: fit-content;
+  align-items: baseline;
+  gap: 0;
+  margin: 0 0 18px;
+  padding: 0 0 14px;
+  border: 0;
+  border-bottom: 1px solid var(--wm-line);
+  border-radius: 0;
+  background: transparent;
+  width: 100%;
   max-width: 100%;
 }
 
-.wm-tab {
-  min-height: 34px;
-  padding: 0 16px;
+.wm-subnav-item {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.wm-tab,
+.wm-subnav-link {
+  min-height: 0;
+  padding: 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: 0;
   background: transparent;
   color: var(--wm-muted);
   font-family: var(--wm-font) !important;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 400;
   cursor: pointer;
-  transition:
-    background 0.2s var(--wm-ease),
-    color 0.2s var(--wm-ease);
 }
 
-.wm-tab:hover {
-  color: var(--wm-text);
-}
-
-.wm-tab.is-on {
-  background: rgba(255, 255, 255, 0.1);
+.wm-tab:hover,
+.wm-subnav-link:hover {
   color: #fff;
+  background: transparent;
+}
+
+.wm-tab.is-on,
+.wm-subnav-link.is-on {
+  background: transparent;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Symbols as plain links, not chip boxes */
+.wm-sym-line,
+.wm-sym-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0;
+  margin: 0 0 22px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.wm-sym-item {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.wm-sym-link,
+.wm-sym-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--wm-muted);
+  font-family: var(--wm-font) !important;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.wm-sym-link strong,
+.wm-sym-pill strong {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.wm-sym-link.is-on,
+.wm-sym-pill.is-on {
+  background: transparent;
+  border: 0;
+  color: #fff;
+}
+
+.wm-sym-link.is-on strong,
+.wm-sym-pill.is-on strong {
+  color: #fff;
+}
+
+.wm-chart-axis-y,
+.wm-chart-axis-x {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--wm-faint);
+  font-family: var(--wm-font);
+}
+
+.wm-chart-axis-y {
+  margin-bottom: 6px;
+}
+
+.wm-chart-axis-x {
+  margin-top: 6px;
+  text-align: center;
 }
 
 /* Blocks */
@@ -266,16 +350,15 @@
 }
 
 .wm-macro-cell {
-  padding: 16px;
-  border-radius: var(--wm-radius);
-  border: 1px solid var(--wm-line);
-  background: var(--wm-panel);
-  transition: border-color 0.2s var(--wm-ease), background 0.2s var(--wm-ease);
+  padding: 0 8px 0 0;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
 }
 
 .wm-macro-cell:hover {
-  border-color: var(--wm-line-strong);
-  background: var(--wm-panel-2);
+  border: 0;
+  background: transparent;
 }
 
 .wm-macro-cell .lbl {
@@ -444,16 +527,15 @@
 }
 
 .wm-crypto-card {
-  padding: 16px 18px;
-  border-radius: var(--wm-radius);
-  border: 1px solid var(--wm-line);
-  background: var(--wm-panel);
-  transition: border-color 0.2s var(--wm-ease), background 0.2s var(--wm-ease);
+  padding: 0 12px 0 0;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
 }
 
 .wm-crypto-card:hover {
-  border-color: var(--wm-line-strong);
-  background: var(--wm-panel-2);
+  border: 0;
+  background: transparent;
 }
 
 .wm-crypto-card header {
@@ -598,10 +680,10 @@
 }
 
 .wm-focus-card {
-  padding: 16px 18px 14px;
-  border-radius: var(--wm-radius);
-  border: 1px solid var(--wm-line);
-  background: var(--wm-panel);
+  padding: 0 0 18px;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
 }
 
 .wm-focus-price {
@@ -1509,9 +1591,69 @@
 
 .wm-empty {
   margin: 0;
-  padding: 24px;
+  padding: 24px 0;
   color: var(--wm-muted);
   font-size: 14px;
+}
+
+/*
+  Kill every remaining boxed chrome on World Monitor.
+  Quiet page only — borders/radius/fills off for cards & chips.
+*/
+.wm-page .wm-report-card,
+.wm-page .wm-agent-card,
+.wm-page .wm-howto-card,
+.wm-page .wm-model-rank-card,
+.wm-page .wm-model-use-card,
+.wm-page .wm-spark-cell,
+.wm-page .wm-tech-card,
+.wm-page .wm-news-card,
+.wm-page .wm-panel-box,
+.wm-page .wm-leader-card {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.wm-page .wm-report-card.is-open,
+.wm-page .wm-model-rank-card.is-on,
+.wm-page .wm-model-rank-card:hover {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.wm-page .wm-sym-pill,
+.wm-page .wm-sym-pill.is-on {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+}
+
+.wm-page .wm-report-head,
+.wm-page .wm-report-snap,
+.wm-page .wm-report-body {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.wm-page .wm-chart-frame {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  min-height: 200px;
+}
+
+.wm-page .wm-error {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0 0 12px;
 }
 
 .wm-foot {
