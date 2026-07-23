@@ -34,6 +34,11 @@ import {
 } from "./appleBooks";
 import { fetchLocalBooks, mergeLocalBooks } from "./localBooks";
 import {
+  enrichBooksWithCovers,
+  goodreadsSearchUrl,
+  parseGoodreadsCsv,
+} from "./bookCovers";
+import {
   BOOK_OPEN_EVENT,
   type Book,
   type BookCategory,
@@ -259,10 +264,53 @@ export function BooksLibrary({
     }
   }, []);
 
+  /** Pull covers from Open Library for books that only show a plain spine */
+  const enrichCovers = useCallback(async (options?: { quiet?: boolean }) => {
+    if (!options?.quiet) {
+      setSync({ state: "syncing", message: "Finding covers" });
+    }
+    try {
+      // Snapshot current shelf, enrich, write back
+      let snapshot: Book[] = [];
+      setBooks((current) => {
+        snapshot = current;
+        return current;
+      });
+      // Allow React to flush the snapshot read
+      await new Promise((r) => window.setTimeout(r, 0));
+      const result = await enrichBooksWithCovers(snapshot, {
+        limit: 16,
+        fixUnsorted: true,
+      });
+      setBooks(result.books);
+      if (result.filled > 0) {
+        setToast(
+          result.filled === 1
+            ? "Cover found for 1 book"
+            : `Covers found for ${result.filled} books`
+        );
+      }
+      if (!options?.quiet) {
+        setSync({
+          state: "done",
+          message:
+            result.filled > 0
+              ? `${result.filled} cover${result.filled === 1 ? "" : "s"} updated`
+              : "Covers checked",
+        });
+      }
+    } catch {
+      if (!options?.quiet) {
+        setSync({ state: "error", message: "Cover lookup failed" });
+      }
+    }
+  }, []);
+
   const syncAll = useCallback(async () => {
     await syncApple();
     await syncLocalFiles();
-  }, [syncApple, syncLocalFiles]);
+    await enrichCovers({ quiet: true });
+  }, [syncApple, syncLocalFiles, enrichCovers]);
 
   useEffect(() => {
     void syncAll();
@@ -272,9 +320,11 @@ export function BooksLibrary({
   useEffect(() => {
     const tick = () => {
       if (document.visibilityState !== "visible") return;
-      void syncLocalFiles({ quiet: true });
+      void syncLocalFiles({ quiet: true }).then(() =>
+        enrichCovers({ quiet: true })
+      );
     };
-    const timer = window.setInterval(tick, 15_000);
+    const timer = window.setInterval(tick, 20_000);
     window.addEventListener("focus", tick);
     document.addEventListener("visibilitychange", tick);
     return () => {
@@ -282,7 +332,62 @@ export function BooksLibrary({
       window.removeEventListener("focus", tick);
       document.removeEventListener("visibilitychange", tick);
     };
-  }, [syncLocalFiles]);
+  }, [syncLocalFiles, enrichCovers]);
+
+  /** Goodreads library CSV → Want / Reading / Finished shelves */
+  function importGoodreadsCsv(file: File | null) {
+    if (!file) return;
+    void file.text().then((text) => {
+      const rows = parseGoodreadsCsv(text);
+      if (!rows.length) {
+        setToast("No books found in that Goodreads export");
+        return;
+      }
+      let added = 0;
+      setBooks((current) => {
+        const next = [...current];
+        for (const row of rows) {
+          const norm = row.title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+          const exists = next.some(
+            (b) =>
+              b.title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() === norm
+          );
+          if (exists) continue;
+          const status =
+            row.shelf === "read" || row.shelf === "currently-reading"
+              ? row.shelf === "read"
+                ? "finished"
+                : "reading"
+              : "want";
+          const category = categorizeBook(row.title, row.author);
+          next.unshift(
+            newBook({
+              title: row.title,
+              author: row.author,
+              status,
+              statusOverride: true,
+              category,
+              rating: row.rating,
+              coverUrl: row.coverUrl || undefined,
+              externalUrl: goodreadsSearchUrl(row.title, row.author),
+              source: "manual",
+              format: "manual",
+              description: "Imported from your Goodreads library export.",
+            })
+          );
+          added += 1;
+        }
+        return next;
+      });
+      setToast(
+        added
+          ? `Goodreads · added ${added} book${added === 1 ? "" : "s"}`
+          : "Goodreads · all books already on shelf"
+      );
+      // Pull real covers for new rows
+      window.setTimeout(() => void enrichCovers({ quiet: true }), 400);
+    });
+  }
 
   const runFinderSearch = useCallback(async (query: string) => {
     const cleaned = query.trim();
@@ -654,6 +759,25 @@ export function BooksLibrary({
     setReaderId(id);
   }
 
+  /** One-tap cover fetch for a single book */
+  async function lookupAndSetCover(bookId: string) {
+    const book = books.find((b) => b.id === bookId);
+    if (!book) return;
+    setToast("Looking up cover…");
+    const result = await enrichBooksWithCovers([book], {
+      limit: 1,
+      fixUnsorted: true,
+    });
+    const updated = result.books[0];
+    if (!updated) return;
+    setBooks((current) =>
+      current.map((b) => (b.id === bookId ? { ...b, ...updated } : b))
+    );
+    setToast(
+      updated.coverUrl ? "Cover found" : "No cover found — try editing the title"
+    );
+  }
+
   if (reader?.readerUrl) {
     return (
       <Suspense fallback={<div className="bl-reader-loading">Opening reader...</div>}>
@@ -736,14 +860,36 @@ export function BooksLibrary({
                   Read here
                 </button>
               ) : null}
-              {open.externalUrl ? (
+              <a
+                className="bl-link-quiet"
+                href={
+                  open.externalUrl?.includes("goodreads")
+                    ? open.externalUrl
+                    : goodreadsSearchUrl(open.title, open.author)
+                }
+                target="_blank"
+                rel="noreferrer"
+              >
+                Goodreads
+              </a>
+              {!open.coverUrl ? (
+                <button
+                  type="button"
+                  className="bl-link-quiet"
+                  onClick={() => void lookupAndSetCover(open.id)}
+                >
+                  Find cover
+                </button>
+              ) : null}
+              {open.externalUrl &&
+              !open.externalUrl.includes("goodreads") ? (
                 <a
                   className="bl-link-quiet"
                   href={open.externalUrl}
                   target="_blank"
                   rel="noreferrer"
                 >
-                  Apple Books
+                  Source
                 </a>
               ) : null}
               {open.wonderPageId && onGo ? (
@@ -1059,11 +1205,31 @@ export function BooksLibrary({
             type="button"
             className={`bl-sync${sync.state === "syncing" ? " is-syncing" : ""}`}
             onClick={() => void syncAll()}
-            title="Refresh Apple Books + Downloads EPUBs"
+            title="Refresh Apple Books + Downloads EPUBs + covers"
           >
             <ArrowsClockwise size={15} aria-hidden />
             <span>{sync.message}</span>
           </button>
+          <button
+            type="button"
+            className="bl-sync"
+            onClick={() => void enrichCovers()}
+            title="Find missing cover images"
+          >
+            <span>Covers</span>
+          </button>
+          <label className="bl-sync bl-goodreads-import" title="Import Goodreads library CSV">
+            <span>Goodreads CSV</span>
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              hidden
+              onChange={(e) => {
+                importGoodreadsCsv(e.target.files?.[0] || null);
+                e.target.value = "";
+              }}
+            />
+          </label>
         </div>
         <div className="bl-stats">
           <span><b>{stats.total}</b> books</span>
@@ -1071,6 +1237,12 @@ export function BooksLibrary({
           <span><b>{stats.finished}</b> finished</span>
           <span><b>{stats.quotes}</b> quotes</span>
         </div>
+        <p className="bl-download-hint">
+          New EPUB? Drop it in{" "}
+          <strong>Downloads</strong> — the shelf picks it up automatically.
+          Covers load from Open Library. Goodreads: export your library CSV and
+          import here. (We don’t auto-download from pirate sites.)
+        </p>
       </header>
 
       <div className="bl-toolbar">

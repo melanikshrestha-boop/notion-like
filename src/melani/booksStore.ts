@@ -205,6 +205,12 @@ export function categorizeBook(
       "technology",
       "startup",
       "digital revolution",
+      "nvidia",
+      "youtube secrets",
+      "silicon valley",
+      "software",
+      "coding",
+      "python",
     ])
   ) {
     return "Technology & Innovation";
@@ -221,6 +227,7 @@ export function categorizeBook(
       "finance",
       "money",
       "marketing",
+      "titan",
     ])
   ) {
     return "Business & Money";
@@ -231,6 +238,10 @@ export function categorizeBook(
       "deep work",
       "psycho-cybernetics",
       "man's search for meaning",
+      "mans search for meaning",
+      "search for meaning",
+      "viktor frankl",
+      "frankl",
       "psychology",
       "self-help",
       "self development",
@@ -239,6 +250,21 @@ export function categorizeBook(
     ])
   ) {
     return "Psychology & Self-Development";
+  }
+  if (
+    includesAny(value, [
+      "leonardo da vinci",
+      "leonardo",
+      "isaacson",
+      "steve jobs",
+      "elon musk",
+      "benjamin franklin",
+      "biograph",
+      "memoir",
+      "autobiograph",
+    ])
+  ) {
+    return "Autobiography & Memoir";
   }
   if (
     includesAny(value, [

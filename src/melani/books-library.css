@@ -414,6 +414,27 @@
   color: #fff;
 }
 
+.bl-download-hint {
+  margin: 8px 0 0;
+  max-width: 42rem;
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.bl-download-hint strong {
+  color: rgba(255, 255, 255, 0.62);
+  font-weight: 500;
+}
+
+.bl-goodreads-import {
+  cursor: pointer;
+}
+
+.bl-goodreads-import input {
+  display: none;
+}
+
 .bl-folder-add-btn {
   color: rgba(255, 255, 255, 0.7);
 }

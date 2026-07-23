@@ -99,6 +99,12 @@ export function mergeLocalBooks(
 
     if (index >= 0) {
       const existing = next[index];
+      // Re-file Unsorted when we can guess a better shelf
+      const nextCategory = existing.categoryOverride
+        ? existing.category
+        : existing.category === "Unsorted" || !existing.category
+          ? category
+          : existing.category;
       next[index] = {
         ...existing,
         // Keep local notes / progress; refresh file URL + metadata
@@ -112,11 +118,9 @@ export function mergeLocalBooks(
         description:
           existing.description ||
           (item.fromOcean
-            ? "Imported from your Downloads (Ocean of PDF / local EPUB)."
+            ? "Imported from your Downloads folder (local EPUB)."
             : "Imported from a local EPUB on this Mac."),
-        category: existing.categoryOverride
-          ? existing.category
-          : existing.category || category,
+        category: nextCategory,
         updatedAt: Date.now(),
       };
       continue;
@@ -139,7 +143,7 @@ export function mergeLocalBooks(
         cloudOnly: false,
         readingFormat: "digital",
         description: item.fromOcean
-          ? "Imported from your Downloads (Ocean of PDF / local EPUB)."
+          ? "Imported from your Downloads folder (local EPUB)."
           : "Imported from a local EPUB on this Mac.",
         color: stableColor(item.id),
       })

@@ -8,6 +8,7 @@ import { responsiveImageApi } from "./scripts/wardrobe/responsive-image-api.mjs"
 import { wardrobeIntelligenceApi } from "./scripts/wardrobe/wardrobe-intelligence-api.mjs";
 import { localTasksApi } from "./scripts/local-tasks-api.mjs";
 import { bookDiscoveryApi } from "./scripts/book-discovery-api.mjs";
+import { bookCoversApi } from "./scripts/book-covers-api.mjs";
 import { instacartShoppingApi } from "./scripts/instacart-shopping-api.mjs";
 import { intelFeedsApi } from "./scripts/intel-feeds-api.mjs";
 import { careConciergeApi } from "./scripts/care-concierge-api.mjs";
@@ -32,9 +33,11 @@ export default defineConfig(({ mode }) => {
       wardrobeIntelligenceApi(),
       localTasksApi(),
       appleBooksApi(),
-      // Downloads + Documents EPUBs (Ocean of PDF, etc.) → Bookshelf
+      // Downloads + Documents EPUBs → Bookshelf
       localBooksApi(),
       bookDiscoveryApi(),
+      // Cover art + Goodreads links via Open Library
+      bookCoversApi(),
       instacartShoppingApi({ env }),
       intelFeedsApi(),
       careConciergeApi({ env }),
