@@ -8,22 +8,17 @@
   max-width: 100%; /* match .melani-inner (~480px), not a skinny 248px column */
   box-sizing: border-box;
   /*
-    Phase colors — soft, low-sat, easy on black (not candy-bright).
-    Solid tokens for tiny legend dots; soft tokens for text.
+    Phase colors — clear on black, calm (not neon, not muddy brown).
+    Same solid for legend dots, calendar days, and bars.
   */
-  --ct-menstrual: #7a555c;
-  --ct-menstrual-soft: #c4a0a6;
-  --ct-follicular: #4a5f56;
-  --ct-follicular-soft: #9bb0a6;
-  --ct-ovulatory: #5a5470;
-  --ct-ovulatory-soft: #b0a8c4;
-  --ct-luteal: #6a614c;
-  --ct-luteal-soft: #b8af96;
-  /* Calendar fills — translucent so circles don’t glare */
-  --ct-day-menstrual: rgba(160, 110, 118, 0.38);
-  --ct-day-follicular: rgba(110, 140, 125, 0.32);
-  --ct-day-ovulatory: rgba(130, 120, 165, 0.36);
-  --ct-day-luteal: rgba(150, 135, 100, 0.34);
+  --ct-menstrual: #b88790; /* dusty rose */
+  --ct-menstrual-soft: #d4aeb4;
+  --ct-follicular: #7a9e8e; /* soft sage */
+  --ct-follicular-soft: #a8c4b6;
+  --ct-ovulatory: #9588b8; /* soft lilac */
+  --ct-ovulatory-soft: #c0b6d8;
+  --ct-luteal: #b5a078; /* warm sand */
+  --ct-luteal-soft: #d4c4a0;
 }
 
 /* ── 1. Status ── */
@@ -101,40 +96,26 @@
   flex-shrink: 0;
 }
 
-/* Legend dots + bars — muted solid */
+/* Legend · calendar · bars — one clear solid each phase */
 .ct-key-dot.is-menstrual,
+.ct-day.is-menstrual,
 .ct-seg.is-menstrual {
   background: var(--ct-menstrual);
 }
 .ct-key-dot.is-follicular,
+.ct-day.is-follicular,
 .ct-seg.is-follicular {
   background: var(--ct-follicular);
 }
 .ct-key-dot.is-ovulatory,
+.ct-day.is-ovulatory,
 .ct-seg.is-ovulatory {
   background: var(--ct-ovulatory);
 }
 .ct-key-dot.is-luteal,
+.ct-day.is-luteal,
 .ct-seg.is-luteal {
   background: var(--ct-luteal);
-}
-
-/* Calendar days — soft translucent fills (easy on the eyes) */
-.ct-day.is-menstrual {
-  background: var(--ct-day-menstrual);
-  color: rgba(255, 255, 255, 0.78);
-}
-.ct-day.is-follicular {
-  background: var(--ct-day-follicular);
-  color: rgba(255, 255, 255, 0.78);
-}
-.ct-day.is-ovulatory {
-  background: var(--ct-day-ovulatory);
-  color: rgba(255, 255, 255, 0.78);
-}
-.ct-day.is-luteal {
-  background: var(--ct-day-luteal);
-  color: rgba(255, 255, 255, 0.78);
 }
 
 /* ── 3. Calendar — full width, 7 equal columns (aligned with page) ── */
@@ -225,16 +206,16 @@
   cursor: default;
 }
 
-/* Soft day numbers — not pure white blast */
+/* Numbers stay readable on the soft fills */
 .ct-day.is-menstrual,
 .ct-day.is-follicular,
 .ct-day.is-ovulatory,
 .ct-day.is-luteal {
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .ct-day.today {
-  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7);
   font-weight: 650;
 }
 
@@ -338,9 +319,9 @@
 }
 
 .ct-flow-btn.on {
-  border-color: rgba(160, 110, 118, 0.4);
+  border-color: rgba(184, 135, 144, 0.45);
   color: var(--ct-menstrual-soft);
-  background: rgba(160, 110, 118, 0.12);
+  background: rgba(184, 135, 144, 0.14);
 }
 
 .ct-start {
@@ -395,43 +376,43 @@
 
 .ct-learn-tab.is-menstrual {
   color: var(--ct-menstrual-soft);
-  border-color: rgba(160, 110, 118, 0.28);
-  background: rgba(160, 110, 118, 0.08);
+  border-color: rgba(184, 135, 144, 0.35);
+  background: rgba(184, 135, 144, 0.1);
 }
 .ct-learn-tab.is-follicular {
   color: var(--ct-follicular-soft);
-  border-color: rgba(110, 140, 125, 0.28);
-  background: rgba(110, 140, 125, 0.08);
+  border-color: rgba(122, 158, 142, 0.35);
+  background: rgba(122, 158, 142, 0.1);
 }
 .ct-learn-tab.is-ovulatory {
   color: var(--ct-ovulatory-soft);
-  border-color: rgba(130, 120, 165, 0.28);
-  background: rgba(130, 120, 165, 0.08);
+  border-color: rgba(149, 136, 184, 0.35);
+  background: rgba(149, 136, 184, 0.1);
 }
 .ct-learn-tab.is-luteal {
   color: var(--ct-luteal-soft);
-  border-color: rgba(150, 135, 100, 0.28);
-  background: rgba(150, 135, 100, 0.08);
+  border-color: rgba(181, 160, 120, 0.35);
+  background: rgba(181, 160, 120, 0.1);
 }
 
-/* Current phase = soft solid (still muted) */
+/* Current phase = same solid as calendar */
 .ct-learn-tab.is-menstrual.on {
-  color: rgba(255, 255, 255, 0.9);
+  color: #fff;
   background: var(--ct-menstrual);
   border-color: var(--ct-menstrual);
 }
 .ct-learn-tab.is-follicular.on {
-  color: rgba(255, 255, 255, 0.9);
+  color: #fff;
   background: var(--ct-follicular);
   border-color: var(--ct-follicular);
 }
 .ct-learn-tab.is-ovulatory.on {
-  color: rgba(255, 255, 255, 0.9);
+  color: #fff;
   background: var(--ct-ovulatory);
   border-color: var(--ct-ovulatory);
 }
 .ct-learn-tab.is-luteal.on {
-  color: rgba(255, 255, 255, 0.9);
+  color: #fff;
   background: var(--ct-luteal);
   border-color: var(--ct-luteal);
 }
