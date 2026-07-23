@@ -36,8 +36,36 @@ type Props = {
 const COLLAPSE_KEY = "dr-melani-sidebar-collapsed";
 const COLLAPSE_VERSION_KEY = "dr-melani-sidebar-collapse-version";
 const TRASH_KEY = "dr-melani-show-trash";
+/** Saved width of the main menu (sidebar) — drag the right edge */
+const SIDEBAR_WIDTH_KEY = "dr-melani-sidebar-width-v1";
+const SIDEBAR_W_MIN = 200;
+const SIDEBAR_W_MAX = 420;
+const SIDEBAR_W_DEFAULT = 252;
 /** How long (ms) between two taps counts as a double-tap to OPEN */
 const DOUBLE_TAP_MS = 420;
+
+function loadSidebarWidth(): number {
+  try {
+    const n = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY));
+    if (Number.isFinite(n) && n >= SIDEBAR_W_MIN && n <= SIDEBAR_W_MAX) return n;
+  } catch {
+    /* ignore */
+  }
+  return SIDEBAR_W_DEFAULT;
+}
+
+function saveSidebarWidth(w: number) {
+  try {
+    localStorage.setItem(SIDEBAR_WIDTH_KEY, String(Math.round(w)));
+  } catch {
+    /* ignore */
+  }
+}
+
+function applySidebarWidth(w: number) {
+  // Live CSS variable so the whole shell tracks the drag
+  document.documentElement.style.setProperty("--sidebar-w", `${Math.round(w)}px`);
+}
 
 /** Health section roots */
 const HEALTH_ROOT_IDS = ["pg-fitness", "pg-hygiene", "pg-data"] as const;
@@ -451,6 +479,48 @@ export function Sidebar({
     loadCollapsed
   );
   const [showTrash, setShowTrash] = useState(() => loadFlag(TRASH_KEY, false));
+  // Main menu width — drag right edge; × buttons always stick to the far right
+  const [sidebarWidth, setSidebarWidth] = useState(() => loadSidebarWidth());
+  const sidebarDrag = useRef<{ startX: number; startW: number } | null>(null);
+  const sidebarWidthLive = useRef(sidebarWidth);
+
+  useEffect(() => {
+    applySidebarWidth(sidebarWidth);
+    sidebarWidthLive.current = sidebarWidth;
+  }, [sidebarWidth]);
+
+  function onSidebarResizeDown(e: React.PointerEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    sidebarDrag.current = {
+      startX: e.clientX,
+      startW: sidebarWidthLive.current,
+    };
+    document.documentElement.classList.add("is-sidebar-resizing");
+  }
+
+  function onSidebarResizeMove(e: React.PointerEvent<HTMLDivElement>) {
+    const drag = sidebarDrag.current;
+    if (!drag) return;
+    const next = Math.min(
+      SIDEBAR_W_MAX,
+      Math.max(SIDEBAR_W_MIN, drag.startW + (e.clientX - drag.startX))
+    );
+    sidebarWidthLive.current = next;
+    setSidebarWidth(next);
+  }
+
+  function onSidebarResizeUp(e: React.PointerEvent<HTMLDivElement>) {
+    if (!sidebarDrag.current) return;
+    sidebarDrag.current = null;
+    document.documentElement.classList.remove("is-sidebar-resizing");
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+    saveSidebarWidth(sidebarWidthLive.current);
+  }
 
   /** Double-tap open a page branch — show kids, but every kid starts closed */
   function openBranch(id: string) {
@@ -634,7 +704,33 @@ export function Sidebar({
   const trash = allPages.filter((p) => !!p.trashedAt);
 
   return (
-    <aside className={`sidebar${open ? "" : " is-closed"}`} aria-label="Sidebar">
+    <aside
+      className={`sidebar${open ? "" : " is-closed"}`}
+      aria-label="Sidebar"
+      style={
+        open
+          ? {
+              width: sidebarWidth,
+              minWidth: sidebarWidth,
+              maxWidth: sidebarWidth,
+            }
+          : undefined
+      }
+    >
+      {/* Drag the right edge to widen or narrow the main menu */}
+      {open ? (
+        <div
+          className="sidebar-resize"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize sidebar"
+          title="Drag to make the menu wider or narrower"
+          onPointerDown={onSidebarResizeDown}
+          onPointerMove={onSidebarResizeMove}
+          onPointerUp={onSidebarResizeUp}
+          onPointerCancel={onSidebarResizeUp}
+        />
+      ) : null}
       {/* Workspace name — like “Disciplined” */}
       <div className="sidebar-top">
         <button type="button" className="workspace-btn" title={workspaceName}>

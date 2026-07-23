@@ -152,6 +152,7 @@ textarea {
 /* ── Sidebar ── */
 .sidebar {
   --sb-inset: 14px; /* one left edge for everything LTR */
+  position: relative; /* for the drag handle */
   width: var(--sidebar-w);
   min-width: var(--sidebar-w);
   max-width: var(--sidebar-w);
@@ -176,6 +177,36 @@ textarea {
   overflow: hidden;
   box-sizing: border-box;
   font-family: var(--notion-serif);
+}
+
+/* Right-edge drag — extend or shrink the main menu */
+.sidebar-resize {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+  z-index: 30;
+  touch-action: none;
+}
+
+.sidebar-resize:hover,
+.sidebar-resize:active {
+  background: linear-gradient(
+    270deg,
+    rgba(168, 196, 240, 0.2),
+    transparent 80%
+  );
+}
+
+/* While dragging, no soft transition (tracks the pointer live) */
+html.is-sidebar-resizing .sidebar {
+  transition: none !important;
+}
+html.is-sidebar-resizing {
+  cursor: ew-resize !important;
+  user-select: none !important;
 }
 
 /* Closed = take no horizontal space → main expands to full width */
@@ -2123,12 +2154,38 @@ textarea {
   margin-top: 2px;
 }
 
-/* Agents: delete × always visible, stays on the right */
+/* Agents: title left, × always on the far right of the sidebar */
+.page-row-agent {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding-right: 4px;
+  gap: 0;
+}
+
+.page-row-agent .page-row-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+}
+
+.page-row-agent .page-title-side {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .page-row-agent .page-agent-delete {
   opacity: 0.55;
+  flex: 0 0 auto;
   flex-shrink: 0;
   margin-left: auto;
-  margin-right: 0;
+  margin-right: 2px;
+  display: inline-flex !important;
+  position: relative;
+  z-index: 2;
 }
 
 .page-row-agent:hover .page-agent-delete,

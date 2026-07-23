@@ -70,12 +70,33 @@
   overflow: hidden;
   font-family: inherit !important;
   animation: mai-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);
-  /* Chat text size (A− / A+) */
+  /* Chat text size (− / +) */
   --mai-msg: 17px;
   --mai-input: 16px;
-  --mai-line: 1.55;
+  --mai-line: 1.45; /* single-spaced feel */
   --mai-title: 14px;
   --mai-quick: 13px;
+}
+
+/* Drag left edge to extend Mel */
+.mai-resize {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  z-index: 5;
+  touch-action: none;
+}
+
+.mai-resize:hover,
+.mai-resize:active {
+  background: linear-gradient(
+    90deg,
+    rgba(168, 196, 240, 0.18),
+    transparent 70%
+  );
 }
 
 .mai-panel.mai-size-s {
@@ -97,25 +118,25 @@
 .mai-panel.mai-size-l {
   --mai-msg: 19px;
   --mai-input: 18px;
-  --mai-line: 1.58;
+  --mai-line: 1.48;
   --mai-title: 15px;
   --mai-quick: 14px;
-  width: min(420px, calc(100vw - 24px));
 }
 
 .mai-panel.mai-size-xl {
   --mai-msg: 22px;
   --mai-input: 20px;
-  --mai-line: 1.6;
+  --mai-line: 1.5;
   --mai-title: 16px;
   --mai-quick: 15px;
-  width: min(460px, calc(100vw - 24px));
 }
 
 .mai-size-btn {
-  min-width: 32px;
+  min-width: 28px;
   font-weight: 600 !important;
-  letter-spacing: 0.02em;
+  font-size: 16px !important;
+  letter-spacing: 0;
+  line-height: 1;
 }
 
 .mai-size-btn:disabled {
@@ -132,11 +153,6 @@
     opacity: 1;
     transform: none;
   }
-}
-
-.mai-panel.is-overview {
-  width: min(460px, calc(100vw - 24px));
-  height: auto;
 }
 
 .mai-head {
@@ -186,76 +202,35 @@
   color: #fff;
 }
 
+/* Single Brief action — no Food / Status / Explain grid of boxes */
 .mai-quick {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  padding: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  min-height: 36px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .mai-quick button {
-  min-height: 36px;
+  min-height: 32px;
   border: 0;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
   background: transparent;
-  color: rgba(255, 255, 255, 0.52);
+  color: rgba(255, 255, 255, 0.55);
   font-family: inherit !important;
-  font-size: 11px;
+  font-size: var(--mai-quick, 13px);
   font-weight: 500;
   cursor: pointer;
-  transition: color 0.18s ease, background 0.18s ease;
-}
-
-.mai-quick button:last-child {
-  border-right: 0;
+  padding: 0 4px;
+  transition: color 0.18s ease;
 }
 
 .mai-quick button:hover:not(:disabled) {
   color: #fff;
-  background: rgba(255, 255, 255, 0.04);
+  background: transparent;
 }
 
 .mai-quick button:disabled {
   opacity: 0.3;
-}
-
-.mai-overview {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px 16px 20px;
-}
-.mai-overview-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 15px;
-  margin-bottom: 14px;
-}
-.mai-overview-top p,
-.mai-overview-label,
-.mai-score-why p {
-  margin: 0 0 4px;
-  color: #a8c4f0;
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  font-family: inherit;
-}
-.mai-overview-top h2 {
-  margin: 0;
-  color: #fff;
-  font-size: 20px;
-  font-weight: 600;
-  font-family: inherit;
-}
-.mai-overview-top button,
-.mai-overview-refresh {
-  border: 0;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.4);
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
 }
 
 .mai-msgs {
@@ -299,10 +274,14 @@
   line-height: inherit;
 }
 
+/* Headers always larger than body lines */
 .mai-line-head {
   font-weight: 600;
+  font-size: 1.08em;
   color: rgba(255, 255, 255, 0.95);
   margin-top: 0.35em;
+  margin-bottom: 0.1em;
+  line-height: 1.3;
 }
 
 .mai-line-gap {
@@ -400,15 +379,13 @@
 }
 
 @media (max-width: 600px) {
-  .mai-panel,
-  .mai-panel.is-overview {
+  .mai-panel {
     inset: 51px 8px 8px;
-    width: auto;
+    width: auto !important;
     height: auto;
   }
 
-  .mai-quick button {
-    font-size: 10px;
-    padding: 0 3px;
+  .mai-resize {
+    display: none;
   }
 }

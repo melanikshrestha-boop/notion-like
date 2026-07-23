@@ -4,7 +4,6 @@ import { isBriefHour, loadBodyBrief } from "./bodyBrief";
 import { todayKey } from "./data";
 import { checkMelCloud, checkMelLocalModel, runMelAgent } from "./melAgent";
 import { MEL_PROMPT_EVENT, type MelPromptRequest } from "./melActions";
-import { MelOverview } from "./MelOverview";
 import { ensureDefaultWeatherLocation } from "./weather/weatherCore";
 import "./melani-ai.css";
 
@@ -23,10 +22,32 @@ type Props = {
 
 const CHAT_KEY = "dr-melani-ai-chat-v1";
 const OPEN_KEY = "dr-melani-ai-open";
-// How big Mel chat text is — you pick with A− / A+, we remember it
+// How big Mel chat text is — you pick with − / +, we remember it
 const TEXT_SIZE_KEY = "dr-melani-ai-text-size-v1";
+// How wide Mel’s panel is — drag the left edge to extend
+const WIDTH_KEY = "dr-melani-ai-width-v1";
+const WIDTH_MIN = 320;
+const WIDTH_MAX = 920;
 type TextSize = "s" | "m" | "l" | "xl";
 const TEXT_SIZES: TextSize[] = ["s", "m", "l", "xl"];
+
+function loadPanelWidth(): number {
+  try {
+    const n = Number(localStorage.getItem(WIDTH_KEY));
+    if (Number.isFinite(n) && n >= WIDTH_MIN && n <= WIDTH_MAX) return n;
+  } catch {
+    /* ignore */
+  }
+  return 400;
+}
+
+function savePanelWidth(w: number) {
+  try {
+    localStorage.setItem(WIDTH_KEY, String(Math.round(w)));
+  } catch {
+    /* ignore */
+  }
+}
 
 function loadTextSize(): TextSize {
   try {
@@ -135,15 +156,18 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
   });
   const [msgs, setMsgs] = useState<Msg[]>(() => loadMsgs());
   const [input, setInput] = useState("");
-  const [view, setView] = useState<"chat" | "overview">("chat");
   // Chat text size: S M L XL — saved so it stays to your liking
   const [textSize, setTextSize] = useState<TextSize>(() => loadTextSize());
+  // Panel width — drag left edge; saved so it stays
+  const [panelWidth, setPanelWidth] = useState(() => loadPanelWidth());
   const [busy, setBusy] = useState(false);
   const [cloudConnected, setCloudConnected] = useState(false);
   const [localModelConnected, setLocalModelConnected] = useState(false);
   const msgsRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const dragWidthRef = useRef<{ startX: number; startW: number } | null>(null);
+  const panelWidthLive = useRef(panelWidth);
 
   // Shrink / grow Mel text one step
   function changeTextSize(dir: -1 | 1) {
@@ -250,7 +274,6 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
       const request = (event as CustomEvent<MelPromptRequest>).detail;
       if (!request?.text) return;
       setOpen(true);
-      setView("chat");
       window.setTimeout(() => void send(request.text), 0);
     };
     window.addEventListener(MEL_PROMPT_EVENT, onPrompt);
@@ -292,17 +315,60 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
     }
   }
 
+  // Drag the left edge of Mel to make the chat wider or narrower
+  function onResizePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragWidthRef.current = { startX: e.clientX, startW: panelWidthLive.current };
+  }
+
+  function onResizePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const drag = dragWidthRef.current;
+    if (!drag) return;
+    // Drag left = wider (panel is right-docked)
+    const next = Math.min(
+      WIDTH_MAX,
+      Math.max(WIDTH_MIN, drag.startW + (drag.startX - e.clientX))
+    );
+    panelWidthLive.current = next;
+    setPanelWidth(next);
+  }
+
+  function onResizePointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dragWidthRef.current) return;
+    dragWidthRef.current = null;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+    savePanelWidth(panelWidthLive.current);
+  }
+
   const panel = open ? (
         <div
-          className={`mai-panel${view === "overview" ? " is-overview" : ""} mai-size-${textSize}`}
+          className={`mai-panel mai-size-${textSize}`}
           role="dialog"
           aria-label="Mel"
+          style={{ width: `min(${panelWidth}px, calc(100vw - 24px))` }}
         >
+          {/* Left edge drag handle — extend Mel as wide as you want */}
+          <div
+            className="mai-resize"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize Mel chat"
+            title="Drag to make Mel wider or narrower"
+            onPointerDown={onResizePointerDown}
+            onPointerMove={onResizePointerMove}
+            onPointerUp={onResizePointerUp}
+            onPointerCancel={onResizePointerUp}
+          />
           <header className="mai-head">
             <p className="mai-title">
               Mel
             </p>
-            {/* A− smaller · A+ bigger (saved) */}
+            {/* − smaller · + bigger (saved) — plain signs only */}
             <button
               type="button"
               className="mai-head-btn mai-size-btn"
@@ -311,7 +377,7 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
               aria-label="Make Mel text smaller"
               title="Smaller text"
             >
-              A−
+              −
             </button>
             <button
               type="button"
@@ -321,10 +387,7 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
               aria-label="Make Mel text bigger"
               title="Bigger text"
             >
-              A+
-            </button>
-            <button type="button" className={`mai-head-btn${view === "overview" ? " is-active" : ""}`} onClick={() => setView((current) => current === "overview" ? "chat" : "overview")}>
-              Overview
+              +
             </button>
             <button type="button" className="mai-head-btn" onClick={clearChat}>
               Clear
@@ -339,26 +402,15 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
             </button>
           </header>
 
-          {view === "overview" ? <MelOverview onClose={() => setView("chat")} /> : <>
+          {/* Only Brief — Food / Status / Explain / Overview removed */}
           <nav className="mai-quick" aria-label="Mel quick actions">
-            {[
-              ["Brief", "brief"],
-              ["Food", "food"],
-              ["Status", "status"],
-              ["Explain", "Explain this page from first principles. Show me what matters, how the parts connect, and a concrete example."],
-              // One tap undoes last page move / Mel action / trash
-              ["Undo", "undo that"],
-            ].map(([label, command]) => (
-              <button
-                key={command}
-                type="button"
-                title={command === "undo that" ? "Undo last change (also ⌘Z)" : undefined}
-                onClick={() => void send(command)}
-                disabled={busy}
-              >
-                {label}
-              </button>
-            ))}
+            <button
+              type="button"
+              onClick={() => void send("brief")}
+              disabled={busy}
+            >
+              Brief
+            </button>
           </nav>
           <div ref={msgsRef} className="mai-msgs">
             {msgs.length === 0 && (
@@ -405,7 +457,7 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
             >
               →
             </button>
-          </form></>}
+          </form>
         </div>
       ) : null;
 
