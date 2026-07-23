@@ -285,6 +285,75 @@ export function spentByCategory(
   return out;
 }
 
+/**
+ * Build a monthly plan with ZERO typing.
+ * Averages expense by category over the last `monthsBack` months
+ * (or uses last full month if only one month of data).
+ * Rounds up to nice $5 steps so you don’t babysit cents.
+ */
+export function autoBudgetFromHistory(
+  txs: FinanceTx[],
+  existing: BudgetLine[],
+  monthsBack = 3
+): BudgetLine[] {
+  const months = recentMonthKeys(Math.max(1, monthsBack));
+  const totals: Record<string, number> = {};
+  const monthCountWithSpend: Record<string, number> = {};
+
+  for (const ym of months) {
+    const spent = spentByCategory(txs, ym);
+    const cats = new Set([...Object.keys(spent), ...existing.map((b) => b.category)]);
+    for (const cat of cats) {
+      const v = spent[cat] || 0;
+      totals[cat] = (totals[cat] || 0) + v;
+      if (v > 0) monthCountWithSpend[cat] = (monthCountWithSpend[cat] || 0) + 1;
+    }
+  }
+
+  const allCats = new Set([
+    ...existing.map((b) => b.category),
+    ...Object.keys(totals),
+  ]);
+
+  return Array.from(allCats).map((category) => {
+    const n = Math.max(1, monthCountWithSpend[category] || months.length);
+    const avg = (totals[category] || 0) / n;
+    // Round up to nearest $5 (or keep 0)
+    const planned =
+      avg <= 0 ? 0 : Math.ceil(avg / 5) * 5;
+    return { category, planned };
+  });
+}
+
+/** One-tap: copy last month’s actual spend into this month’s plan */
+export function budgetFromLastMonth(
+  txs: FinanceTx[],
+  existing: BudgetLine[]
+): BudgetLine[] {
+  const last = recentMonthKeys(2)[1] || recentMonthKeys(1)[0];
+  const spent = spentByCategory(txs, last);
+  const cats = new Set([
+    ...existing.map((b) => b.category),
+    ...Object.keys(spent),
+  ]);
+  return Array.from(cats).map((category) => {
+    const v = spent[category] || 0;
+    return {
+      category,
+      planned: v <= 0 ? 0 : Math.ceil(v / 5) * 5,
+    };
+  });
+}
+
+/** Scale every planned line by factor (e.g. 0.9 = tighten 10%) */
+export function scaleBudget(budget: BudgetLine[], factor: number): BudgetLine[] {
+  return budget.map((b) => ({
+    ...b,
+    planned:
+      b.planned <= 0 ? 0 : Math.max(0, Math.ceil((b.planned * factor) / 5) * 5),
+  }));
+}
+
 export function monthIncome(txs: FinanceTx[], ym: string): number {
   return txsInMonth(txs, ym)
     .filter((t) => t.kind === "income")

@@ -40,8 +40,11 @@ import {
   recentMonthKeys,
   saveFinance,
   savingsRate,
+  scaleBudget,
   spentByCategory,
   topMerchants,
+  autoBudgetFromHistory,
+  budgetFromLastMonth,
   type AccountKind,
   type FinanceAccount,
   type FinanceState,
@@ -489,6 +492,59 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
               b.category === category ? { ...b, planned } : b
             )
           : [...s.budget, { category, planned }],
+      };
+    });
+  }
+
+  /** Zero typing — plan built from your real spend history */
+  function autoBuildPlan() {
+    setState((s) => ({
+      ...s,
+      budget: autoBudgetFromHistory(s.txs, s.budget, 3),
+    }));
+    setImportNote(
+      "Plan auto-built from your last ~3 months of spending. No typing."
+    );
+    setTab("plan");
+  }
+
+  function planMatchLastMonth() {
+    setState((s) => ({
+      ...s,
+      budget: budgetFromLastMonth(s.txs, s.budget),
+    }));
+    setImportNote("Plan matched last month’s actual spend.");
+    setTab("plan");
+  }
+
+  function planTighten() {
+    setState((s) => ({
+      ...s,
+      budget: scaleBudget(s.budget, 0.9),
+    }));
+    setImportNote("Plan tightened 10% across categories.");
+  }
+
+  function planLoosen() {
+    setState((s) => ({
+      ...s,
+      budget: scaleBudget(s.budget, 1.1),
+    }));
+    setImportNote("Plan loosened 10% across categories.");
+  }
+
+  function nudgeBudget(category: string, delta: number) {
+    setState((s) => {
+      const cur = s.budget.find((b) => b.category === category)?.planned || 0;
+      const next = Math.max(0, Math.ceil((cur + delta) / 5) * 5);
+      const exists = s.budget.some((b) => b.category === category);
+      return {
+        ...s,
+        budget: exists
+          ? s.budget.map((b) =>
+              b.category === category ? { ...b, planned: next } : b
+            )
+          : [...s.budget, { category, planned: next }],
       };
     });
   }
@@ -1014,13 +1070,24 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
               <section className="wd-panel">
                 <div className="wd-panel-head">
                   <h2>Your plan</h2>
-                  <button
-                    type="button"
-                    className="wd-link"
-                    onClick={() => setTab("plan")}
-                  >
-                    Edit plan
-                  </button>
+                  <div className="wd-top-actions">
+                    {planPlanned <= 0 ? (
+                      <button
+                        type="button"
+                        className="wd-link"
+                        onClick={autoBuildPlan}
+                      >
+                        Auto-build
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="wd-link"
+                      onClick={() => setTab("plan")}
+                    >
+                      Open plan
+                    </button>
+                  </div>
                 </div>
                 <div className="wd-plan-table">
                   <div className="wd-plan-head">
@@ -1547,6 +1614,56 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                   {money(planSpent)} of {money(planPlanned)} planned
                 </span>
               </div>
+
+              {/* Zero typing — big automation buttons */}
+              <div className="wd-auto-bar">
+                <button
+                  type="button"
+                  className="wd-btn wd-btn-primary"
+                  onClick={autoBuildPlan}
+                  disabled={state.txs.length === 0}
+                >
+                  Auto-build from my spending
+                </button>
+                <button
+                  type="button"
+                  className="wd-btn"
+                  onClick={planMatchLastMonth}
+                  disabled={state.txs.length === 0}
+                >
+                  Match last month
+                </button>
+                <button
+                  type="button"
+                  className="wd-btn"
+                  onClick={planTighten}
+                  disabled={planPlanned <= 0}
+                >
+                  Tighten −10%
+                </button>
+                <button
+                  type="button"
+                  className="wd-btn"
+                  onClick={planLoosen}
+                  disabled={planPlanned <= 0}
+                >
+                  Loosen +10%
+                </button>
+                {state.txs.length === 0 ? (
+                  <button
+                    type="button"
+                    className="wd-btn"
+                    onClick={loadDemo}
+                  >
+                    Load demo first
+                  </button>
+                ) : null}
+              </div>
+              <p className="wd-muted wd-pad">
+                No typing. Import bank CSV or connect Plaid → tap Auto-build.
+                Nudge with + / − if you want.
+              </p>
+
               {state.budget.map((b) => {
                 const spent = spentMap[b.category] || 0;
                 const pct =
@@ -1567,24 +1684,29 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                         />
                       </div>
                       <em>
-                        {money(spent)}
-                        {b.planned > 0 ? ` / ${money(b.planned)}` : ""}
+                        Spent {money(spent)}
+                        {b.planned > 0 ? ` · Plan ${money(b.planned)}` : " · no plan yet"}
                       </em>
                     </div>
-                    <label>
-                      Planned
-                      <input
-                        type="number"
-                        min={0}
-                        value={b.planned || ""}
-                        onChange={(e) =>
-                          patchBudget(
-                            b.category,
-                            Math.max(0, Number(e.target.value) || 0)
-                          )
-                        }
-                      />
-                    </label>
+                    <div className="wd-nudge">
+                      <button
+                        type="button"
+                        className="wd-btn"
+                        aria-label="Decrease"
+                        onClick={() => nudgeBudget(b.category, -25)}
+                      >
+                        −
+                      </button>
+                      <span className="wd-nudge-val">{money(b.planned)}</span>
+                      <button
+                        type="button"
+                        className="wd-btn"
+                        aria-label="Increase"
+                        onClick={() => nudgeBudget(b.category, 25)}
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -1938,43 +2060,96 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
 
             <section className="wd-panel">
               <div className="wd-panel-head">
-                <h2>Bank connect</h2>
+                <h2>Add Chase / bank accounts</h2>
+                <span
+                  className={`wd-chip${plaid?.ready ? "" : " wd-chip-muted"}`}
+                >
+                  {plaid?.ready ? "Plaid ready" : "CSV mode"}
+                </span>
               </div>
-              <p className="wd-muted wd-pad">
-                Import CSV from your bank app anytime. Optional Plaid for
-                automatic sync when keys are set.
-              </p>
-              <div className="wd-top-actions wd-pad">
-                <button
-                  type="button"
-                  className="wd-btn wd-btn-primary"
-                  onClick={() => fileRef.current?.click()}
-                >
-                  Import CSV
-                </button>
-                <button
-                  type="button"
-                  className="wd-btn"
-                  disabled={plaidBusy || !plaid?.ready}
-                  onClick={() => void plaidSandboxConnect()}
-                >
-                  {plaidBusy ? "Working…" : "Plaid sandbox"}
-                </button>
-                <button
-                  type="button"
-                  className="wd-btn"
-                  disabled={plaidBusy || !state.plaidMeta?.itemId}
-                  onClick={() => void plaidSync()}
-                >
-                  Sync linked
-                </button>
+
+              <div className="wd-bank-cards">
+                <article className="wd-bank-card">
+                  <strong>Works right now · Chase CSV</strong>
+                  <p>
+                    Chase app or chase.com → Account → Download / Statements →
+                    CSV → tap Import. Dupes auto-skip. Then open Plan →
+                    Auto-build.
+                  </p>
+                  <button
+                    type="button"
+                    className="wd-btn wd-btn-primary"
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    Import bank CSV
+                  </button>
+                </article>
+                <article className="wd-bank-card">
+                  <strong>Automatic · Plaid (Chase supported)</strong>
+                  <p>
+                    Free Plaid developer keys unlock one-click bank link
+                    (Chase, Amex, Capital One, etc.). Without keys, sandbox
+                    only works if configured.
+                  </p>
+                  <div className="wd-top-actions">
+                    <button
+                      type="button"
+                      className="wd-btn"
+                      disabled={plaidBusy || !plaid?.ready}
+                      onClick={() => void plaidSandboxConnect()}
+                    >
+                      {plaidBusy ? "Working…" : "Connect (Plaid)"}
+                    </button>
+                    <button
+                      type="button"
+                      className="wd-btn"
+                      disabled={plaidBusy || !state.plaidMeta?.itemId}
+                      onClick={() => void plaidSync()}
+                    >
+                      Sync linked
+                    </button>
+                  </div>
+                  {plaid && !plaid.ready ? (
+                    <p className="wd-muted" style={{ marginTop: 10 }}>
+                      Not linked yet: add PLAID_CLIENT_ID + PLAID_SECRET to
+                      Wonder .env, restart. Free keys: dashboard.plaid.com
+                    </p>
+                  ) : null}
+                </article>
               </div>
+
               {plaidNote ? <p className="wd-note wd-pad">{plaidNote}</p> : null}
-              {plaid && !plaid.ready ? (
-                <p className="wd-muted wd-pad">
-                  {plaid.message || "Set PLAID_CLIENT_ID + PLAID_SECRET for auto bank link."}
-                </p>
-              ) : null}
+
+              <div className="wd-risk">
+                <h3>Data risks — straight talk</h3>
+                <ul>
+                  <li>
+                    <strong>CSV import (safest for you):</strong> file never
+                    leaves your computer. We read it in the browser and store
+                    numbers in localStorage on this device only. No Wonder
+                    server sees your Chase login.
+                  </li>
+                  <li>
+                    <strong>Plaid connect:</strong> you log in through Plaid’s
+                    secure flow (not our fake form). Plaid is used by tons of
+                    apps; they hold the bank token. We only keep account
+                    balances + transactions here. Risk: if this laptop is
+                    unlocked, someone could open Wonder and see your money
+                    data. Tokens in dev may live in server memory — don’t use
+                    production secrets on a shared machine.
+                  </li>
+                  <li>
+                    <strong>We do NOT store your Chase password.</strong> Ever.
+                    If a site asks for your password outside Plaid/Chase, it’s
+                    a scam.
+                  </li>
+                  <li>
+                    <strong>Official credit scores</strong> still need Credit
+                    Karma / your bank / AnnualCreditReport.com — we estimate
+                    health tips, not a bureau hard pull.
+                  </li>
+                </ul>
+              </div>
 
               {quotes.length > 0 ? (
                 <div className="wd-watch">

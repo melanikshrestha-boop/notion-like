@@ -1072,3 +1072,104 @@
 .wd-page {
   max-width: 1100px;
 }
+
+/* Plan automation bar */
+.wd-auto-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.wd-nudge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wd-nudge .wd-btn {
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.wd-nudge-val {
+  min-width: 4.5rem;
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  font-size: 15px;
+}
+
+/* Bank connect blocks */
+.wd-bank-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 720px) {
+  .wd-bank-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.wd-bank-card {
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #000;
+  min-height: 160px;
+}
+
+.wd-bank-card strong {
+  display: block;
+  font-size: 15px;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.wd-bank-card p {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--wd-muted);
+}
+
+.wd-chip-muted {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--wd-muted) !important;
+}
+
+.wd-risk {
+  margin-top: 8px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #000;
+}
+
+.wd-risk h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  color: #fff;
+}
+
+.wd-risk ul {
+  margin: 0;
+  padding-left: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--wd-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.wd-risk strong {
+  color: #fff;
+}
