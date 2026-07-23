@@ -1,8 +1,7 @@
 /**
- * Wonder Finances — Mintable + Sheets-level money desk.
- * - Bank CSV + optional Plaid auto-sync
- * - Credit health estimate + real-world improvement tips
- * - Spreadsheet-style ledger (edit cells, paste rows, SUM footer)
+ * Wonder Finances — Microsoft Excel UX.
+ * Flat ribbon, formula-style metrics, cell grid, sheet tabs.
+ * No rounded cards. Credit tips + bank CSV/Plaid still work.
  * Not financial advice. Credit number is educational, not FICO.
  */
 import {
@@ -668,77 +667,71 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
 
   return (
     <div className="fin">
+      {/* Workbook title */}
       <header className="fin-head">
-        <h1>Finances</h1>
+        <h1>Finances.xlsx</h1>
         <p>
-          Track every dollar — like{" "}
-          <a
-            href="https://github.com/kevinschaich/mintable"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Mintable
-          </a>
-          : bank CSV import, optional Plaid bank link, full ledger, budgets.
-          Data stays on this device unless you connect Plaid.
+          Local workbook · CSV import · optional Plaid · educational credit
+          model
         </p>
-        <div className="fin-links">
-          <button
-            type="button"
-            className="fin-btn fin-btn-primary"
-            onClick={() => setShowTxForm((v) => !v)}
-          >
-            {showTxForm ? "Close" : "Add transaction"}
+      </header>
+
+      {/* Ribbon */}
+      <div className="fin-links" role="toolbar" aria-label="Finance commands">
+        <button
+          type="button"
+          className="fin-btn fin-btn-primary"
+          onClick={() => setShowTxForm((v) => !v)}
+        >
+          {showTxForm ? "Cancel" : "Insert row"}
+        </button>
+        <button
+          type="button"
+          className="fin-btn"
+          onClick={() => fileRef.current?.click()}
+        >
+          Import CSV
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".csv,text/csv"
+          hidden
+          onChange={(e) => onCsvFile(e.target.files?.[0] || null)}
+        />
+        <button type="button" className="fin-btn" onClick={downloadCsv}>
+          Export CSV
+        </button>
+        {state.txs.length === 0 ? (
+          <button type="button" className="fin-btn" onClick={loadDemo}>
+            Sample data
           </button>
+        ) : null}
+        {onGo ? (
           <button
             type="button"
             className="fin-btn"
-            onClick={() => fileRef.current?.click()}
+            onClick={() => onGo("pg-world-monitor")}
           >
-            Import bank CSV
+            Markets
           </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".csv,text/csv"
-            hidden
-            onChange={(e) => onCsvFile(e.target.files?.[0] || null)}
-          />
-          <button type="button" className="fin-btn" onClick={downloadCsv}>
-            Export CSV
-          </button>
-          {state.txs.length === 0 ? (
-            <button type="button" className="fin-btn" onClick={loadDemo}>
-              Load demo month
-            </button>
-          ) : null}
-          {onGo ? (
-            <button
-              type="button"
-              className="fin-btn"
-              onClick={() => onGo("pg-world-monitor")}
-            >
-              Markets desk
-            </button>
-          ) : null}
-        </div>
+        ) : null}
+      </div>
 
-        {/* Quick-add row — zero learning curve */}
-        <div className="fin-quick" aria-label="Quick add expenses">
-          <span className="fin-quick-label">Quick add</span>
-          {QUICK_ADDS.map((q) => (
-            <button
-              key={q.label}
-              type="button"
-              className="fin-chip"
-              onClick={() => quickAdd(q)}
-            >
-              {q.label}
-            </button>
-          ))}
-        </div>
-        {importNote ? <p className="fin-note">{importNote}</p> : null}
-      </header>
+      <div className="fin-quick" aria-label="Quick add">
+        <span className="fin-quick-label">Quick</span>
+        {QUICK_ADDS.map((q) => (
+          <button
+            key={q.label}
+            type="button"
+            className="fin-chip"
+            onClick={() => quickAdd(q)}
+          >
+            {q.label}
+          </button>
+        ))}
+      </div>
+      {importNote ? <p className="fin-note">{importNote}</p> : null}
 
       {/* Snapshot */}
       <div className="fin-snap">
@@ -1039,10 +1032,9 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
       {tab === "ledger" ? (
         <section className="fin-sec">
           <div className="fin-sec-head">
-            <h2>Money sheet</h2>
+            <h2>Sheet1 · Ledger</h2>
             <p>
-              Google Sheets mode — click cells to edit · paste rows from
-              Sheets/Excel · click headers to sort
+              Click cells · paste from Excel · sort headers · =SUM in footer
             </p>
           </div>
 
