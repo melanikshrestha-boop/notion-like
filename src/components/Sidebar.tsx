@@ -192,9 +192,7 @@ function SectionLabel({
         }
       }}
     >
-      <span className={`sidebar-section-chev${closed ? "" : " is-open"}`} aria-hidden>
-        ▸
-      </span>
+      {/* No triangle toggle — label alone; double-tap still opens/closes */}
       <span className="sidebar-section-name">{label}</span>
     </div>
   );
@@ -299,17 +297,7 @@ function PageTreeItem({
         }}
         onDragEnd={clearDropState}
       >
-        {/* Chevron only when there are kids — visual open/closed, no instruction text */}
-        {hasKids ? (
-          <span
-            className={`page-tree-chev${isCollapsed ? "" : " is-open"}`}
-            aria-hidden
-          >
-            ▸
-          </span>
-        ) : (
-          <span className="page-collapse-spacer" aria-hidden />
-        )}
+        {/* No ▸ toggle icons — page icon + name only (double-tap still opens/closes kids) */}
         <button
           type="button"
           className={`page-row-main${hasKids ? " has-kids" : ""}`}
@@ -614,8 +602,6 @@ export function Sidebar({
               if (movingId) onMovePage(movingId, p.id);
             }}
           >
-            {/* spacer so icon lines up with Health pages (chevron column) */}
-            <span className="page-collapse-spacer" aria-hidden />
             <button
               type="button"
               className="page-row-main"
@@ -742,12 +728,7 @@ export function Sidebar({
           onClick={toggleTrash}
           aria-expanded={showTrash}
         >
-          <span
-            className={`sidebar-section-chev${showTrash ? " is-open" : ""}`}
-            aria-hidden
-          >
-            ▸
-          </span>
+          {/* No triangle — trash icon + label only */}
           <span className="side-icon" aria-hidden>
             <MinimalIcon name="trash" size={16} />
           </span>

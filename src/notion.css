@@ -231,9 +231,13 @@ textarea {
   flex-shrink: 0;
 }
 
-/* Visible collapse ▸ removed — click the page name to expand/collapse */
+/* All triangle / disclosure toggles removed — ugly ▸ never shown */
 .page-collapse-btn,
-.page-collapse-chev {
+.page-collapse-chev,
+.page-tree-chev,
+.sidebar-section-chev,
+.sidebar-section-label .sidebar-section-chev,
+.page-collapse-spacer {
   display: none !important;
 }
 
@@ -510,24 +514,7 @@ textarea {
   box-sizing: border-box;
 }
 
-/* Tree chevron on pages that have children */
-.page-tree-chev {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  flex-shrink: 0;
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.35);
-  transform: rotate(0deg);
-  transition: transform 0.18s ease, color 0.15s ease;
-  user-select: none;
-}
-
-.page-tree-chev.is-open {
-  transform: rotate(90deg);
-  color: rgba(255, 255, 255, 0.55);
-}
+/* Tree chevrons intentionally gone — icon + title only */
 
 .page-row {
   display: flex;
@@ -577,10 +564,6 @@ textarea {
 .page-row.is-active .page-title-side {
   color: #fff;
   font-weight: 500;
-}
-
-.page-row.is-open > .page-tree-chev {
-  color: rgba(255, 255, 255, 0.55);
 }
 
 .page-row-main {
