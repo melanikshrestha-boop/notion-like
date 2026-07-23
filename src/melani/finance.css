@@ -396,3 +396,173 @@
   color: rgba(255, 255, 255, 0.35);
   line-height: 1.4;
 }
+
+.fin-note a {
+  color: rgba(168, 196, 240, 0.9);
+}
+
+.fin-note code {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Snapshot can be 8 cards */
+.fin-snap {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (min-width: 720px) {
+  .fin-snap {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Tabs */
+.fin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 10px;
+}
+
+.fin-tab {
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.fin-tab:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.fin-tab.is-on {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Filters */
+.fin-filters {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+@media (min-width: 720px) {
+  .fin-filters {
+    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+  }
+}
+
+.fin-filters input,
+.fin-filters select {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.fin-filters select option {
+  background: #141414;
+}
+
+.fin-table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.fin-merchant {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.fin-pending {
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 200, 120, 0.85);
+  border: 1px solid rgba(255, 200, 120, 0.3);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.fin-src {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fin-cat-select {
+  max-width: 10rem !important;
+  font-size: 12px !important;
+}
+
+.fin-table .is-pos {
+  color: #a8d4b8;
+}
+
+.fin-table .is-neg {
+  color: #f0a0a0;
+}
+
+.fin-mask {
+  display: block;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 2px;
+}
+
+/* Bank connect */
+.fin-connect-grid {
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 720px) {
+  .fin-connect-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.fin-connect-card {
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.fin-connect-card h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.fin-connect-card p {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.fin-head a {
+  color: rgba(168, 196, 240, 0.95);
+}
