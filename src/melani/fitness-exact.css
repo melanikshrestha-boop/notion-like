@@ -486,9 +486,9 @@
 .macro-ring-num {
   color: #fff;
   font-size: 1.58rem;
-  font-weight: 750;
+  font-weight: 600;
   line-height: 1.05;
-  font-family: "Times New Roman", Times, serif;
+  font-family: var(--fx-font);
 }
 
 .macro-ring-num small {
@@ -511,7 +511,7 @@
   padding: 0;
   margin: 0;
   font-size: 14px;
-  font-family: "Times New Roman", Times, serif;
+  font-family: var(--fx-font);
 }
 
 .macro-stats li {
