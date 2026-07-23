@@ -48,8 +48,8 @@
   flex-direction: column;
   gap: 10px;
   padding: 20px 14px;
-  background: #0e1116;
-  border-right: 1px solid var(--wd-border);
+  background: #000000;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .wd-brand {
@@ -114,13 +114,14 @@
 }
 
 .wd-nav-item:hover {
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--wd-text);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
 }
 
 .wd-nav-item.is-on {
-  background: rgba(34, 197, 94, 0.12);
+  background: rgba(34, 197, 94, 0.14);
   color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.25);
 }
 
 .wd-nav-ico {
@@ -135,7 +136,7 @@
   flex-direction: column;
   gap: 2px;
   padding-top: 10px;
-  border-top: 1px solid var(--wd-border);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .wd-nav-foot .wd-nav-item {
@@ -149,9 +150,7 @@
   min-width: 0;
   padding: 24px 28px 48px;
   overflow-x: hidden;
-  background:
-    radial-gradient(ellipse 60% 40% at 80% 0%, rgba(34, 197, 94, 0.06), transparent),
-    var(--wd-bg);
+  background: #000000;
 }
 
 .wd-top {
@@ -182,9 +181,9 @@
 .wd-btn {
   min-height: 44px;
   padding: 0 18px;
-  border: 1px solid var(--wd-border-hi);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 12px;
-  background: var(--wd-panel);
+  background: #000000;
   color: var(--wd-text);
   font: inherit;
   font-size: 13px;
@@ -194,8 +193,8 @@
 
 .wd-select:hover,
 .wd-btn:hover {
-  border-color: rgba(255, 255, 255, 0.18);
-  background: var(--wd-panel-2);
+  border-color: rgba(255, 255, 255, 0.22);
+  background: #0a0a0a;
 }
 
 .wd-btn-primary {
@@ -245,14 +244,14 @@
   padding: 0 4px 10px;
 }
 
-/* ── Chunky panels / big boxes ── */
+/* ── Chunky panels / big boxes — jet black ── */
 .wd-panel {
-  background: var(--wd-panel);
-  border: 1px solid var(--wd-border);
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--wd-radius);
   padding: 22px 24px 24px;
   margin-bottom: 18px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+  box-shadow: none;
   min-height: 120px;
 }
 
@@ -300,10 +299,10 @@
 .wd-metric {
   padding: 20px 18px 18px;
   border-radius: 16px;
-  background: var(--wd-panel-2);
-  border: 1px solid var(--wd-border);
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   min-height: 120px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: none;
 }
 
 .wd-metric span {
@@ -459,8 +458,8 @@
   gap: 14px;
   padding: 16px 18px;
   border-radius: 14px;
-  background: var(--wd-panel-2);
-  border: 1px solid var(--wd-border);
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   min-height: 72px;
 }
 
@@ -514,8 +513,8 @@
 .wd-plan-row {
   padding: 16px 16px;
   border-radius: 14px;
-  background: var(--wd-panel-2);
-  border: 1px solid var(--wd-border);
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   font-variant-numeric: tabular-nums;
   font-size: 13px;
   min-height: 72px;
@@ -549,9 +548,8 @@
 
 /* Safe to spend */
 .wd-safe {
-  background:
-    radial-gradient(ellipse 80% 80% at 100% 0%, rgba(34, 197, 94, 0.12), transparent),
-    var(--wd-panel);
+  background: #000000;
+  border-color: rgba(34, 197, 94, 0.28);
 }
 
 .wd-safe-num {
@@ -593,8 +591,8 @@
   gap: 16px;
   padding: 18px;
   border-radius: 16px;
-  background: var(--wd-panel-2);
-  border: 1px solid var(--wd-border);
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   min-height: 110px;
 }
 
@@ -648,8 +646,8 @@
 .wd-goal-edit {
   padding: 12px;
   border-radius: 12px;
-  background: var(--wd-panel-2);
-  border: 1px solid var(--wd-border);
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .wd-goal-name {
@@ -684,9 +682,9 @@
 .wd-goal-fields input {
   width: 6.5rem;
   min-height: 32px;
-  border: 1px solid var(--wd-border-hi);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
-  background: var(--wd-bg);
+  background: #000000;
   color: #fff;
   font: inherit;
   padding: 0 8px;
@@ -701,14 +699,16 @@
 /* Tables */
 .wd-table-wrap {
   overflow-x: auto;
-  border-radius: 10px;
-  border: 1px solid var(--wd-border);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #000000;
 }
 
 .wd-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 12.5px;
+  background: #000000;
 }
 
 .wd-table th {
@@ -719,8 +719,8 @@
   text-transform: uppercase;
   color: var(--wd-muted);
   padding: 14px 16px;
-  background: var(--wd-panel-2);
-  border-bottom: 1px solid var(--wd-border);
+  background: #000000;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .wd-table th button {
@@ -738,10 +738,11 @@
 
 .wd-table td {
   padding: 16px 16px;
-  border-bottom: 1px solid var(--wd-border);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--wd-text);
   vertical-align: middle;
   font-size: 14px;
+  background: #000000;
 }
 
 .wd-table tr:last-child td {
@@ -749,7 +750,7 @@
 }
 
 .wd-table tr:hover td {
-  background: rgba(255, 255, 255, 0.02);
+  background: #050505;
 }
 
 .wd-table .num {
@@ -775,7 +776,7 @@
 .wd-table.wd-edit input:focus,
 .wd-table.wd-edit select:focus {
   border-color: rgba(34, 197, 94, 0.45);
-  background: rgba(0, 0, 0, 0.25);
+  background: #050505;
 }
 
 .wd-table.wd-edit .num input {
@@ -805,8 +806,8 @@
   margin-bottom: 14px;
   padding: 12px;
   border-radius: 12px;
-  background: var(--wd-panel-2);
-  border: 1px solid var(--wd-border);
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .wd-form label {
@@ -822,9 +823,9 @@
 .wd-form input,
 .wd-form select {
   min-height: 34px;
-  border: 1px solid var(--wd-border-hi);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
-  background: var(--wd-bg);
+  background: #000000;
   color: #fff;
   font: inherit;
   font-size: 13px;
@@ -856,9 +857,9 @@
 .wd-filters select {
   min-height: 34px;
   padding: 0 10px;
-  border: 1px solid var(--wd-border-hi);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 9px;
-  background: var(--wd-panel-2);
+  background: #000000;
   color: var(--wd-text);
   font: inherit;
   font-size: 12px;
@@ -906,9 +907,9 @@
   flex: 1;
   min-height: 52px;
   padding: 0 18px;
-  border: 1px solid var(--wd-border-hi);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 14px;
-  background: var(--wd-panel-2);
+  background: #000000;
   color: #fff;
   font: inherit;
   font-size: 15px;
@@ -977,9 +978,9 @@
 
 .wd-budget-row input {
   min-height: 32px;
-  border: 1px solid var(--wd-border-hi);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
-  background: var(--wd-bg);
+  background: #000000;
   color: #fff;
   font: inherit;
   padding: 0 8px;
@@ -1045,8 +1046,8 @@
 .wd-quote {
   padding: 10px;
   border-radius: 10px;
-  background: var(--wd-panel-2);
-  border: 1px solid var(--wd-border);
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .wd-quote b {
