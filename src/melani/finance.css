@@ -1244,6 +1244,80 @@
   max-width: 1120px;
 }
 
+/* Decision engine strip */
+.wd-brain-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wd-brain-k {
+  margin: 0 0 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--wd-tertiary);
+  font-family: var(--wd-font);
+}
+
+.wd-brain-h {
+  margin: 0 0 4px;
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: #fff;
+  font-family: var(--wd-font);
+}
+
+.wd-brain-q {
+  text-align: right;
+  min-width: 4.5rem;
+}
+
+.wd-brain-q span {
+  display: block;
+  font-size: 11px;
+  color: var(--wd-tertiary);
+  margin-bottom: 2px;
+}
+
+.wd-brain-q strong {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--wd-green);
+  font-family: var(--wd-font);
+  line-height: 1.1;
+}
+
+.wd-brain-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.wd-brain-proj {
+  margin: 8px 0 0;
+  line-height: 1.3;
+}
+
+.wd-brain-proj strong {
+  font-weight: 600;
+}
+
+.wd-sev-critical strong {
+  color: var(--wd-red);
+}
+
+.wd-sev-good strong {
+  color: var(--wd-green);
+}
+
 /* Plan automation */
 .wd-auto-bar {
   display: flex;

@@ -20,6 +20,10 @@ import {
 import { FINANCE_CATEGORIES } from "./financeCategorize";
 import { exportLedgerCsv, parseBankCsv } from "./financeCsv";
 import {
+  answerFromBrief,
+  buildSmartBrief,
+} from "./financeIntelligence";
+import {
   cashOnHand,
   creditOwed,
   demoSeedTxs,
@@ -285,46 +289,14 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
 
   const planPlanned = planRows.reduce((s, r) => s + r.planned, 0);
   const planSpent = planRows.reduce((s, r) => s + r.spent, 0);
-  // Safe to spend: cash left after this month's plan burn so far
-  const safeToSpend = Math.max(0, cash - Math.max(0, planPlanned - planSpent) * 0.25);
-  const dayOfMonth = Math.max(1, new Date().getDate());
-  const avgDailySpend = expense / dayOfMonth;
-  const runwayMonths =
-    avgDailySpend > 0 ? cash / (avgDailySpend * 30) : cash > 0 ? 99 : 0;
 
-  const attention = useMemo(() => {
-    const items: { title: string; detail: string; amount?: number }[] = [];
-    if (creditReport.utilization != null && creditReport.utilization > 0.3) {
-      items.push({
-        title: "Credit utilization high",
-        detail: `${Math.round(creditReport.utilization * 100)}% used — aim under 30%`,
-        amount: debt,
-      });
-    }
-    for (const r of planRows) {
-      if (r.planned > 0 && r.spent > r.planned * 1.1) {
-        items.push({
-          title: `${r.label} over plan`,
-          detail: `${money(r.spent)} spent vs ${money(r.planned)} planned`,
-          amount: r.spent - r.planned,
-        });
-      }
-    }
-    if (cashFlow < 0) {
-      items.push({
-        title: "Negative cash flow",
-        detail: `Outpaced income by ${money(Math.abs(cashFlow))} this month`,
-        amount: Math.abs(cashFlow),
-      });
-    }
-    if (!items.length) {
-      items.push({
-        title: "Looking clean",
-        detail: "No red flags from plan or credit utilization right now",
-      });
-    }
-    return items.slice(0, 4);
-  }, [creditReport.utilization, debt, planRows, cashFlow]);
+  /** Real decision engine — ranks next moves from live data */
+  const brief = useMemo(
+    () => buildSmartBrief(state, ym, planRows, creditReport),
+    [state, ym, planRows, creditReport]
+  );
+  const safeToSpend = brief.safeToSpend;
+  const runwayMonths = brief.runwayMonths;
 
   const ledger = useMemo(() => {
     let list = [...state.txs];
@@ -694,31 +666,29 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
   }
 
   function answerMoney(q: string) {
-    const n = q.toLowerCase();
-    if (!n.trim()) return;
-    if (n.includes("afford") || n.includes("trip") || n.includes("spend")) {
-      setAskA(
-        `Safe to spend is about ${money(safeToSpend)} after plan burn. Cash on hand ${money(cash)}, cash flow this month ${money(cashFlow)}. For a trip, check Goals or park it in savings first.`
-      );
-    } else if (n.includes("credit") || n.includes("score")) {
-      setAskA(
-        `Educational credit health is ${creditReport.estimate} (${creditReport.band}). Utilization ${
-          creditReport.utilization == null
-            ? "unknown — add card limits"
-            : `${Math.round(creditReport.utilization * 100)}%`
-        }. Top tip: ${creditReport.tips[0]?.title || "autopay minimums"}.`
-      );
-    } else if (n.includes("save") || n.includes("runway")) {
-      setAskA(
-        `Runway ≈ ${runwayMonths > 20 ? "20+" : runwayMonths.toFixed(1)} months at this spend pace. Savings rate ${
-          rate == null ? "n/a" : `${rate}%`
-        }.`
-      );
-    } else {
-      setAskA(
-        `Net worth ${money(worth)} · In ${money(income)} · Out ${money(expense)} · ${state.txs.length} transactions tracked. Open Transactions to edit, or Import CSV from your bank.`
-      );
+    if (!q.trim()) return;
+    setAskA(
+      answerFromBrief(q, brief, {
+        worth,
+        cash,
+        debt,
+        income,
+        expense,
+        cashFlow,
+        rate,
+        credit: creditReport,
+        txCount: state.txs.length,
+      })
+    );
+  }
+
+  function runSmartAction(actionId: string, tab?: TabId) {
+    if (actionId === "auto-plan" || actionId === "import" || actionId.startsWith("over-")) {
+      if (actionId === "auto-plan") autoBuildPlan();
+      else if (tab) setTab(tab);
+      return;
     }
+    if (tab) setTab(tab);
   }
 
   async function plaidSandboxConnect() {
@@ -952,11 +922,65 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
         {/* ════════ OVERVIEW ════════ */}
         {tab === "overview" ? (
           <div className="wd-overview">
+            {/* Intelligence strip — honest system status */}
+            <section className="wd-panel wd-brain">
+              <div className="wd-brain-top">
+                <div>
+                  <p className="wd-brain-k">Decision engine</p>
+                  <h2 className="wd-brain-h">{brief.headline}</h2>
+                  <p className="wd-muted">{brief.sub}</p>
+                </div>
+                <div className="wd-brain-q" title="How complete your data is">
+                  <span>Data trust</span>
+                  <strong>{brief.dataQuality.score}</strong>
+                </div>
+              </div>
+              {brief.dataQuality.score < 50 ? (
+                <div className="wd-brain-cta">
+                  <button
+                    type="button"
+                    className="wd-btn wd-btn-primary"
+                    onClick={() =>
+                      state.txs.length === 0 ? loadDemo() : autoBuildPlan()
+                    }
+                  >
+                    {state.txs.length === 0
+                      ? "Load demo to see the brain work"
+                      : "Auto-build plan from spend"}
+                  </button>
+                  <button
+                    type="button"
+                    className="wd-btn"
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    Import bank CSV
+                  </button>
+                </div>
+              ) : null}
+              {brief.dataQuality.hasTxs ? (
+                <p className="wd-muted wd-brain-proj">
+                  Pace: {money(brief.projection.burnPerDay)}/day · Projected
+                  month-end flow{" "}
+                  <strong
+                    className={
+                      brief.projection.projectedFlow < 0 ? "is-neg" : "is-pos"
+                    }
+                  >
+                    {money(brief.projection.projectedFlow)}
+                  </strong>{" "}
+                  · day {brief.projection.dayOfMonth}/
+                  {brief.projection.daysInMonth}
+                </p>
+              ) : null}
+            </section>
+
             {/* Snapshot row */}
             <section className="wd-panel">
               <div className="wd-panel-head">
                 <h2>Financial snapshot</h2>
-                <span className="wd-chip">Live</span>
+                <span className="wd-chip">
+                  {brief.dataQuality.score >= 70 ? "Live" : "Partial"}
+                </span>
               </div>
               <div className="wd-snap">
                 <div className="wd-metric">
@@ -969,9 +993,9 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                   </em>
                 </div>
                 <div className="wd-metric">
-                  <span>Available to spend</span>
+                  <span>Safe to spend</span>
                   <strong>{money(safeToSpend)}</strong>
-                  <em>left after plan so far</em>
+                  <em>cash − essentials left − debt floor − burn buffer</em>
                 </div>
                 <div className="wd-metric">
                   <span>Monthly cash flow</span>
@@ -991,7 +1015,9 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                       : runwayMonths.toFixed(1)}{" "}
                     <small>months</small>
                   </strong>
-                  <em>at this spend pace</em>
+                  <em>
+                    burn {money(brief.projection.burnPerDay)}/day
+                  </em>
                 </div>
               </div>
             </section>
@@ -1037,27 +1063,36 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                 </div>
               </section>
 
-              {/* Needs attention */}
+              {/* Ranked next actions from the engine */}
               <section className="wd-panel">
                 <div className="wd-panel-head">
-                  <h2>Needs attention</h2>
-                  <button
-                    type="button"
-                    className="wd-link"
-                    onClick={() => setTab("insights")}
-                  >
-                    View all
-                  </button>
+                  <h2>Next moves</h2>
+                  <span className="wd-muted">ranked by impact</span>
                 </div>
                 <ul className="wd-alerts">
-                  {attention.map((a, i) => (
-                    <li key={i}>
+                  {brief.actions.map((a) => (
+                    <li key={a.id} className={`wd-sev-${a.severity}`}>
                       <div>
                         <strong>{a.title}</strong>
                         <p>{a.detail}</p>
+                        <button
+                          type="button"
+                          className="wd-link"
+                          onClick={() =>
+                            runSmartAction(a.id, a.tab as TabId | undefined)
+                          }
+                        >
+                          {a.cta} →
+                        </button>
                       </div>
                       {a.amount != null ? (
-                        <em className="is-neg">{money(a.amount)}</em>
+                        <em
+                          className={
+                            a.severity === "good" ? "is-pos" : "is-neg"
+                          }
+                        >
+                          {money(a.amount)}
+                        </em>
                       ) : null}
                     </li>
                   ))}
@@ -1140,31 +1175,39 @@ export function Finances({ onGo }: { onGo?: (pageId: string) => void }) {
                 </section>
                 <section className="wd-panel">
                   <div className="wd-panel-head">
-                    <h2>Learn from your money</h2>
+                    <h2>What the data says</h2>
                   </div>
                   <ul className="wd-learn">
                     <li>
-                      Fixed costs are{" "}
-                      <strong>
-                        {planPlanned > 0
-                          ? Math.round(
-                              ((planRows[0]?.planned || 0) / planPlanned) * 100
-                            )
-                          : 0}
-                        %
-                      </strong>{" "}
-                      of your plan (essentials).
+                      Plan health:{" "}
+                      <strong>{brief.planHealth}</strong>
+                      {planPlanned > 0
+                        ? ` · ${money(planSpent)} of ${money(planPlanned)} used`
+                        : " · not built yet"}
                     </li>
                     <li>
-                      Top merchant:{" "}
-                      <strong>{merchants[0]?.merchant || "—"}</strong>
-                      {merchants[0]
-                        ? ` · ${money(merchants[0].total)}`
+                      Top leak:{" "}
+                      <strong>
+                        {brief.topLeak?.merchant || "not enough history"}
+                      </strong>
+                      {brief.topLeak
+                        ? ` · ${money(brief.topLeak.total)} (${brief.topLeak.count}×)`
                         : ""}
                     </li>
                     <li>
                       Savings rate:{" "}
                       <strong>{rate == null ? "—" : `${rate}%`}</strong>
+                      {" · "}
+                      Projected EOM flow{" "}
+                      <strong
+                        className={
+                          brief.projection.projectedFlow < 0
+                            ? "is-neg"
+                            : "is-pos"
+                        }
+                      >
+                        {money(brief.projection.projectedFlow)}
+                      </strong>
                     </li>
                   </ul>
                 </section>
