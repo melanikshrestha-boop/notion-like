@@ -1,12 +1,20 @@
 .care-concierge {
-  width: min(1040px, 100%);
+  /* Fill the main column on computer + phone */
+  width: 100%;
+  max-width: none;
   min-height: 100%;
-  margin: 0 auto;
-  padding: 30px 32px 100px;
+  margin: 0;
+  padding: 20px clamp(14px, 2.5vw, 36px) 100px;
   box-sizing: border-box;
   color: #f4f4f4;
   background: #000;
   font: inherit;
+}
+
+@media (max-width: 560px) {
+  .care-concierge {
+    padding: 14px 14px 80px;
+  }
 }
 
 .care-concierge button,

@@ -288,7 +288,8 @@ function SleepPanel() {
   const hoursInvalid = timesSet && hoursToday == null;
 
   return (
-    <>
+    /* Wide screens put sleep + brain fog side by side; chart under both */
+    <div className="fx-sleep-spread">
       <section className="fx-section">
         <h2 className="fx-h2">SLEEP</h2>
         <p className="fx-line">
@@ -377,7 +378,7 @@ function SleepPanel() {
           <canvas ref={canvasRef} className="fx-chart" />
         </div>
       </section>
-    </>
+    </div>
   );
 }
 

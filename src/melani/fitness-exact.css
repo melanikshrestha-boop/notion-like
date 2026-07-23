@@ -4,8 +4,9 @@
   background: #000;
   color: #fff;
   font-family: "Times New Roman", Times, ui-serif, Georgia, serif;
+  /* Fill the whole main column (next to the sidebar) — no skinny center strip */
   min-height: 100%;
-  padding: 8px 0 64px;
+  padding: 0 0 64px;
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -14,13 +15,65 @@
 }
 
 .fx-inner {
+  /* Use every bit of the page width; pad so text never touches edges */
   width: 100%;
-  max-width: min(720px, 100%);
-  margin: 0 auto;
-  padding: 16px 20px 48px;
+  max-width: none;
+  margin: 0;
+  padding: 12px clamp(14px, 2.5vw, 36px) 48px;
   text-align: left;
   box-sizing: border-box;
   min-width: 0;
+}
+
+/* On wide computer screens, use the extra width instead of empty black */
+@media (min-width: 960px) {
+  .fx-sleep-spread {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 8px 40px;
+    align-items: start;
+  }
+
+  .fx-sleep-spread > .fx-section {
+    margin-bottom: 18px;
+  }
+
+  /* Weekly sleep chart spans full row under the two columns */
+  .fx-sleep-spread > .fx-section:last-child {
+    grid-column: 1 / -1;
+  }
+
+  /* Meals: ring + stats sit next to each other */
+  .fx-section:has(.macro-ring-wrap) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 16px 40px;
+    align-items: center;
+  }
+
+  .fx-section:has(.macro-ring-wrap) > .fx-h2 {
+    grid-column: 1 / -1;
+  }
+
+  .macro-ring-wrap {
+    margin: 0;
+  }
+
+  /* Meal cards fill a grid so the page does not look empty on the right */
+  .usuals-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 4px 24px;
+    align-items: start;
+  }
+
+  .usuals-section > .usual-flash {
+    grid-column: 1 / -1;
+  }
+
+  .fx-chart {
+    height: 220px;
+  }
 }
 
 /* Quote — plain text only */
@@ -307,9 +360,10 @@
   height: 180px;
 }
 
+/* iPhone / small screens — full width, safe edge padding, no side-by-side */
 @media (max-width: 560px) {
   .fx-inner {
-    padding: 12px 16px 40px;
+    padding: 10px 14px 40px;
   }
 
   .fx-quote {
@@ -318,6 +372,10 @@
 
   .fx-subnav {
     margin-bottom: 20px;
+  }
+
+  .fx-sleep-spread {
+    display: block;
   }
 
   .consume-row {

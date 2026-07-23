@@ -1897,14 +1897,22 @@ textarea {
 }
 
 /* ── App shell ── */
-/* Melani / Library: fill the MAIN column only (sidebar-aware) */
+/* Melani / Library: fill the MAIN column only (sidebar-aware).
+   Side padding lives on each page’s inner shell so content can go full-bleed. */
 .notion-melani-page {
   width: 100%;
   max-width: 100%;
-  margin: 0 auto;
-  padding: 12px 16px 64px;
+  margin: 0;
+  padding: 8px 0 48px;
   box-sizing: border-box;
   overflow-x: hidden;
+}
+
+/* Phone: keep a little outer safety if a page forgot its own padding */
+@media (max-width: 560px) {
+  .notion-melani-page {
+    padding: 4px 0 40px;
+  }
 }
 
 .notion-melani-body {
@@ -2172,35 +2180,38 @@ html body select {
   scroll-behavior: smooth;
 }
 
-/* Operational agents can stay readable without inheriting the full-bleed
-   canvas used by dashboards and embedded products. */
-.notion-melani-body > .care-concierge {
-  width: min(1040px, 100%);
-  max-width: 1040px;
-  margin-inline: auto;
-}
-
-/* Center special Melani pages that sit full-width without their own max */
+/* Special Melani pages fill the main column edge-to-edge (padding is inside each page) */
+.notion-melani-body > .care-concierge,
 .notion-melani-body > .tasks-page,
 .notion-melani-body > .hx-page,
+.notion-melani-body > .hx,
 .notion-melani-body > .wm-root,
 .notion-melani-body > .bl,
+.notion-melani-body > .fx-page,
 .notion-melani-body > .fitness-exact,
-.notion-melani-body > .gym-exact {
+.notion-melani-body > .gym-exact,
+.notion-melani-body > .melani-shell,
+.notion-melani-body > .wd,
+.notion-melani-body > .shop-agent,
+.notion-melani-body > .gc {
   width: 100%;
-  margin-inline: auto;
+  max-width: 100%;
+  margin-inline: 0;
 }
 
-/* World Monitor content column stays readable + centered on wide screens */
+/* World Monitor / Books can still breathe on ultra-wide monitors without looking empty */
 .wm-root {
-  max-width: min(1280px, 100%);
-  margin-inline: auto;
+  max-width: none;
+  margin-inline: 0;
+  padding-inline: clamp(14px, 2.5vw, 36px);
+  box-sizing: border-box;
 }
 
-/* Books library shell centered */
 .bl:not(.bl-reader) {
-  max-width: min(1100px, 100%);
-  margin-inline: auto;
+  max-width: none;
+  margin-inline: 0;
+  padding-inline: clamp(14px, 2.5vw, 36px);
+  box-sizing: border-box;
 }
 
 .topbar {

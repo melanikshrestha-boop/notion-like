@@ -50,14 +50,22 @@
   display: none !important;
 }
 
-/* ═══════════════ MAIN — full page like Fitness ═══════════════ */
+/* ═══════════════ MAIN — fills the whole content column ═══════════════ */
 .wd-main {
   min-width: 0;
-  max-width: 920px;
-  margin: 0 auto;
-  padding: 4px 2px 40px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 4px clamp(14px, 2.5vw, 36px) 40px;
   overflow-x: hidden;
   background: transparent;
+  box-sizing: border-box;
+}
+
+@media (max-width: 560px) {
+  .wd-main {
+    padding: 4px 14px 40px;
+  }
 }
 
 /* In-page tabs — Fitness pattern: Overview · Transactions · Plan … */
@@ -1169,7 +1177,9 @@
 }
 
 .wd-page {
-  max-width: 1120px;
+  /* Nested page content also fills the main column */
+  max-width: none;
+  width: 100%;
 }
 
 /* Decision engine strip */

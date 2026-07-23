@@ -1,4 +1,5 @@
-.shop-agent { width: min(820px, 100%); margin: 0 auto; padding: 28px 28px 90px; box-sizing: border-box; color: #f4f4f4; background: #000; min-height: 100%; }
+.shop-agent { width: 100%; max-width: none; margin: 0; padding: 20px clamp(14px, 2.5vw, 36px) 90px; box-sizing: border-box; color: #f4f4f4; background: #000; min-height: 100%; }
+@media (max-width: 560px) { .shop-agent { padding: 14px 14px 80px; } }
 .shop-hero { padding: 34px 0 38px; border-bottom: 1px solid #202020; }
 .shop-eyebrow, .shop-section-head p { margin: 0 0 8px; color: #73b8ff; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; }
 .shop-hero h1 { max-width: 620px; margin: 0 0 12px; font-size: clamp(32px, 6vw, 58px); line-height: .98; font-weight: 500; letter-spacing: 0; }

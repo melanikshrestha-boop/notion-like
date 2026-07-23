@@ -3,10 +3,17 @@
 .gc {
   color: #fff;
   font-family: "Times New Roman", Times, serif;
-  padding: 0 0 40px;
+  padding: 0 clamp(14px, 2.5vw, 36px) 40px;
   width: 100%;
-  max-width: 720px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 560px) {
+  .gc {
+    padding: 0 14px 40px;
+  }
 }
 
 .gc-h2 {
