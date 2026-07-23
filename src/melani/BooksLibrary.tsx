@@ -32,6 +32,7 @@ import {
   mergeAppleBooks,
   mergeWonderBookPages,
 } from "./appleBooks";
+import { fetchLocalBooks, mergeLocalBooks } from "./localBooks";
 import {
   BOOK_OPEN_EVENT,
   type Book,
@@ -216,9 +217,72 @@ export function BooksLibrary({
     }
   }, []);
 
+  /**
+   * Pull EPUBs from Downloads + Documents books folders.
+   * New Ocean of PDF downloads show up automatically while Bookshelf is open.
+   */
+  const syncLocalFiles = useCallback(async (options?: { quiet?: boolean }) => {
+    if (!options?.quiet) {
+      setSync({ state: "syncing", message: "Scanning Downloads" });
+    }
+    try {
+      const result = await fetchLocalBooks();
+      setBooks((current) => {
+        const merged = mergeLocalBooks(current, result.books);
+        if (merged.addedCount > 0) {
+          const names = merged.addedTitles.slice(0, 2).join(" · ");
+          const msg =
+            merged.addedCount === 1
+              ? `New book · ${names}`
+              : `${merged.addedCount} new books · ${names}${
+                  merged.addedCount > 2 ? "…" : ""
+                }`;
+          // Toast after React applies the shelf update
+          window.queueMicrotask(() => setToast(msg));
+        }
+        return merged.books;
+      });
+      if (!options?.quiet) {
+        setSync({
+          state: "done",
+          message: `${result.count} local EPUB${result.count === 1 ? "" : "s"}`,
+        });
+      }
+    } catch (error) {
+      if (!options?.quiet) {
+        setSync({
+          state: "error",
+          message:
+            error instanceof Error ? error.message : "Local books unavailable",
+        });
+      }
+    }
+  }, []);
+
+  const syncAll = useCallback(async () => {
+    await syncApple();
+    await syncLocalFiles();
+  }, [syncApple, syncLocalFiles]);
+
   useEffect(() => {
-    void syncApple();
-  }, [syncApple]);
+    void syncAll();
+  }, [syncAll]);
+
+  // Keep scanning while Bookshelf is open — new Downloads appear without refresh
+  useEffect(() => {
+    const tick = () => {
+      if (document.visibilityState !== "visible") return;
+      void syncLocalFiles({ quiet: true });
+    };
+    const timer = window.setInterval(tick, 15_000);
+    window.addEventListener("focus", tick);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", tick);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [syncLocalFiles]);
 
   const runFinderSearch = useCallback(async (query: string) => {
     const cleaned = query.trim();
@@ -994,8 +1058,8 @@ export function BooksLibrary({
           <button
             type="button"
             className={`bl-sync${sync.state === "syncing" ? " is-syncing" : ""}`}
-            onClick={() => void syncApple()}
-            title="Refresh Apple Books"
+            onClick={() => void syncAll()}
+            title="Refresh Apple Books + Downloads EPUBs"
           >
             <ArrowsClockwise size={15} aria-hidden />
             <span>{sync.message}</span>

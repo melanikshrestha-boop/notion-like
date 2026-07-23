@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { appleBooksApi } from "./scripts/apple-books-api.mjs";
+import { localBooksApi } from "./scripts/local-books-api.mjs";
 import { wardrobeImportApi } from "./scripts/wardrobe/import-job-api.mjs";
 import { responsiveImageApi } from "./scripts/wardrobe/responsive-image-api.mjs";
 import { wardrobeIntelligenceApi } from "./scripts/wardrobe/wardrobe-intelligence-api.mjs";
@@ -31,6 +32,8 @@ export default defineConfig(({ mode }) => {
       wardrobeIntelligenceApi(),
       localTasksApi(),
       appleBooksApi(),
+      // Downloads + Documents EPUBs (Ocean of PDF, etc.) → Bookshelf
+      localBooksApi(),
       bookDiscoveryApi(),
       instacartShoppingApi({ env }),
       intelFeedsApi(),

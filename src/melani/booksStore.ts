@@ -18,7 +18,7 @@ export type BuiltInBookCategory =
 
 export type BookCategory = BuiltInBookCategory | `custom:${string}`;
 
-export type BookSource = "manual" | "apple-books" | "wonder-page";
+export type BookSource = "manual" | "apple-books" | "wonder-page" | "local-file";
 
 export type BookFormat = "epub" | "audiobook" | "cloud" | "archive" | "manual";
 export type ReadingFormat = "digital" | "physical+digital";
@@ -313,7 +313,7 @@ function normalizeStoredBook(value: Partial<Book>, index: number): Book {
     value.format || ""
   )
     ? (value.format as BookFormat)
-    : value.source === "apple-books"
+    : value.source === "apple-books" || value.source === "local-file"
       ? "epub"
       : "manual";
 
@@ -326,7 +326,9 @@ function normalizeStoredBook(value: Partial<Book>, index: number): Book {
       : "want",
     category,
     source:
-      value.source === "apple-books" || value.source === "wonder-page"
+      value.source === "apple-books" ||
+      value.source === "wonder-page" ||
+      value.source === "local-file"
         ? value.source
         : "manual",
     sourceId: value.sourceId,
